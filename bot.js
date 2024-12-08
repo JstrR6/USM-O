@@ -1,7 +1,6 @@
-require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const mongoose = require('mongoose');
-const User = require('./user');
+const User = require('./models/user');
 const crypto = require('crypto');
 
 // Create Discord client with necessary intents
@@ -13,7 +12,7 @@ const client = new Client({
   ]
 });
 
-// Connect to MongoDB
+// Connect to MongoDB (using environment variables from render.com)
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -88,7 +87,7 @@ client.once('ready', () => {
   updateAllUsers();
 });
 
-// Login to Discord
+// Login to Discord using token from render.com environment
 client.login(process.env.DISCORD_TOKEN);
 
 // Error handling
