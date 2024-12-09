@@ -482,6 +482,11 @@ router.post('/api/trainings', isAuthenticated, async (req, res) => {
 
 // Get pending trainings
 router.get('/api/trainings/pending', isAuthenticated, async (req, res) => {
+    console.log('Checking user roles:', {
+        isSenior: req.user.isSenior,
+        isOfficer: req.user.isOfficer
+    });
+
     if (!req.user.isSenior && !req.user.isOfficer) {
         return res.status(403).json({ error: 'Not authorized' });
     }
@@ -489,24 +494,36 @@ router.get('/api/trainings/pending', isAuthenticated, async (req, res) => {
     try {
         let query;
         if (req.user.isOfficer) {
-            // Officers see bumped_up trainings
+            // Officers see trainings that were bumped up
             query = { 
-                status: 'bumped_up',
-                needsApproval: true 
+                status: 'bumped_up'
             };
         } else {
-            // Senior NCOs see pending and bumped_back trainings
+            // Senior NCOs see initial pending trainings and bumped back ones
             query = { 
-                status: { $in: ['pending', 'bumped_back'] },
-                needsApproval: true 
+                $and: [
+                    { needsApproval: true },
+                    { status: { $in: ['pending', 'bumped_back'] } }
+                ]
             };
         }
+
+        console.log('Query being used:', query);
 
         const trainings = await Training.find(query)
             .populate('trainees instructor')
             .sort({ createdAt: -1 });
 
-        console.log('Found trainings:', trainings); // Debug log
+        console.log('Found trainings:', {
+            count: trainings.length,
+            trainings: trainings.map(t => ({
+                id: t._id,
+                status: t.status,
+                needsApproval: t.needsApproval,
+                type: t.type
+            }))
+        });
+
         res.json({ trainings });
     } catch (error) {
         console.error('Error fetching pending trainings:', error);
