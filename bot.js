@@ -27,7 +27,7 @@ function determineHighestRole(roles) {
     
     roles.forEach(role => {
         const rankIndex = ARMY_RANKS.indexOf(role);
-        if (rankIndex > highestRankIndex) {
+        if (rankIndex > highestRankIndex && rankIndex !== -1) {
             highestRankIndex = rankIndex;
         }
     });
@@ -47,30 +47,30 @@ async function syncUser(member) {
         const armyRoles = filterArmyRoles(roles);
         const highestRole = determineHighestRole(armyRoles);
 
-        const existingUser = await User.findOne({ discordId: member.id });
+        const userData = {
+            discordId: member.id,
+            username: member.user.username,
+            roles: roles,
+            highestRole: highestRole
+        };
 
-        if (!existingUser) {
+        let user = await User.findOne({ discordId: member.id }).exec();  // Added .exec()
+
+        if (!user) {
             console.log(`Creating new user: ${member.user.username}`);
-            const newUser = new User({
-                discordId: member.id,
-                username: member.user.username,
-                roles: roles,
-                highestRole: highestRole
-            });
-            newUser.updateFlags();
-            await newUser.save();
-            console.log(`Created user ${member.user.username} with highest role: ${highestRole}`);
+            user = new User(userData);
         } else {
             console.log(`Updating existing user: ${member.user.username}`);
-            existingUser.username = member.user.username;
-            existingUser.roles = roles;
-            existingUser.highestRole = highestRole;
-            existingUser.updateFlags();
-            await existingUser.save();
-            console.log(`Updated user ${member.user.username} with highest role: ${highestRole}`);
+            Object.assign(user, userData);
         }
+
+        user.updateFlags();
+        await user.save();
+        console.log(`Processed user ${member.user.username} with highest role: ${highestRole}`);
+
     } catch (error) {
-        console.error(`Error syncing user ${member.user.username}:`, error);
+        console.error(`Error syncing user ${member.user.username}:`, error.message);
+        console.error(error);
     }
 }
 
@@ -90,7 +90,7 @@ async function syncAllUsers() {
         console.log(`Found ${members.size} members in Discord`);
 
         // Get all users in database
-        const dbUsers = await User.find({});
+        const dbUsers = await User.find({}).exec();  // Added .exec()
         console.log(`Found ${dbUsers.length} users in database`);
 
         // Create Set of Discord IDs for quick lookup
@@ -104,9 +104,10 @@ async function syncAllUsers() {
             }
         }
 
-        // Update or create users
-        const syncPromises = members.map(member => syncUser(member));
-        await Promise.all(syncPromises);
+        // Process each member
+        for (const [id, member] of members) {
+            await syncUser(member);
+        }
 
         console.log('Full user sync completed successfully');
     } catch (error) {

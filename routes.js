@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');
-const User = require('./models/user');
+const bcrypt = require('bcryptjs');
 const passport = require('passport');
+const { User } = require('./models/user');  // Fixed import
 
 // Helper function to set session roles
 function setSessionRoles(req) {
@@ -72,28 +72,11 @@ router.get('/logout', (req, res, next) => {
     });
 });
 
-// Dashboard routes
 router.get('/dashboard', isAuthenticated, (req, res) => {
     res.render('dashboard', {
         title: 'Dashboard',
         user: req.user
     });
-});
-
-// API routes for XP management
-router.post('/api/award-xp', isAuthenticated, async (req, res) => {
-    try {
-        const { userId, amount } = req.body;
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-        user.xp += parseInt(amount);
-        await user.save();
-        res.json({ success: true, newXp: user.xp });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
 });
 
 module.exports = router;
