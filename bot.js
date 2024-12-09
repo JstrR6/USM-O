@@ -1,7 +1,6 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const mongoose = require('mongoose');
 const { User, ARMY_RANKS } = require('./models/user');
-const crypto = require('crypto');
 
 // Create Discord client with necessary intents
 const client = new Client({
@@ -41,68 +40,89 @@ function filterArmyRoles(roles) {
     return roles.filter(role => ARMY_RANKS.includes(role));
 }
 
-// Function to update user data
-async function updateUserData(member) {
+// Function to sync a single user
+async function syncUser(member) {
     try {
-        let user = await User.findOne({ discordId: member.id });
         const roles = member.roles.cache.map(role => role.name);
         const armyRoles = filterArmyRoles(roles);
         const highestRole = determineHighestRole(armyRoles);
 
-        if (!user) {
-            // Create new user if doesn't exist
-            user = new User({
+        const existingUser = await User.findOne({ discordId: member.id });
+
+        if (!existingUser) {
+            console.log(`Creating new user: ${member.user.username}`);
+            const newUser = new User({
                 discordId: member.id,
                 username: member.user.username,
                 roles: roles,
                 highestRole: highestRole
             });
+            newUser.updateFlags();
+            await newUser.save();
+            console.log(`Created user ${member.user.username} with highest role: ${highestRole}`);
         } else {
-            // Update existing user
-            user.username = member.user.username;
-            user.roles = roles;
-            user.highestRole = highestRole;
+            console.log(`Updating existing user: ${member.user.username}`);
+            existingUser.username = member.user.username;
+            existingUser.roles = roles;
+            existingUser.highestRole = highestRole;
+            existingUser.updateFlags();
+            await existingUser.save();
+            console.log(`Updated user ${member.user.username} with highest role: ${highestRole}`);
         }
-
-        // Update boolean flags
-        user.updateFlags();
-        user.lastUpdated = new Date();
-        await user.save();
-        
-        console.log(`Updated user ${member.user.username} with highest role: ${highestRole}`);
-        return user;
     } catch (error) {
-        console.error(`Error updating user ${member.user.username}:`, error);
+        console.error(`Error syncing user ${member.user.username}:`, error);
     }
 }
 
-// Function to update all users
-async function updateAllUsers() {
+// Function to perform complete sync of all users
+async function syncAllUsers() {
     try {
+        console.log('Starting full user sync...');
+        
+        // Get all guild members
         const guild = client.guilds.cache.first();
-        if (!guild) return;
+        if (!guild) {
+            console.error('No guild found');
+            return;
+        }
 
         const members = await guild.members.fetch();
-        console.log(`Updating ${members.size} users...`);
+        console.log(`Found ${members.size} members in Discord`);
 
-        const updatePromises = members.map(member => updateUserData(member));
-        await Promise.all(updatePromises);
+        // Get all users in database
+        const dbUsers = await User.find({});
+        console.log(`Found ${dbUsers.length} users in database`);
 
-        console.log('All users updated successfully');
+        // Create Set of Discord IDs for quick lookup
+        const discordMemberIds = new Set(members.map(member => member.id));
+        
+        // Remove users that are no longer in the Discord
+        for (const dbUser of dbUsers) {
+            if (!discordMemberIds.has(dbUser.discordId)) {
+                console.log(`Removing user ${dbUser.username} - no longer in Discord`);
+                await User.findByIdAndDelete(dbUser._id);
+            }
+        }
+
+        // Update or create users
+        const syncPromises = members.map(member => syncUser(member));
+        await Promise.all(syncPromises);
+
+        console.log('Full user sync completed successfully');
     } catch (error) {
-        console.error('Error updating users:', error);
+        console.error('Error during full sync:', error);
     }
 }
 
 // Bot ready event
-client.once('ready', () => {
+client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}`);
     
-    // Set up interval to update users every minute
-    setInterval(updateAllUsers, 60000);
+    // Perform initial sync
+    await syncAllUsers();
     
-    // Run initial update
-    updateAllUsers();
+    // Set up interval for regular syncs
+    setInterval(syncAllUsers, 60000); // Sync every minute
 });
 
 // Login to Discord
