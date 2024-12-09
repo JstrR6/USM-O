@@ -370,20 +370,60 @@
                     
                     const currentRankIndex = RANK_ORDER.indexOf(user.highestRole);
                     const maxRankIndex = RANK_ORDER.indexOf(currentUserRank);
+
+                    // Add default option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Select Rank';
+                    defaultOption.selected = true;
+                    defaultOption.disabled = true;
+                    selectElement.appendChild(defaultOption);
                     
+                    // Add rank options
                     for (let i = currentRankIndex + 1; i <= maxRankIndex; i++) {
                         const option = document.createElement('option');
                         option.value = RANK_ORDER[i];
                         option.textContent = RANK_ORDER[i];
                         selectElement.appendChild(option);
                     }
+
+                    // Listen for rank changes to show/hide officer approval note
+                    selectElement.addEventListener('change', function() {
+                        const selectedRank = this.value;
+                        const needsOfficerApproval = ['Master Sergeant', 'First Sergeant', 'Sergeant Major', 
+                            'Command Sergeant Major', 'Sergeant Major of the Army'].includes(selectedRank);
+                        
+                        const officerNote = document.getElementById('officerApprovalNote');
+                        if (needsOfficerApproval) {
+                            officerNote.classList.remove('hidden');
+                        } else {
+                            officerNote.classList.add('hidden');
+                        }
+                    });
                 }
 
                 function submitPromotion() {
+                    const promotionRank = document.getElementById('promotionRank').value;
+                    const reason = document.getElementById('promotionReason').value;
+
+                    if (!promotionRank) {
+                        alert('Please select a rank');
+                        return;
+                    }
+
+                    if (!reason) {
+                        alert('Please provide a reason for promotion');
+                        return;
+                    }
+
+                    const needsOfficerApproval = ['Master Sergeant', 'First Sergeant', 'Sergeant Major', 
+                        'Command Sergeant Major', 'Sergeant Major of the Army'].includes(promotionRank);
+
                     const promotionData = {
                         userId: selectedUserId,
-                        promotionRank: document.getElementById('promotionRank').value,
-                        reason: document.getElementById('promotionReason').value
+                        promotionRank: promotionRank,
+                        reason: reason,
+                        needsOfficerApproval: needsOfficerApproval
                     };
 
                     fetch('/api/promotions', {
@@ -396,7 +436,7 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            alert('Promotion request submitted successfully');
+                            alert(`Promotion request submitted successfully${needsOfficerApproval ? ' and pending officer approval' : ''}`);
                             closePromotionModal();
                         } else {
                             alert('Error submitting promotion request');

@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const passport = require('passport');
 const { User } = require('./models/user');
+const { client, handlePromotion } = require('./bot');
 
 // Middleware to check authentication
 function isAuthenticated(req, res, next) {
@@ -147,7 +148,11 @@ router.post('/api/promotions', isAuthenticated, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const needsOfficerApproval = RANK_ORDER.indexOf(promotionRank) >= RANK_ORDER.indexOf('Master Sergeant');
+        // Check if rank needs officer approval
+        const needsOfficerApproval = [
+            'Master Sergeant', 'First Sergeant', 'Sergeant Major', 
+            'Command Sergeant Major', 'Sergeant Major of the Army'
+        ].includes(promotionRank);
 
         const promotion = new Promotion({
             targetUser: userId,
@@ -155,20 +160,64 @@ router.post('/api/promotions', isAuthenticated, async (req, res) => {
             currentRank: targetUser.highestRole,
             promotionRank,
             reason,
-            needsOfficerApproval
+            needsOfficerApproval,
+            status: needsOfficerApproval ? 'pending' : 'approved'
         });
 
         await promotion.save();
 
         if (!needsOfficerApproval) {
             // Auto-approve promotions that don't need officer approval
-            targetUser.highestRole = promotionRank;
-            await targetUser.save();
+            const success = await handlePromotion(targetUser.discordId, promotionRank);
+            
+            if (success) {
+                targetUser.highestRole = promotionRank;
+                await targetUser.save();
+            } else {
+                return res.status(500).json({ error: 'Failed to update Discord roles' });
+            }
         }
 
         res.json({ success: true });
     } catch (error) {
         console.error('Promotion error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// For handling officer approvals
+router.post('/api/promotions/:id/approve', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const promotion = await Promotion.findById(req.params.id).populate('targetUser');
+        if (!promotion) {
+            return res.status(404).json({ error: 'Promotion not found' });
+        }
+
+        // Update Discord roles
+        const success = await handlePromotion(promotion.targetUser.discordId, promotion.promotionRank);
+        
+        if (success) {
+            promotion.status = 'approved';
+            promotion.officerApproval = {
+                officer: req.user._id,
+                date: new Date()
+            };
+            await promotion.save();
+
+            // Update user's rank in database
+            await User.findByIdAndUpdate(promotion.targetUser._id, {
+                highestRole: promotion.promotionRank
+            });
+
+            res.json({ success: true });
+        } else {
+            res.status(500).json({ error: 'Failed to update Discord roles' });
+        }
+    } catch (error) {
         res.status(500).json({ error: 'Server error' });
     }
 });
