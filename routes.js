@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const passport = require('passport');
 const { User } = require('./models/user');
 
-// Authentication middleware
+// Middleware to check authentication
 function isAuthenticated(req, res, next) {
     if (req.isAuthenticated()) {
         return next();
@@ -25,10 +25,7 @@ router.get('/login', (req, res) => {
     if (req.isAuthenticated()) {
         return res.redirect('/dashboard');
     }
-    res.render('login', { 
-        title: 'Login',
-        error: req.flash('error')
-    });
+    res.render('login', { title: 'Login' });
 });
 
 router.post('/login', async (req, res, next) => {
@@ -49,7 +46,6 @@ router.post('/login', async (req, res, next) => {
         }
         req.login(user, (err) => {
             if (err) return next(err);
-            setSessionRoles(req);
             return res.redirect('/dashboard');
         });
     } catch (err) {
@@ -75,7 +71,7 @@ router.get('/dashboard', isAuthenticated, async (req, res) => {
             title: 'Dashboard',
             user: user,
             allUsers: allUsers,
-            path: req.path  // Add the path variable
+            path: req.path
         });
     } catch (error) {
         console.error('Dashboard error:', error);
@@ -83,7 +79,7 @@ router.get('/dashboard', isAuthenticated, async (req, res) => {
     }
 });
 
-// Similarly for other routes
+// Profile route
 router.get('/profile', isAuthenticated, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).exec();
@@ -98,6 +94,7 @@ router.get('/profile', isAuthenticated, async (req, res) => {
     }
 });
 
+// Members route
 router.get('/members', isAuthenticated, async (req, res) => {
     try {
         const users = await User.find({}).sort({ highestRole: -1 }).exec();
