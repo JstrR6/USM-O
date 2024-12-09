@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const passport = require('passport');
 const { User } = require('./models/user');
 const { Promotion } = require('./models/promotion');
+const { Demotion } = require('./models/demotion');
 const { handlePromotion } = require('./bot')
 
 // Middleware to check authentication
@@ -250,15 +251,63 @@ router.get('/api/promotions/pending', isAuthenticated, async (req, res) => {
     }
 });
 
-// Get all promotion logs
 router.get('/api/promotions/logs', isAuthenticated, async (req, res) => {
     try {
         const promotions = await Promotion.find({})
             .populate('targetUser promotedBy')
+            .populate('officerApproval.officer')
             .sort({ createdAt: -1 })
             .exec();
         
         res.json({ promotions });
+    } catch (error) {
+        console.error('Error fetching promotion logs:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get all demotion logs
+router.get('/api/demotions/logs', isAuthenticated, async (req, res) => {
+    try {
+        const demotions = await Demotion.find({})
+            .populate('targetUser demotedBy')
+            .sort({ createdAt: -1 })
+            .exec();
+        
+        res.json({ demotions });
+    } catch (error) {
+        console.error('Error fetching demotion logs:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get all promotion logs
+router.get('/api/promotions/:id', isAuthenticated, async (req, res) => {
+    try {
+        const promotion = await Promotion.findById(req.params.id)
+            .populate('targetUser promotedBy')
+            .populate('officerApproval.officer');
+        
+        if (!promotion) {
+            return res.status(404).json({ error: 'Promotion not found' });
+        }
+        
+        res.json({ promotion });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+router.get('/api/demotions/:id', isAuthenticated, async (req, res) => {
+    try {
+        const demotion = await Demotion.findById(req.params.id)
+            .populate('targetUser demotedBy');
+        
+        if (!demotion) {
+            return res.status(404).json({ error: 'Demotion not found' });
+        }
+        
+        res.json({ demotion });
     } catch (error) {
         res.status(500).json({ error: 'Server error' });
     }
@@ -310,6 +359,67 @@ router.post('/api/promotions/:id/reject', isAuthenticated, async (req, res) => {
         await promotion.save();
 
         res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+router.post('/api/demotions', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Only officers can process demotions' });
+    }
+
+    try {
+        const { userId, demotionRank, reason } = req.body;
+        const targetUser = await User.findById(userId);
+        
+        if (!targetUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const demotion = new Demotion({
+            targetUser: userId,
+            demotedBy: req.user._id,
+            previousRank: targetUser.highestRole,
+            demotionRank,
+            reason
+        });
+
+        await demotion.save();
+
+        // Process the demotion immediately since it's from an officer
+        const success = await handlePromotion(targetUser.discordId, demotionRank);
+        
+        if (success) {
+            targetUser.highestRole = demotionRank;
+            await targetUser.save();
+            
+            demotion.processed = true;
+            await demotion.save();
+            
+            res.json({ success: true });
+        } else {
+            res.status(500).json({ error: 'Failed to update Discord roles' });
+        }
+    } catch (error) {
+        console.error('Demotion error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get demotion logs
+router.get('/api/demotions/logs', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const demotions = await Demotion.find({})
+            .populate('targetUser demotedBy')
+            .sort({ createdAt: -1 })
+            .exec();
+        
+        res.json({ demotions });
     } catch (error) {
         res.status(500).json({ error: 'Server error' });
     }

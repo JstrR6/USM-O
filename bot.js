@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits, Events } = require('discord.js');
 const mongoose = require('mongoose');
 const { User } = require('./models/user');
 const { Promotion } = require('./models/promotion');
+const { Demotion } = require('./models/demotion');  
 
 // Define rank hierarchy (from lowest to highest)
 const RANK_ORDER = [
@@ -150,13 +151,19 @@ function startAutoSync() {
 
 // Bot startup
 client.once(Events.ClientReady, async () => {
-    console.log(`Bot logged in as ${client.user.tag}`);
-    try {
-        await syncAllUsers();
-        startAutoSync();
-    } catch (error) {
-        console.error('Error during initial sync:', error);
-    }
+  console.log(`Bot logged in as ${client.user.tag}`);
+  try {
+      await syncAllUsers();
+      startAutoSync();
+      
+      // Check for pending promotions and demotions every minute
+      setInterval(async () => {
+          await checkPendingPromotions();
+          await checkPendingDemotions();
+      }, 60000);
+  } catch (error) {
+      console.error('Error during initial sync:', error);
+  }
 });
 
 // Event handlers for real-time updates
@@ -312,8 +319,43 @@ async function checkPendingPromotions() {
               console.error(`Failed to process promotion for ${promotion.targetUser.username}`);
           }
       }
+    } catch (error) {
+        console.error('Error checking pending promotions:', error);
+    }
+}
+
+async function checkPendingDemotions() {
+  try {
+      // Find all unprocessed demotions
+      const pendingDemotions = await Demotion.find({
+          processed: false
+      }).populate('targetUser');
+
+      for (const demotion of pendingDemotions) {
+          console.log(`Processing demotion for ${demotion.targetUser.username}`);
+          
+          const success = await handlePromotion(
+              demotion.targetUser.discordId,
+              demotion.demotionRank
+          );
+
+          if (success) {
+              // Update user's rank in database
+              await User.findByIdAndUpdate(demotion.targetUser._id, {
+                  highestRole: demotion.demotionRank
+              });
+
+              // Mark demotion as processed
+              demotion.processed = true;
+              await demotion.save();
+
+              console.log(`Completed demotion for ${demotion.targetUser.username}`);
+          } else {
+              console.error(`Failed to process demotion for ${demotion.targetUser.username}`);
+          }
+      }
   } catch (error) {
-      console.error('Error checking pending promotions:', error);
+      console.error('Error checking pending demotions:', error);
   }
 }
 
@@ -322,7 +364,8 @@ client.login(process.env.DISCORD_BOT_TOKEN)
     .catch(err => console.error('Bot login error:', err));
 
     module.exports = {
-      client: client,
-      handlePromotion: handlePromotion,
-      RANK_ORDER: RANK_ORDER
+      client,
+      handlePromotion,
+      RANK_ORDER,
+      checkPendingDemotions
   };
