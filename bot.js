@@ -7,31 +7,21 @@ const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildPresences
+        GatewayIntentBits.GuildPresences,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent
     ]
-});
-
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => {
-    console.log('Connected to MongoDB');
-}).catch((error) => {
-    console.error('MongoDB connection error:', error);
 });
 
 // Function to determine highest role from a list of roles
 function determineHighestRole(roles) {
     let highestRankIndex = 0;
-    
     roles.forEach(role => {
         const rankIndex = ARMY_RANKS.indexOf(role);
         if (rankIndex > highestRankIndex && rankIndex !== -1) {
             highestRankIndex = rankIndex;
         }
     });
-
     return ARMY_RANKS[highestRankIndex];
 }
 
@@ -54,7 +44,7 @@ async function syncUser(member) {
             highestRole: highestRole
         };
 
-        let user = await User.findOne({ discordId: member.id }).exec();  // Added .exec()
+        let user = await User.findOne({ discordId: member.id }).exec();
 
         if (!user) {
             console.log(`Creating new user: ${member.user.username}`);
@@ -79,7 +69,6 @@ async function syncAllUsers() {
     try {
         console.log('Starting full user sync...');
         
-        // Get all guild members
         const guild = client.guilds.cache.first();
         if (!guild) {
             console.error('No guild found');
@@ -89,11 +78,9 @@ async function syncAllUsers() {
         const members = await guild.members.fetch();
         console.log(`Found ${members.size} members in Discord`);
 
-        // Get all users in database
-        const dbUsers = await User.find({}).exec();  // Added .exec()
+        const dbUsers = await User.find({}).exec();
         console.log(`Found ${dbUsers.length} users in database`);
 
-        // Create Set of Discord IDs for quick lookup
         const discordMemberIds = new Set(members.map(member => member.id));
         
         // Remove users that are no longer in the Discord
@@ -115,25 +102,51 @@ async function syncAllUsers() {
     }
 }
 
-// Bot ready event
-client.once('ready', async () => {
-    console.log(`Logged in as ${client.user.tag}`);
-    
-    // Perform initial sync
-    await syncAllUsers();
-    
-    // Set up interval for regular syncs
-    setInterval(syncAllUsers, 60000); // Sync every minute
-});
+// Initialize function
+async function initialize() {
+    try {
+        // First, log into Discord
+        console.log('Attempting to log into Discord...');
+        await client.login(process.env.DISCORD_TOKEN);
+        console.log('Successfully logged into Discord!');
 
-// Login to Discord
-client.login(process.env.DISCORD_TOKEN);
+        // Then connect to MongoDB
+        console.log('Connecting to MongoDB...');
+        await mongoose.connect(process.env.MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
+        console.log('Successfully connected to MongoDB!');
 
-// Error handling
-client.on('error', error => {
-    console.error('Discord client error:', error);
-});
+        // Set up bot event handlers
+        client.once('ready', async () => {
+            console.log(`Bot is online! Logged in as ${client.user.tag}`);
+            await syncAllUsers();
+            setInterval(syncAllUsers, 60000);
+        });
 
+        // Error handlers
+        client.on('error', error => {
+            console.error('Discord client error:', error);
+        });
+
+        client.on('warn', warning => {
+            console.warn('Discord client warning:', warning);
+        });
+
+    } catch (error) {
+        console.error('Initialization error:', error);
+        process.exit(1);
+    }
+}
+
+// Handle unhandled promise rejections
 process.on('unhandledRejection', error => {
     console.error('Unhandled promise rejection:', error);
+});
+
+// Start the initialization
+initialize().catch(error => {
+    console.error('Failed to initialize:', error);
+    process.exit(1);
 });
