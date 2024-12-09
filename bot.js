@@ -321,4 +321,8 @@ async function checkPendingPromotions() {
 client.login(process.env.DISCORD_BOT_TOKEN)
     .catch(err => console.error('Bot login error:', err));
 
-module.exports = client;
+    module.exports = {
+      client: client,
+      handlePromotion: handlePromotion,
+      RANK_ORDER: RANK_ORDER
+  };

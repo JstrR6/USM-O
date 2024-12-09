@@ -179,8 +179,7 @@ router.post('/api/promotions', isAuthenticated, async (req, res) => {
         await promotion.save();
 
         if (!needsOfficerApproval) {
-            // Auto-approve promotions that don't need officer approval
-            const success = await bot.handlePromotion(targetUser.discordId, promotionRank);
+            const success = await handlePromotion(targetUser.discordId, promotionRank);
             
             if (success) {
                 targetUser.highestRole = promotionRank;
@@ -197,7 +196,7 @@ router.post('/api/promotions', isAuthenticated, async (req, res) => {
     }
 });
 
-// Similarly update the approve route
+// Update the approve route similarly
 router.post('/api/promotions/:id/approve', isAuthenticated, async (req, res) => {
     if (!req.user.isOfficer) {
         return res.status(403).json({ error: 'Not authorized' });
@@ -209,7 +208,7 @@ router.post('/api/promotions/:id/approve', isAuthenticated, async (req, res) => 
             return res.status(404).json({ error: 'Promotion not found' });
         }
 
-        const success = await bot.handlePromotion(promotion.targetUser.discordId, promotion.promotionRank);
+        const success = await handlePromotion(promotion.targetUser.discordId, promotion.promotionRank);
         
         if (success) {
             promotion.status = 'approved';
