@@ -3,8 +3,9 @@ const mongoose = require('mongoose');
 const session = require('express-session');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcrypt');  // Changed from bcryptjs to bcrypt
 const path = require('path');
+const flash = require('connect-flash');  // Added connect-flash
 const { User } = require('./models/user');
 const routes = require('./routes');
 
@@ -27,7 +28,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session configuration without connect-mongo
+// Session configuration
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
@@ -37,19 +38,21 @@ app.use(session({
     }
 }));
 
+// Initialize flash messages
+app.use(flash());
+
 // Passport configuration
 app.use(passport.initialize());
 app.use(passport.session());
 
 passport.use(new LocalStrategy(async (username, password, done) => {
     try {
-        const user = await User.findOne({ username });
+        const user = await User.findOne({ username }).exec();
         if (!user) {
             return done(null, false, { message: 'Username not found' });
         }
         if (!user.password) {
-            // First time login
-            return done(null, user);
+            return done(null, false, { message: 'Password not set' });
         }
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
@@ -67,7 +70,7 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
     try {
-        const user = await User.findById(id);
+        const user = await User.findById(id).exec();
         done(null, user);
     } catch (err) {
         done(err);
@@ -80,7 +83,8 @@ app.use('/', routes);
 // Error handling
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).send('Something broke!');
+    req.flash('error', 'Something went wrong!');
+    res.status(500).redirect('/');
 });
 
 // Start server

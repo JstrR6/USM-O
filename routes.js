@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');  // Changed from bcryptjs to bcrypt
 const passport = require('passport');
-const { User } = require('./models/user');  // Fixed import
+const flash = require('connect-flash');  // Added connect-flash
+const { User } = require('./models/user');
 
 // Helper function to set session roles
 function setSessionRoles(req) {
@@ -35,15 +36,19 @@ router.get('/login', (req, res) => {
     if (req.isAuthenticated()) {
         return res.redirect('/dashboard');
     }
-    res.render('login', { title: 'Login' });
+    res.render('login', { 
+        title: 'Login',
+        messages: req.flash('error') // Added flash messages
+    });
 });
 
 router.post('/login', async (req, res, next) => {
     const { username, password } = req.body;
     try {
-        const user = await User.findOne({ username });
+        const user = await User.findOne({ username }).exec();  // Added .exec()
         if (!user) {
-            return res.status(401).send('Access denied: Username not found.');
+            req.flash('error', 'Username not found');  // Using flash for error messages
+            return res.redirect('/login');
         }
         if (!user.password) {
             const hashedPassword = await bcrypt.hash(password, 10);
@@ -52,7 +57,8 @@ router.post('/login', async (req, res, next) => {
         }
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(401).send('Access denied: Incorrect password.');
+            req.flash('error', 'Incorrect password');  // Using flash for error messages
+            return res.redirect('/login');
         }
         req.login(user, (err) => {
             if (err) return next(err);
@@ -61,13 +67,15 @@ router.post('/login', async (req, res, next) => {
         });
     } catch (err) {
         console.error('Login error:', err);
-        return next(err);
+        req.flash('error', 'An error occurred during login');  // Using flash for error messages
+        return res.redirect('/login');
     }
 });
 
 router.get('/logout', (req, res, next) => {
     req.logout((err) => {
         if (err) return next(err);
+        req.flash('success', 'Successfully logged out');  // Added logout message
         res.redirect('/login');
     });
 });
@@ -75,7 +83,8 @@ router.get('/logout', (req, res, next) => {
 router.get('/dashboard', isAuthenticated, (req, res) => {
     res.render('dashboard', {
         title: 'Dashboard',
-        user: req.user
+        user: req.user,
+        messages: req.flash()  // Added flash messages to dashboard
     });
 });
 
