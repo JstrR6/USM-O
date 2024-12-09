@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> | Military Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Heroicons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <div class="bg-gray-800 text-white w-64 py-6 flex flex-col">
+            <div class="px-6 py-4">
+                <h1 class="text-2xl font-semibold">Military Portal</h1>
+            </div>
+            <!-- Navigation -->
+            <nav class="flex-1 px-4 mt-6">
+                <a href="/dashboard" class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/dashboard' ? 'bg-gray-700' : '' %>">
+                    <i class="fas fa-home w-5 h-5 mr-3"></i>
+                    Dashboard
+                </a>
+                <a href="/profile" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/profile' ? 'bg-gray-700' : '' %>">
+                    <i class="fas fa-user w-5 h-5 mr-3"></i>
+                    Profile
+                </a>
+                <a href="/members" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/members' ? 'bg-gray-700' : '' %>">
+                    <i class="fas fa-users w-5 h-5 mr-3"></i>
+                    Members
+                </a>
+            </nav>
+            <!-- User Info -->
+            <div class="px-6 py-4 border-t border-gray-700">
+                <div class="flex items-center">
+                    <div class="ml-3">
+                        <p class="text-sm font-medium"><%= user.username %></p>
+                        <p class="text-xs text-gray-400"><%= user.highestRole %></p>
+                    </div>
+                </div>
+                <a href="/logout" class="mt-4 block px-4 py-2 text-center text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg">
+                    Logout
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1">
+            <!-- Top Navigation -->
+            <header class="bg-white shadow-sm">
+                <div class="px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-semibold text-gray-800">Dashboard</h2>
+                        <div class="flex items-center">
+                            <span class="text-gray-600"><%= new Date().toLocaleDateString() %></span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="p-6">
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <!-- Total Members Card -->
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                                <i class="fas fa-users text-2xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-semibold text-gray-800">Total Members</h3>
+                                <p class="text-2xl font-bold text-gray-600"><%= allUsers.length %></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Your Rank Card -->
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-green-100 text-green-600">
+                                <i class="fas fa-medal text-2xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-semibold text-gray-800">Your Rank</h3>
+                                <p class="text-2xl font-bold text-gray-600"><%= user.highestRole %></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- XP Card -->
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="flex items-center">
+                            <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                                <i class="fas fa-star text-2xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h3 class="text-lg font-semibold text-gray-800">Total XP</h3>
+                                <p class="text-2xl font-bold text-gray-600"><%= user.xp || 0 %></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Members -->
+                <div class="bg-white rounded-lg shadow-sm">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800">Recent Members</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead>
+                                    <tr>
+                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">XP</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <% allUsers.slice(0, 5).forEach(function(member) { %>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><%= member.username %></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><%= member.highestRole %></td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900"><%= member.xp || 0 %></td>
+                                    </tr>
+                                    <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>

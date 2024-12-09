@@ -1,21 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcrypt');  // Changed from bcryptjs to bcrypt
+const bcrypt = require('bcrypt');
 const passport = require('passport');
-const flash = require('connect-flash');  // Added connect-flash
 const { User } = require('./models/user');
 
-// Helper function to set session roles
-function setSessionRoles(req) {
-    if (req.user) {
-        req.session.isRecruiter = req.user.isRecruiter;
-        req.session.isInstructor = req.user.isInstructor;
-        req.session.isSenior = req.user.isSenior;
-        req.session.isOfficer = req.user.isOfficer;
-    }
-}
-
-// Middleware to check authentication
+// Authentication middleware
 function isAuthenticated(req, res, next) {
     if (req.isAuthenticated()) {
         return next();
@@ -38,16 +27,16 @@ router.get('/login', (req, res) => {
     }
     res.render('login', { 
         title: 'Login',
-        messages: req.flash('error') // Added flash messages
+        error: req.flash('error')
     });
 });
 
 router.post('/login', async (req, res, next) => {
     const { username, password } = req.body;
     try {
-        const user = await User.findOne({ username }).exec();  // Added .exec()
+        const user = await User.findOne({ username }).exec();
         if (!user) {
-            req.flash('error', 'Username not found');  // Using flash for error messages
+            req.flash('error', 'Username not found');
             return res.redirect('/login');
         }
         if (!user.password) {
@@ -57,17 +46,16 @@ router.post('/login', async (req, res, next) => {
         }
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            req.flash('error', 'Incorrect password');  // Using flash for error messages
+            req.flash('error', 'Incorrect password');
             return res.redirect('/login');
         }
         req.login(user, (err) => {
             if (err) return next(err);
-            setSessionRoles(req);
             return res.redirect('/dashboard');
         });
     } catch (err) {
         console.error('Login error:', err);
-        req.flash('error', 'An error occurred during login');  // Using flash for error messages
+        req.flash('error', 'An error occurred during login');
         return res.redirect('/login');
     }
 });
@@ -75,17 +63,54 @@ router.post('/login', async (req, res, next) => {
 router.get('/logout', (req, res, next) => {
     req.logout((err) => {
         if (err) return next(err);
-        req.flash('success', 'Successfully logged out');  // Added logout message
         res.redirect('/login');
     });
 });
 
-router.get('/dashboard', isAuthenticated, (req, res) => {
-    res.render('dashboard', {
-        title: 'Dashboard',
-        user: req.user,
-        messages: req.flash()  // Added flash messages to dashboard
-    });
+// Dashboard routes
+router.get('/dashboard', isAuthenticated, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).exec();
+        const allUsers = await User.find({}).sort({ highestRole: -1 }).exec();
+        
+        res.render('dashboard', {
+            title: 'Dashboard',
+            user: user,
+            allUsers: allUsers
+        });
+    } catch (error) {
+        console.error('Dashboard error:', error);
+        res.status(500).send('Error loading dashboard');
+    }
+});
+
+// Profile route
+router.get('/profile', isAuthenticated, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).exec();
+        res.render('profile', {
+            title: 'Profile',
+            user: user
+        });
+    } catch (error) {
+        console.error('Profile error:', error);
+        res.status(500).send('Error loading profile');
+    }
+});
+
+// Members route
+router.get('/members', isAuthenticated, async (req, res) => {
+    try {
+        const users = await User.find({}).sort({ highestRole: -1 }).exec();
+        res.render('members', {
+            title: 'Members',
+            users: users,
+            currentUser: req.user
+        });
+    } catch (error) {
+        console.error('Members error:', error);
+        res.status(500).send('Error loading members');
+    }
 });
 
 module.exports = router;
