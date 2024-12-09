@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const passport = require('passport');
 const { User } = require('./models/user');
+const { Promotion } = require('./models/promotion');
 const { client, handlePromotion } = require('./bot');
 
 // Middleware to check authentication
