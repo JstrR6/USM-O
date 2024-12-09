@@ -3,10 +3,9 @@ const mongoose = require('mongoose');
 const session = require('express-session');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
-const MongoStore = require('connect-mongo');
 const bcrypt = require('bcryptjs');
 const path = require('path');
-const User = require('./models/user');
+const { User } = require('./models/user');
 const routes = require('./routes');
 
 const app = express();
@@ -28,12 +27,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session configuration
+// Session configuration without connect-mongo
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
     cookie: {
         maxAge: 1000 * 60 * 60 * 24 // 24 hours
     }
@@ -50,7 +48,8 @@ passport.use(new LocalStrategy(async (username, password, done) => {
             return done(null, false, { message: 'Username not found' });
         }
         if (!user.password) {
-            return done(null, false, { message: 'Password not set' });
+            // First time login
+            return done(null, user);
         }
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
