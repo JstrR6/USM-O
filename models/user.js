@@ -27,6 +27,11 @@ const ARMY_RANKS = [
     'General of the Army'
 ];
 
+const roleSchema = new mongoose.Schema({
+    id: String,
+    name: String
+});
+
 const userSchema = new mongoose.Schema({
     discordId: {
         type: String,
@@ -37,9 +42,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    roles: [{
-        type: String
-    }],
+    roles: [roleSchema],  
     highestRole: {
         type: String,
         default: 'Citizen'
