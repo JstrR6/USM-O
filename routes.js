@@ -5,6 +5,7 @@ const passport = require('passport');
 const { User } = require('./models/user');
 const { Promotion } = require('./models/promotion');
 const { Demotion } = require('./models/demotion');
+const { Training } = require('./models/training');
 const { handlePromotion } = require('./bot')
 
 // Middleware to check authentication
@@ -420,6 +421,186 @@ router.get('/api/demotions/logs', isAuthenticated, async (req, res) => {
             .exec();
         
         res.json({ demotions });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Submit new training
+router.post('/api/trainings', isAuthenticated, async (req, res) => {
+    if (!req.user.isInstructor) {
+        return res.status(403).json({ error: 'Only instructors can submit trainings' });
+    }
+
+    try {
+        const { usernames, type, xpAmount } = req.body;
+        
+        // Find all trainees
+        const trainees = await User.find({ username: { $in: usernames } });
+        if (trainees.length !== usernames.length) {
+            return res.status(400).json({ error: 'Some usernames not found' });
+        }
+
+        // For Basic Training, verify trainees are citizens
+        if (type === 'Basic Training') {
+            const nonCitizens = trainees.filter(t => t.highestRole !== 'Citizen');
+            if (nonCitizens.length > 0) {
+                return res.status(400).json({ 
+                    error: 'Basic Training is only for citizens' 
+                });
+            }
+        }
+
+        const needsApproval = xpAmount >= 10;
+        const training = new Training({
+            trainees: trainees.map(t => t._id),
+            instructor: req.user._id,
+            type,
+            xpAmount,
+            needsApproval,
+            status: needsApproval ? 'pending' : 'approved'
+        });
+
+        await training.save();
+
+        // If no approval needed, update XP immediately
+        if (!needsApproval) {
+            for (const trainee of trainees) {
+                trainee.xp += xpAmount;
+                await trainee.save();
+            }
+            training.processed = true;
+            await training.save();
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Training submission error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get pending trainings
+router.get('/api/trainings/pending', isAuthenticated, async (req, res) => {
+    if (!req.user.isSenior && !req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const query = req.user.isOfficer ? 
+            { status: 'bumped_up' } : 
+            { status: { $in: ['pending', 'bumped_back'] } };
+
+        const trainings = await Training.find(query)
+            .populate('trainees instructor')
+            .sort({ createdAt: -1 });
+
+        res.json({ trainings });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get training logs
+router.get('/api/trainings/logs', isAuthenticated, async (req, res) => {
+    try {
+        let query = {};
+        switch (req.query.filter) {
+            case 'bumped':
+                query.status = { $in: ['bumped_up', 'bumped_back'] };
+                break;
+            case 'approved':
+                query.status = 'approved';
+                break;
+            case 'rejected':
+                query.status = 'rejected';
+                break;
+        }
+
+        const trainings = await Training.find(query)
+            .populate('trainees instructor')
+            .sort({ createdAt: -1 });
+
+        res.json({ trainings });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Training actions (approve, reject, bump)
+router.post('/api/trainings/:id/:action', isAuthenticated, async (req, res) => {
+    if (!req.user.isSenior && !req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const training = await Training.findById(req.params.id)
+            .populate('trainees');
+        
+        if (!training) {
+            return res.status(404).json({ error: 'Training not found' });
+        }
+
+        switch (req.params.action) {
+            case 'approve':
+                training.status = 'approved';
+                // Update XP for all trainees
+                for (const trainee of training.trainees) {
+                    trainee.xp += training.xpAmount;
+                    await trainee.save();
+                }
+                training.processed = true;
+                break;
+
+            case 'reject':
+                training.status = 'rejected';
+                training.rejectReason = req.body.reason;
+                break;
+
+            case 'bump_up':
+                if (!req.user.isSenior) {
+                    return res.status(403).json({ error: 'Not authorized to bump up' });
+                }
+                training.status = 'bumped_up';
+                break;
+
+            case 'bump_back':
+                if (!req.user.isOfficer) {
+                    return res.status(403).json({ error: 'Not authorized to bump back' });
+                }
+                training.status = 'bumped_back';
+                break;
+
+            default:
+                return res.status(400).json({ error: 'Invalid action' });
+        }
+
+        training.approvalChain.push({
+            approver: req.user._id,
+            action: req.params.action,
+            reason: req.body.reason
+        });
+
+        await training.save();
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Training action error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get training details
+router.get('/api/trainings/:id', isAuthenticated, async (req, res) => {
+    try {
+        const training = await Training.findById(req.params.id)
+            .populate('trainees instructor')
+            .populate('approvalChain.approver');
+
+        if (!training) {
+            return res.status(404).json({ error: 'Training not found' });
+        }
+
+        res.json({ training });
     } catch (error) {
         res.status(500).json({ error: 'Server error' });
     }

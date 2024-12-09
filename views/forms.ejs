@@ -146,6 +146,11 @@
                                 <i class="fas fa-level-down-alt text-2xl text-red-600 mb-2"></i>
                                 <p class="text-sm">Demotion Form</p>
                             </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openTrainingLogs()">
+                                <i class="fas fa-history text-2xl text-blue-600 mb-2"></i>
+                                <p class="text-sm">Training Logs</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -160,6 +165,11 @@
                                 <i class="fas fa-medal text-2xl text-green-600 mb-2"></i>
                                 <p class="text-sm">Promotion Request</p>
                             </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openTrainingApproval()">
+                                <i class="fas fa-check-double text-2xl text-green-600 mb-2"></i>
+                                <p class="text-sm">Training Approval</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -168,14 +178,11 @@
                     <div class="bg-white rounded-lg p-6">
                         <h3 class="text-lg font-semibold mb-4">Instructor Forms</h3>
                         <div class="form-grid">
-                            <a href="#" class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100">
-                                <i class="fas fa-file-alt text-2xl text-yellow-600 mb-2"></i>
-                                <p class="text-sm">Course Request</p>
-                            </a>
-                            <a href="#" class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100">
-                                <i class="fas fa-file-alt text-2xl text-yellow-600 mb-2"></i>
-                                <p class="text-sm">Training Schedule</p>
-                            </a>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                 onclick="openTrainingForm()">
+                                <i class="fas fa-graduation-cap text-2xl text-yellow-600 mb-2"></i>
+                                <p class="text-sm">Training Form</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -936,6 +943,7 @@
                         });
                     }
                 </script>
+                <script src="/js/training.js"></script>
             </main>
         </div>
     </div>
