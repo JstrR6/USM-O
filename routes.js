@@ -487,16 +487,29 @@ router.get('/api/trainings/pending', isAuthenticated, async (req, res) => {
     }
 
     try {
-        const query = req.user.isOfficer ? 
-            { status: 'bumped_up' } : 
-            { status: { $in: ['pending', 'bumped_back'] } };
+        let query;
+        if (req.user.isOfficer) {
+            // Officers see bumped_up trainings
+            query = { 
+                status: 'bumped_up',
+                needsApproval: true 
+            };
+        } else {
+            // Senior NCOs see pending and bumped_back trainings
+            query = { 
+                status: { $in: ['pending', 'bumped_back'] },
+                needsApproval: true 
+            };
+        }
 
         const trainings = await Training.find(query)
             .populate('trainees instructor')
             .sort({ createdAt: -1 });
 
+        console.log('Found trainings:', trainings); // Debug log
         res.json({ trainings });
     } catch (error) {
+        console.error('Error fetching pending trainings:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
