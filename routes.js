@@ -124,4 +124,71 @@ router.get('/forms', isAuthenticated, async (req, res) => {
     }
 });
 
+// API Routes for Promotions
+router.get('/api/users/check', isAuthenticated, async (req, res) => {
+    try {
+        const user = await User.findOne({ username: req.query.username });
+        if (user) {
+            res.json({ user: { _id: user._id, username: user.username, highestRole: user.highestRole } });
+        } else {
+            res.json({ user: null });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+router.post('/api/promotions', isAuthenticated, async (req, res) => {
+    try {
+        const { userId, promotionRank, reason } = req.body;
+        const targetUser = await User.findById(userId);
+        
+        if (!targetUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const needsOfficerApproval = RANK_ORDER.indexOf(promotionRank) >= RANK_ORDER.indexOf('Master Sergeant');
+
+        const promotion = new Promotion({
+            targetUser: userId,
+            promotedBy: req.user._id,
+            currentRank: targetUser.highestRole,
+            promotionRank,
+            reason,
+            needsOfficerApproval
+        });
+
+        await promotion.save();
+
+        if (!needsOfficerApproval) {
+            // Auto-approve promotions that don't need officer approval
+            targetUser.highestRole = promotionRank;
+            await targetUser.save();
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Promotion error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get pending promotions (for officers)
+router.get('/api/promotions/pending', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const pendingPromotions = await Promotion.find({ 
+            needsOfficerApproval: true, 
+            status: 'pending' 
+        }).populate('targetUser promotedBy');
+        
+        res.json({ promotions: pendingPromotions });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 module.exports = router;

@@ -1,6 +1,7 @@
 const { Client, GatewayIntentBits, Events } = require('discord.js');
 const mongoose = require('mongoose');
 const { User } = require('./models/user');
+const { Promotion } = require('./models/promotion');
 
 // Define rank hierarchy (from lowest to highest)
 const RANK_ORDER = [
@@ -205,6 +206,115 @@ function determineRoleFlags(roles) {
   ].includes(role.name));
 
   return { isRecruiter, isInstructor, isSenior, isOfficer };
+}
+
+// Function to handle role updates for promotions
+async function handlePromotion(userId, newRank) {
+  try {
+      const guild = client.guilds.cache.first();
+      if (!guild) {
+          throw new Error('No guild found');
+      }
+
+      const member = await guild.members.fetch(userId);
+      if (!member) {
+          throw new Error('Member not found');
+      }
+
+      // Define rank categories
+      const rankCategories = {
+          'Citizen': [],
+          'Private': ['Enlisted', 'Enlisted Personnel'],
+          'Private First Class': ['Enlisted', 'Enlisted Personnel'],
+          'Specialist': ['Enlisted', 'Enlisted Personnel'],
+          'Corporal': ['Enlisted', 'Enlisted Personnel'],
+          'Sergeant': ['Non-Commissioned Officers', 'Enlisted Personnel'],
+          'Staff Sergeant': ['Non-Commissioned Officers', 'Enlisted Personnel'],
+          'Sergeant First Class': ['Non-Commissioned Officers', 'Enlisted Personnel'],
+          'Master Sergeant': ['Non-Commissioned Officers', 'Enlisted Personnel'],
+          'First Sergeant': ['Non-Commissioned Officers', 'Enlisted Personnel'],
+          'Sergeant Major': ['Senior Non-Commissioned Officers', 'Enlisted Personnel'],
+          'Command Sergeant Major': ['Senior Non-Commissioned Officers', 'Enlisted Personnel'],
+          'Sergeant Major of the Army': ['Senior Non-Commissioned Officers', 'Enlisted Personnel']
+      };
+
+      // All categories to potentially remove
+      const allCategories = [
+          'Enlisted',
+          'Non-Commissioned Officers',
+          'Senior Non-Commissioned Officers',
+          'Enlisted Personnel'
+      ];
+
+      // Remove current rank roles and categories
+      const rolesToRemove = member.roles.cache.filter(role => 
+          RANK_ORDER.includes(role.name) || allCategories.includes(role.name)
+      );
+
+      for (const [_, role] of rolesToRemove) {
+          await member.roles.remove(role);
+      }
+
+      // Add new rank role
+      const newRankRole = guild.roles.cache.find(role => role.name === newRank);
+      if (newRankRole) {
+          await member.roles.add(newRankRole);
+      } else {
+          throw new Error(`Rank role ${newRank} not found`);
+      }
+
+      // Add category roles
+      const categoriesToAdd = rankCategories[newRank] || [];
+      for (const category of categoriesToAdd) {
+          const categoryRole = guild.roles.cache.find(role => role.name === category);
+          if (categoryRole) {
+              await member.roles.add(categoryRole);
+          }
+      }
+
+      console.log(`Successfully promoted ${member.user.username} to ${newRank}`);
+      return true;
+  } catch (error) {
+      console.error('Error handling promotion:', error);
+      return false;
+  }
+}
+
+// Function to check for pending promotions
+async function checkPendingPromotions() {
+  try {
+      // Find all approved promotions that haven't been processed
+      const pendingPromotions = await Promotion.find({
+          status: 'approved',
+          processed: { $ne: true }
+      }).populate('targetUser');
+
+      for (const promotion of pendingPromotions) {
+          console.log(`Processing promotion for ${promotion.targetUser.username}`);
+          
+          const success = await handlePromotion(
+              promotion.targetUser.discordId,
+              promotion.promotionRank
+          );
+
+          if (success) {
+              // Update user's rank in database
+              await User.findByIdAndUpdate(promotion.targetUser._id, {
+                  highestRole: promotion.promotionRank
+              });
+
+              // Mark promotion as processed
+              promotion.processed = true;
+              await promotion.save();
+
+              console.log(`Completed promotion for ${promotion.targetUser.username}`);
+          } else {
+              console.error(`Failed to process promotion for ${promotion.targetUser.username}`);
+          }
+      }
+  } catch (error) {
+      console.error('Error checking pending promotions:', error);
+  }
 }
 
 // Login bot
