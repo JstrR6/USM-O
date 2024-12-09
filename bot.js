@@ -1,6 +1,6 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const mongoose = require('mongoose');
-const { User } = require('./models/user');
+const { User, ARMY_RANKS } = require('./models/user');
 const crypto = require('crypto');
 
 // Create Discord client with necessary intents
@@ -22,30 +22,54 @@ mongoose.connect(process.env.MONGODB_URI, {
     console.error('MongoDB connection error:', error);
 });
 
+// Function to determine highest role from a list of roles
+function determineHighestRole(roles) {
+    let highestRankIndex = 0;
+    
+    roles.forEach(role => {
+        const rankIndex = ARMY_RANKS.indexOf(role);
+        if (rankIndex > highestRankIndex) {
+            highestRankIndex = rankIndex;
+        }
+    });
+
+    return ARMY_RANKS[highestRankIndex];
+}
+
+// Function to filter and get only army ranks from roles
+function filterArmyRoles(roles) {
+    return roles.filter(role => ARMY_RANKS.includes(role));
+}
+
 // Function to update user data
 async function updateUserData(member) {
     try {
         let user = await User.findOne({ discordId: member.id });
         const roles = member.roles.cache.map(role => role.name);
+        const armyRoles = filterArmyRoles(roles);
+        const highestRole = determineHighestRole(armyRoles);
 
         if (!user) {
             // Create new user if doesn't exist
             user = new User({
                 discordId: member.id,
                 username: member.user.username,
-                roles: roles
+                roles: roles,
+                highestRole: highestRole
             });
         } else {
             // Update existing user
             user.username = member.user.username;
             user.roles = roles;
+            user.highestRole = highestRole;
         }
 
-        // Update boolean flags and highest role
+        // Update boolean flags
         user.updateFlags();
         user.lastUpdated = new Date();
         await user.save();
         
+        console.log(`Updated user ${member.user.username} with highest role: ${highestRole}`);
         return user;
     } catch (error) {
         console.error(`Error updating user ${member.user.username}:`, error);
