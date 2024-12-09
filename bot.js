@@ -63,9 +63,6 @@ function determineHighestRole(roles) {
             }
         });
     }
-
-    console.log(`User roles: ${militaryRoles.map(r => r.name).join(', ')}`);
-    console.log(`Determined highest role: ${highestRank}`);
     return highestRank;
 }
 
@@ -107,8 +104,6 @@ async function syncUserData(member) {
                 runValidators: true 
             }
         );
-
-        console.log(`Successfully synced user: ${member.user.username} with highest role: ${highestRole}`);
         return user;
     } catch (error) {
         console.error(`Error syncing user ${member.user.username}:`, error);
@@ -126,7 +121,6 @@ async function syncAllUsers() {
 
         console.log(`Found guild: ${guild.name}`);
         const members = await guild.members.fetch({ force: true });
-        console.log(`Found ${members.size} members`);
 
         let successCount = 0;
         let errorCount = 0;
@@ -135,14 +129,11 @@ async function syncAllUsers() {
             try {
                 await syncUserData(member);
                 successCount++;
-                console.log(`Progress: ${successCount}/${members.size} members processed`);
             } catch (error) {
                 errorCount++;
                 console.error(`Failed to sync user ${member.user.username}`);
             }
         }
-
-        console.log(`Sync completed. Success: ${successCount}, Failed: ${errorCount}`);
     } catch (error) {
         console.error('Error during full sync:', error);
         throw error;
