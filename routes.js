@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const passport = require('passport');
 const { User } = require('./models/user');
 const { Promotion } = require('./models/promotion');
-const { client, handlePromotion } = require('./bot');
+const bot = require('./bot');
 
 // Middleware to check authentication
 function isAuthenticated(req, res, next) {
@@ -161,7 +161,6 @@ router.post('/api/promotions', isAuthenticated, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Check if rank needs officer approval
         const needsOfficerApproval = [
             'Master Sergeant', 'First Sergeant', 'Sergeant Major', 
             'Command Sergeant Major', 'Sergeant Major of the Army'
@@ -181,7 +180,7 @@ router.post('/api/promotions', isAuthenticated, async (req, res) => {
 
         if (!needsOfficerApproval) {
             // Auto-approve promotions that don't need officer approval
-            const success = await handlePromotion(targetUser.discordId, promotionRank);
+            const success = await bot.handlePromotion(targetUser.discordId, promotionRank);
             
             if (success) {
                 targetUser.highestRole = promotionRank;
@@ -198,7 +197,7 @@ router.post('/api/promotions', isAuthenticated, async (req, res) => {
     }
 });
 
-// For handling officer approvals
+// Similarly update the approve route
 router.post('/api/promotions/:id/approve', isAuthenticated, async (req, res) => {
     if (!req.user.isOfficer) {
         return res.status(403).json({ error: 'Not authorized' });
@@ -210,8 +209,7 @@ router.post('/api/promotions/:id/approve', isAuthenticated, async (req, res) => 
             return res.status(404).json({ error: 'Promotion not found' });
         }
 
-        // Update Discord roles
-        const success = await handlePromotion(promotion.targetUser.discordId, promotion.promotionRank);
+        const success = await bot.handlePromotion(promotion.targetUser.discordId, promotion.promotionRank);
         
         if (success) {
             promotion.status = 'approved';
@@ -221,7 +219,6 @@ router.post('/api/promotions/:id/approve', isAuthenticated, async (req, res) => 
             };
             await promotion.save();
 
-            // Update user's rank in database
             await User.findByIdAndUpdate(promotion.targetUser._id, {
                 highestRole: promotion.promotionRank
             });
@@ -231,6 +228,7 @@ router.post('/api/promotions/:id/approve', isAuthenticated, async (req, res) => 
             res.status(500).json({ error: 'Failed to update Discord roles' });
         }
     } catch (error) {
+        console.error('Approval error:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
