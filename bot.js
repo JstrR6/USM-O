@@ -2,6 +2,34 @@ const { Client, GatewayIntentBits, Events } = require('discord.js');
 const mongoose = require('mongoose');
 const { User } = require('./models/user');
 
+// Define rank hierarchy (from lowest to highest)
+const RANK_ORDER = [
+    'Citizen',                    // Lowest rank
+    'Private',
+    'Private First Class',
+    'Specialist',
+    'Corporal',
+    'Sergeant',
+    'Staff Sergeant',
+    'Sergeant First Class',
+    'Master Sergeant',
+    'First Sergeant',
+    'Sergeant Major',
+    'Command Sergeant Major',
+    'Sergeant Major of the Army',
+    'Second Lieutenant',
+    'First Lieutenant',
+    'Captain',
+    'Major',
+    'Lieutenant Colonel',
+    'Colonel',
+    'Brigadier General',
+    'Major General',
+    'Lieutenant General',
+    'General',
+    'General of the Army'         // Highest rank
+];
+
 // Configure bot with necessary intents
 const client = new Client({ 
     intents: [
@@ -18,6 +46,29 @@ mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('MongoDB Connected Successfully'))
     .catch(err => console.error('MongoDB Connection Error:', err));
 
+// Function to determine highest role
+function determineHighestRole(roles) {
+    let highestRankIndex = -1;  // Start at -1 so any rank will be higher
+    let highestRank = 'Citizen';
+
+    // Filter role names that exist in our rank hierarchy
+    const militaryRoles = roles.filter(role => RANK_ORDER.includes(role.name));
+    
+    if (militaryRoles.length > 0) {
+        militaryRoles.forEach(role => {
+            const rankIndex = RANK_ORDER.indexOf(role.name);
+            if (rankIndex > highestRankIndex) {
+                highestRankIndex = rankIndex;
+                highestRank = role.name;
+            }
+        });
+    }
+
+    console.log(`User roles: ${militaryRoles.map(r => r.name).join(', ')}`);
+    console.log(`Determined highest role: ${highestRank}`);
+    return highestRank;
+}
+
 // Main function to sync a single user
 async function syncUserData(member) {
     try {
@@ -29,14 +80,22 @@ async function syncUserData(member) {
             name: role.name
         }));
 
+        // Calculate highest role
+        const highestRole = determineHighestRole(roles);
+
         // Create update object
         const updateData = {
             username: member.user.username,
             discordId: member.user.id,
-            roles: roles
+            roles: roles,
+            highestRole: highestRole
         };
 
-        console.log('Update data:', updateData);
+        console.log('Update data:', {
+            username: updateData.username,
+            highestRole: updateData.highestRole,
+            roleCount: updateData.roles.length
+        });
 
         // Use findOneAndUpdate
         const user = await User.findOneAndUpdate(
@@ -49,7 +108,7 @@ async function syncUserData(member) {
             }
         );
 
-        console.log(`Successfully synced user: ${member.user.username}`);
+        console.log(`Successfully synced user: ${member.user.username} with highest role: ${highestRole}`);
         return user;
     } catch (error) {
         console.error(`Error syncing user ${member.user.username}:`, error);
