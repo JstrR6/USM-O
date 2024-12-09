@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const passport = require('passport');
 const { User } = require('./models/user');
 const { Promotion } = require('./models/promotion');
-const bot = require('./bot');
+const { handlePromotion } = require('./bot')
 
 // Middleware to check authentication
 function isAuthenticated(req, res, next) {
