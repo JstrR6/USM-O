@@ -130,11 +130,23 @@ router.get('/api/users/check', isAuthenticated, async (req, res) => {
     try {
         const user = await User.findOne({ username: req.query.username });
         if (user) {
-            res.json({ user: { _id: user._id, username: user.username, highestRole: user.highestRole } });
+            console.log('Found user:', {
+                _id: user._id,
+                username: user.username,
+                highestRole: user.highestRole
+            });
+            res.json({ 
+                user: {
+                    _id: user._id,
+                    username: user.username,
+                    highestRole: user.highestRole
+                }
+            });
         } else {
             res.json({ user: null });
         }
     } catch (error) {
+        console.error('Error checking user:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });

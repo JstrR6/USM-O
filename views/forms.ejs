@@ -312,7 +312,7 @@
 
                 <script>
                     const RANK_ORDER = [
-                    'Citizen',
+                    'Citizen',                    // Lowest rank
                     'Private',
                     'Private First Class',
                     'Specialist',
@@ -324,7 +324,18 @@
                     'First Sergeant',
                     'Sergeant Major',
                     'Command Sergeant Major',
-                    'Sergeant Major of the Army'
+                    'Sergeant Major of the Army',
+                    'Second Lieutenant',
+                    'First Lieutenant',
+                    'Captain',
+                    'Major',
+                    'Lieutenant Colonel',
+                    'Colonel',
+                    'Brigadier General',
+                    'Major General',
+                    'Lieutenant General',
+                    'General',
+                    'General of the Army'
                 ];
 
                 let selectedUserId = null;
@@ -358,6 +369,7 @@
                 }
 
                 function showPromotionDetails(user) {
+                    console.log('Showing promotion details for:', user);
                     document.getElementById('step1').classList.add('hidden');
                     document.getElementById('step2').classList.remove('hidden');
                     
@@ -368,8 +380,14 @@
                     const selectElement = document.getElementById('promotionRank');
                     selectElement.innerHTML = '';
                     
+                    console.log('Current user rank:', currentUserRank);
+                    console.log('Target user current rank:', user.highestRole);
+                    
                     const currentRankIndex = RANK_ORDER.indexOf(user.highestRole);
                     const maxRankIndex = RANK_ORDER.indexOf(currentUserRank);
+
+                    console.log('Current rank index:', currentRankIndex);
+                    console.log('Max rank index:', maxRankIndex);
 
                     // Add default option
                     const defaultOption = document.createElement('option');
@@ -385,9 +403,10 @@
                         option.value = RANK_ORDER[i];
                         option.textContent = RANK_ORDER[i];
                         selectElement.appendChild(option);
+                        console.log('Added rank option:', RANK_ORDER[i]);
                     }
 
-                    // Listen for rank changes to show/hide officer approval note
+                    // Update officer approval note visibility
                     selectElement.addEventListener('change', function() {
                         const selectedRank = this.value;
                         const needsOfficerApproval = ['Master Sergeant', 'First Sergeant', 'Sergeant Major', 
