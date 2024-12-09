@@ -110,4 +110,18 @@ router.get('/members', isAuthenticated, async (req, res) => {
     }
 });
 
+router.get('/forms', isAuthenticated, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).exec();
+        res.render('forms', {
+            title: 'Forms',
+            user: user,
+            path: req.path
+        });
+    } catch (error) {
+        console.error('Forms error:', error);
+        res.status(500).send('Error loading forms');
+    }
+});
+
 module.exports = router;

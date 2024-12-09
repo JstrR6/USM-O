@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> | Military Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .folder {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .folder:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .folder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1.5rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <div class="bg-gray-800 text-white w-64 py-6 flex flex-col">
+            <div class="px-6 py-4">
+                <h1 class="text-2xl font-semibold">Military Portal</h1>
+            </div>
+            <!-- Navigation -->
+            <nav class="flex-1 px-4 mt-6">
+                <a href="/dashboard" class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 rounded-lg">
+                    <i class="fas fa-home w-5 h-5 mr-3"></i>
+                    Dashboard
+                </a>
+                <a href="/profile" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg">
+                    <i class="fas fa-user w-5 h-5 mr-3"></i>
+                    Profile
+                </a>
+                <a href="/forms" class="flex items-center px-4 py-3 mt-2 text-gray-300 bg-gray-700 rounded-lg">
+                    <i class="fas fa-file-alt w-5 h-5 mr-3"></i>
+                    Forms
+                </a>
+                <a href="/members" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg">
+                    <i class="fas fa-users w-5 h-5 mr-3"></i>
+                    Members
+                </a>
+            </nav>
+            <!-- User Info -->
+            <div class="px-6 py-4 border-t border-gray-700">
+                <div class="flex items-center">
+                    <div class="ml-3">
+                        <p class="text-sm font-medium"><%= user.username %></p>
+                        <p class="text-xs text-gray-400"><%= user.highestRole %></p>
+                    </div>
+                </div>
+                <a href="/logout" class="mt-4 block px-4 py-2 text-center text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg">
+                    Logout
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1">
+            <!-- Top Navigation -->
+            <header class="bg-white shadow-sm">
+                <div class="px-6 py-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Forms</h2>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="p-6">
+                <div class="folder-grid">
+                    <!-- Officer Folder - Visible to Officers -->
+                    <% if (user.isOfficer) { %>
+                    <div class="folder bg-white rounded-lg p-4 text-center cursor-pointer" onclick="toggleForms('officer-forms')">
+                        <div class="mb-2 text-blue-600">
+                            <i class="fas fa-folder text-5xl"></i>
+                        </div>
+                        <h3 class="font-semibold">Officer Forms</h3>
+                    </div>
+                    <% } %>
+
+                    <!-- Senior NCO Folder - Visible to Senior NCOs and Officers -->
+                    <% if (user.isSenior || user.isOfficer) { %>
+                    <div class="folder bg-white rounded-lg p-4 text-center cursor-pointer" onclick="toggleForms('senior-forms')">
+                        <div class="mb-2 text-green-600">
+                            <i class="fas fa-folder text-5xl"></i>
+                        </div>
+                        <h3 class="font-semibold">Senior NCO Forms</h3>
+                    </div>
+                    <% } %>
+
+                    <!-- Instructor Folder - Visible to Instructors, Senior NCOs, and Officers -->
+                    <% if (user.isInstructor || user.isSenior || user.isOfficer) { %>
+                    <div class="folder bg-white rounded-lg p-4 text-center cursor-pointer" onclick="toggleForms('instructor-forms')">
+                        <div class="mb-2 text-yellow-600">
+                            <i class="fas fa-folder text-5xl"></i>
+                        </div>
+                        <h3 class="font-semibold">Instructor Forms</h3>
+                    </div>
+                    <% } %>
+
+                    <!-- Recruiter Folder - Visible to Recruiters and above -->
+                    <% if (user.isRecruiter || user.isInstructor || user.isSenior || user.isOfficer) { %>
+                    <div class="folder bg-white rounded-lg p-4 text-center cursor-pointer" onclick="toggleForms('recruiter-forms')">
+                        <div class="mb-2 text-purple-600">
+                            <i class="fas fa-folder text-5xl"></i>
+                        </div>
+                        <h3 class="font-semibold">Recruiter Forms</h3>
+                    </div>
+                    <% } %>
+                </div>
+
+                <!-- Forms Sections (Hidden by default) -->
+                <div id="officer-forms" class="hidden mt-6">
+                    <div class="bg-white rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">Officer Forms</h3>
+                        <div class="form-grid">
+                            <a href="#" class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100">
+                                <i class="fas fa-file-alt text-2xl text-blue-600 mb-2"></i>
+                                <p class="text-sm">Promotion Request</p>
+                            </a>
+                            <a href="#" class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100">
+                                <i class="fas fa-file-alt text-2xl text-blue-600 mb-2"></i>
+                                <p class="text-sm">Command Transfer</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="senior-forms" class="hidden mt-6">
+                    <div class="bg-white rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">Senior NCO Forms</h3>
+                        <div class="form-grid">
+                            <a href="#" class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100">
+                                <i class="fas fa-file-alt text-2xl text-green-600 mb-2"></i>
+                                <p class="text-sm">Training Report</p>
+                            </a>
+                            <a href="#" class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100">
+                                <i class="fas fa-file-alt text-2xl text-green-600 mb-2"></i>
+                                <p class="text-sm">NCO Evaluation</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="instructor-forms" class="hidden mt-6">
+                    <div class="bg-white rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">Instructor Forms</h3>
+                        <div class="form-grid">
+                            <a href="#" class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100">
+                                <i class="fas fa-file-alt text-2xl text-yellow-600 mb-2"></i>
+                                <p class="text-sm">Course Request</p>
+                            </a>
+                            <a href="#" class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100">
+                                <i class="fas fa-file-alt text-2xl text-yellow-600 mb-2"></i>
+                                <p class="text-sm">Training Schedule</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="recruiter-forms" class="hidden mt-6">
+                    <div class="bg-white rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">Recruiter Forms</h3>
+                        <div class="form-grid">
+                            <a href="#" class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100">
+                                <i class="fas fa-file-alt text-2xl text-purple-600 mb-2"></i>
+                                <p class="text-sm">Recruit Application</p>
+                            </a>
+                            <a href="#" class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100">
+                                <i class="fas fa-file-alt text-2xl text-purple-600 mb-2"></i>
+                                <p class="text-sm">Interview Form</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function toggleForms(formId) {
+                        // Hide all form sections first
+                        document.querySelectorAll('[id$="-forms"]').forEach(section => {
+                            section.classList.add('hidden');
+                        });
+                        // Show the selected section
+                        document.getElementById(formId).classList.remove('hidden');
+                    }
+                </script>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
