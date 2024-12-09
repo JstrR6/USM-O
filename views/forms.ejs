@@ -29,6 +29,7 @@
             color: white;
         }
     </style>
+    <link rel="stylesheet" href="/css/training.css">
 </head>
 <body class="bg-gray-100">
     <div class="min-h-screen flex">
@@ -406,6 +407,98 @@
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Modal Container -->
+                <div id="trainingModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50"></div>
+
+                <!-- Training Approval Modal -->
+                <div id="trainingApprovalModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+                    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold text-gray-900">Training Approvals</h3>
+                            <button onclick="closeTrainingApprovalModal()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="pendingTrainingsList" class="space-y-4">
+                            <!-- Pending trainings will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Logs Modal -->
+                <div id="trainingLogsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+                    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold text-gray-900">Training Logs</h3>
+                            <button onclick="closeTrainingLogsModal()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="mb-4 flex gap-2">
+                            <button onclick="loadTrainingLogs('all')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                All Trainings
+                            </button>
+                            <button onclick="loadTrainingLogs('bumped')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                Bumped Trainings
+                            </button>
+                            <button onclick="loadTrainingLogs('approved')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                Approved
+                            </button>
+                            <button onclick="loadTrainingLogs('rejected')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                Rejected
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Instructor</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trainees</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">XP</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="trainingLogsBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Training logs will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Details Modal -->
+                <div id="trainingDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+                    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Training Details</h3>
+                            <button onclick="closeTrainingDetailsModal()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="trainingDetailsContent" class="space-y-4">
+                            <!-- Details will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reject Training Modal -->
+                <div id="rejectTrainingModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+                    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Reject Training</h3>
+                        <textarea id="rejectReason" rows="3" placeholder="Enter reason for rejection..."
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 mb-4"></textarea>
+                        <div class="flex justify-end gap-2">
+                            <button onclick="closeRejectTrainingModal()" 
+                                    class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                            <button onclick="submitTrainingRejection()" 
+                                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Submit</button>
                         </div>
                     </div>
                 </div>
@@ -942,8 +1035,8 @@
                             }
                         });
                     }
+                    src="/js/training.js"
                 </script>
-                <script src="/js/training.js"></script>
             </main>
         </div>
     </div>
