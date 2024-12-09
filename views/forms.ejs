@@ -1214,14 +1214,26 @@ async function loadPendingTrainings() {
                             `<p class="text-sm text-red-600">* Bumped back from Officer Review</p>` : ''}
                     </div>
                     <div class="space-y-2">
-                        <button onclick="handleTrainingAction('${training._id}', 'approve')" 
-                                class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-                            Approve
-                        </button>
-                        <button onclick="handleTrainingAction('${training._id}', 'bump_up')"
-                                class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                            Bump Up
-                        </button>
+                        ${!data.user.isOfficer ? `
+                            <button onclick="handleTrainingAction('${training._id}', 'approve')" 
+                                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                                Approve
+                            </button>
+                            <button onclick="handleTrainingAction('${training._id}', 'bump_up')"
+                                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                Bump Up
+                            </button>
+                        ` : ''}
+                        ${data.user.isOfficer ? `
+                            <button onclick="handleTrainingAction('${training._id}', 'approve')"
+                                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                                Approve
+                            </button>
+                            <button onclick="handleTrainingAction('${training._id}', 'bump_back')"
+                                    class="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">
+                                Bump Down
+                            </button>
+                        ` : ''}
                         <button onclick="openRejectTrainingModal('${training._id}')"
                                 class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
                             Reject
