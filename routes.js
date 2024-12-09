@@ -191,4 +191,69 @@ router.get('/api/promotions/pending', isAuthenticated, async (req, res) => {
     }
 });
 
+// Get all promotion logs
+router.get('/api/promotions/logs', isAuthenticated, async (req, res) => {
+    try {
+        const promotions = await Promotion.find({})
+            .populate('targetUser promotedBy')
+            .sort({ createdAt: -1 })
+            .exec();
+        
+        res.json({ promotions });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Approve promotion
+router.post('/api/promotions/:id/approve', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const promotion = await Promotion.findById(req.params.id);
+        if (!promotion) {
+            return res.status(404).json({ error: 'Promotion not found' });
+        }
+
+        promotion.status = 'approved';
+        promotion.officerApproval = {
+            officer: req.user._id,
+            date: new Date()
+        };
+        await promotion.save();
+
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Reject promotion
+router.post('/api/promotions/:id/reject', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const promotion = await Promotion.findById(req.params.id);
+        if (!promotion) {
+            return res.status(404).json({ error: 'Promotion not found' });
+        }
+
+        promotion.status = 'rejected';
+        promotion.officerApproval = {
+            officer: req.user._id,
+            date: new Date(),
+            rejectReason: req.body.reason
+        };
+        await promotion.save();
+
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 module.exports = router;
