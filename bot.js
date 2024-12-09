@@ -68,47 +68,42 @@ function determineHighestRole(roles) {
 
 // Main function to sync a single user
 async function syncUserData(member) {
-    try {
-        console.log(`Attempting to sync user: ${member.user.username}`);
-        
-        // Create roles array with proper structure
-        const roles = Array.from(member.roles.cache).map(([id, role]) => ({
-            id: role.id,
-            name: role.name
-        }));
+  try {      
+      // Create roles array with proper structure
+      const roles = Array.from(member.roles.cache).map(([id, role]) => ({
+          id: role.id,
+          name: role.name
+      }));
 
-        // Calculate highest role
-        const highestRole = determineHighestRole(roles);
+      // Calculate highest role and role flags
+      const highestRole = determineHighestRole(roles);
+      const roleFlags = determineRoleFlags(roles);
 
-        // Create update object
-        const updateData = {
-            username: member.user.username,
-            discordId: member.user.id,
-            roles: roles,
-            highestRole: highestRole
-        };
+      // Create update object
+      const updateData = {
+          username: member.user.username,
+          discordId: member.user.id,
+          roles: roles,
+          highestRole: highestRole,
+          ...roleFlags  // Spread the role flags into the update
+      };
 
-        console.log('Update data:', {
-            username: updateData.username,
-            highestRole: updateData.highestRole,
-            roleCount: updateData.roles.length
-        });
+      // Use findOneAndUpdate
+      const user = await User.findOneAndUpdate(
+          { discordId: member.user.id },
+          { $set: updateData },
+          { 
+              upsert: true, 
+              new: true,
+              runValidators: true 
+          }
+      );
 
-        // Use findOneAndUpdate
-        const user = await User.findOneAndUpdate(
-            { discordId: member.user.id },
-            { $set: updateData },
-            { 
-                upsert: true, 
-                new: true,
-                runValidators: true 
-            }
-        );
-        return user;
-    } catch (error) {
-        console.error(`Error syncing user ${member.user.username}:`, error);
-        throw error;
-    }
+      return user;
+  } catch (error) {
+      console.error(`Error syncing user ${member.user.username}:`, error);
+      throw error;
+  }
 }
 
 // Function to sync all users
@@ -183,6 +178,34 @@ client.on(Events.Error, error => {
 process.on('unhandledRejection', error => {
     console.error('Unhandled promise rejection:', error);
 });
+
+// Function to determine role flags
+function determineRoleFlags(roles) {
+  const isRecruiter = roles.some(role => 
+      ['Specialist', 'Corporal'].includes(role.name)
+  );
+
+  const isInstructor = roles.some(role => [
+      'Sergeant', 'Staff Sergeant', 'Sergeant First Class', 'Master Sergeant',
+      'First Sergeant', 'Sergeant Major', 'Command Sergeant Major', 
+      'Sergeant Major of the Army', 'Second Lieutenant', 'First Lieutenant',
+      'Captain', 'Major', 'Lieutenant Colonel', 'Colonel', 'Brigadier General',
+      'Major General', 'Lieutenant General', 'General', 'General of the Army'
+  ].includes(role.name));
+
+  const isSenior = roles.some(role => [
+      'Master Sergeant', 'First Sergeant', 'Sergeant Major', 
+      'Command Sergeant Major', 'Sergeant Major of the Army'
+  ].includes(role.name));
+
+  const isOfficer = roles.some(role => [
+      'Second Lieutenant', 'First Lieutenant', 'Captain', 'Major',
+      'Lieutenant Colonel', 'Colonel', 'Brigadier General', 'Major General',
+      'Lieutenant General', 'General', 'General of the Army'
+  ].includes(role.name));
+
+  return { isRecruiter, isInstructor, isSenior, isOfficer };
+}
 
 // Login bot
 client.login(process.env.DISCORD_BOT_TOKEN)

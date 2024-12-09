@@ -34,10 +34,9 @@ router.get('/login', (req, res) => {
 router.post('/login', async (req, res, next) => {
     const { username, password } = req.body;
     try {
-        const user = await User.findOne({ username }).exec();
+        const user = await User.findOne({ username });
         if (!user) {
-            req.flash('error', 'Username not found');
-            return res.redirect('/login');
+            return res.status(401).send('Access denied: Username not found.');
         }
         if (!user.password) {
             const hashedPassword = await bcrypt.hash(password, 10);
@@ -46,17 +45,16 @@ router.post('/login', async (req, res, next) => {
         }
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            req.flash('error', 'Incorrect password');
-            return res.redirect('/login');
+            return res.status(401).send('Access denied: Incorrect password.');
         }
         req.login(user, (err) => {
             if (err) return next(err);
+            setSessionRoles(req);
             return res.redirect('/dashboard');
         });
     } catch (err) {
         console.error('Login error:', err);
-        req.flash('error', 'An error occurred during login');
-        return res.redirect('/login');
+        return next(err);
     }
 });
 
@@ -76,7 +74,8 @@ router.get('/dashboard', isAuthenticated, async (req, res) => {
         res.render('dashboard', {
             title: 'Dashboard',
             user: user,
-            allUsers: allUsers
+            allUsers: allUsers,
+            path: req.path  // Add the path variable
         });
     } catch (error) {
         console.error('Dashboard error:', error);
@@ -84,13 +83,14 @@ router.get('/dashboard', isAuthenticated, async (req, res) => {
     }
 });
 
-// Profile route
+// Similarly for other routes
 router.get('/profile', isAuthenticated, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).exec();
         res.render('profile', {
             title: 'Profile',
-            user: user
+            user: user,
+            path: req.path
         });
     } catch (error) {
         console.error('Profile error:', error);
@@ -98,14 +98,14 @@ router.get('/profile', isAuthenticated, async (req, res) => {
     }
 });
 
-// Members route
 router.get('/members', isAuthenticated, async (req, res) => {
     try {
         const users = await User.find({}).sort({ highestRole: -1 }).exec();
         res.render('members', {
             title: 'Members',
             users: users,
-            currentUser: req.user
+            currentUser: req.user,
+            path: req.path
         });
     } catch (error) {
         console.error('Members error:', error);
