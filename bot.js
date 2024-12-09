@@ -1,122 +1,80 @@
-const { Client, Events, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, Events } = require('discord.js');
 const mongoose = require('mongoose');
-const { User, ARMY_RANKS } = require('./models/user');
+const { User } = require('./models/user');
 
-// Create Discord client with necessary intents
-const client = new Client({
+// Configure bot with necessary intents
+const client = new Client({ 
     intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildPresences,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
-    ]
+        GatewayIntentBits.GuildPresences
+    ] 
 });
 
-// Function to determine highest role from a list of roles
-function determineHighestRole(roles) {
-    let highestRankIndex = 0;
-    roles.forEach(role => {
-        const rankIndex = ARMY_RANKS.indexOf(role);
-        if (rankIndex > highestRankIndex && rankIndex !== -1) {
-            highestRankIndex = rankIndex;
-        }
-    });
-    return ARMY_RANKS[highestRankIndex];
-}
+// Connect to MongoDB with error handling
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('MongoDB Connected Successfully'))
+    .catch(err => console.error('MongoDB Connection Error:', err));
 
-// Function to filter and get only army ranks from roles
-function filterArmyRoles(roles) {
-    return roles.filter(role => ARMY_RANKS.includes(role));
-}
+// Handle database connection errors
+mongoose.connection.on('error', err => {
+    console.error('MongoDB Error:', err);
+});
 
-// Function to sync a single user
-async function syncUser(member) {
+// Main function to sync a single user
+async function syncUserData(member) {
     try {
-        const roles = member.roles.cache.map(role => role.name);
-        const armyRoles = filterArmyRoles(roles);
-        const highestRole = determineHighestRole(armyRoles);
+        // Map roles to include id and name
+        const roles = member.roles.cache.map(role => ({
+            id: role.id,
+            name: role.name
+        }));
 
-        const userData = {
-            discordId: member.id,
-            username: member.user.username,
-            roles: roles,
-            highestRole: highestRole
-        };
+        // Use findOneAndUpdate to handle both creation and updates
+        await User.findOneAndUpdate(
+            { discordId: member.user.id },
+            {
+                $set: {
+                    username: member.user.username,
+                    discordId: member.user.id,
+                    roles: roles
+                }
+            },
+            { upsert: true, new: true }
+        );
 
-        let user = await User.findOne({ discordId: member.id }).exec();
-
-        if (!user) {
-            console.log(`Creating new user: ${member.user.username}`);
-            user = new User(userData);
-        } else {
-            console.log(`Updating existing user: ${member.user.username}`);
-            Object.assign(user, userData);
-        }
-
-        user.updateFlags();
-        await user.save();
-        console.log(`Processed user ${member.user.username} with highest role: ${highestRole}`);
-
+        console.log(`Synced user: ${member.user.username}`);
     } catch (error) {
-        console.error(`Error syncing user ${member.user.username}:`, error.message);
-        console.error(error);
+        console.error(`Error syncing user ${member.user.username}:`, error);
     }
 }
 
-// Function to perform complete sync of all users
+// Function to sync all users
 async function syncAllUsers() {
     try {
-        console.log('Starting full user sync...');
-        
         const guild = client.guilds.cache.first();
-        if (!guild) {
-            console.error('No guild found');
-            return;
-        }
+        if (!guild) throw new Error('Guild not found');
 
         const members = await guild.members.fetch();
-        console.log(`Found ${members.size} members in Discord`);
+        console.log(`Starting sync for ${members.size} members`);
 
-        const dbUsers = await User.find({}).exec();
-        console.log(`Found ${dbUsers.length} users in database`);
-
-        const discordMemberIds = new Set(members.map(member => member.id));
-        
-        // Remove users that are no longer in the Discord
-        for (const dbUser of dbUsers) {
-            if (!discordMemberIds.has(dbUser.discordId)) {
-                console.log(`Removing user ${dbUser.username} - no longer in Discord`);
-                await User.findByIdAndDelete(dbUser._id);
-            }
+        for (const member of members.values()) {
+            await syncUserData(member);
         }
 
-        // Process each member
-        for (const [id, member] of members) {
-            await syncUser(member);
-        }
-
-        console.log('Full user sync completed successfully');
+        console.log('Full user sync completed.');
     } catch (error) {
         console.error('Error during full sync:', error);
     }
 }
 
-// Function to start auto-sync
+// Auto sync every 5 minutes
 function startAutoSync() {
-    setInterval(syncAllUsers, 60000);
-    console.log('Auto-sync started - will sync every minute');
+    setInterval(async () => {
+        console.log('Starting automatic sync...');
+        await syncAllUsers();
+    }, 5 * 60 * 1000); // 5 minutes
 }
-
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => {
-    console.log('Connected to MongoDB');
-}).catch((error) => {
-    console.error('MongoDB connection error:', error);
-});
 
 // Bot startup
 client.once(Events.ClientReady, async () => {
@@ -125,15 +83,29 @@ client.once(Events.ClientReady, async () => {
     startAutoSync();
 });
 
+// Event handlers for real-time updates
+client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
+    if (oldMember.roles.cache.size !== newMember.roles.cache.size ||
+        !oldMember.roles.cache.every(role => newMember.roles.cache.has(role.id))) {
+        await syncUserData(newMember);
+    }
+});
+
+client.on(Events.GuildMemberAdd, async (member) => {
+    await syncUserData(member);
+});
+
 // Error handling
 client.on(Events.Error, error => {
     console.error('Discord client error:', error);
 });
 
-// Handle unhandled promise rejections
 process.on('unhandledRejection', error => {
     console.error('Unhandled promise rejection:', error);
 });
 
-// Login to Discord
-client.login(process.env.DISCORD_TOKEN);
+// Login bot with error handling
+client.login(process.env.DISCORD_BOT_TOKEN)
+    .catch(err => console.error('Bot login error:', err));
+
+module.exports = client;
