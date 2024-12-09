@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, Events, GatewayIntentBits } = require('discord.js');
 const mongoose = require('mongoose');
 const { User, ARMY_RANKS } = require('./models/user');
 
@@ -102,51 +102,38 @@ async function syncAllUsers() {
     }
 }
 
-// Initialize function
-async function initialize() {
-    try {
-        // First, log into Discord
-        console.log('Attempting to log into Discord...');
-        await client.login(process.env.DISCORD_TOKEN);
-        console.log('Successfully logged into Discord!');
-
-        // Then connect to MongoDB
-        console.log('Connecting to MongoDB...');
-        await mongoose.connect(process.env.MONGODB_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
-        console.log('Successfully connected to MongoDB!');
-
-        // Set up bot event handlers
-        client.once('ready', async () => {
-            console.log(`Bot is online! Logged in as ${client.user.tag}`);
-            await syncAllUsers();
-            setInterval(syncAllUsers, 60000);
-        });
-
-        // Error handlers
-        client.on('error', error => {
-            console.error('Discord client error:', error);
-        });
-
-        client.on('warn', warning => {
-            console.warn('Discord client warning:', warning);
-        });
-
-    } catch (error) {
-        console.error('Initialization error:', error);
-        process.exit(1);
-    }
+// Function to start auto-sync
+function startAutoSync() {
+    setInterval(syncAllUsers, 60000);
+    console.log('Auto-sync started - will sync every minute');
 }
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => {
+    console.log('Connected to MongoDB');
+}).catch((error) => {
+    console.error('MongoDB connection error:', error);
+});
+
+// Bot startup
+client.once(Events.ClientReady, async () => {
+    console.log(`Bot logged in as ${client.user.tag}`);
+    await syncAllUsers();
+    startAutoSync();
+});
+
+// Error handling
+client.on(Events.Error, error => {
+    console.error('Discord client error:', error);
+});
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', error => {
     console.error('Unhandled promise rejection:', error);
 });
 
-// Start the initialization
-initialize().catch(error => {
-    console.error('Failed to initialize:', error);
-    process.exit(1);
-});
+// Login to Discord
+client.login(process.env.DISCORD_TOKEN);
