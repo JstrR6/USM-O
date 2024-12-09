@@ -492,21 +492,12 @@ router.get('/api/trainings/pending', isAuthenticated, async (req, res) => {
     }
 
     try {
-        let query;
-        if (req.user.isOfficer) {
-            // Officers see trainings that were bumped up
-            query = { 
-                status: 'bumped_up'
-            };
-        } else {
-            // Senior NCOs see initial pending trainings and bumped back ones
-            query = { 
-                $and: [
-                    { needsApproval: true },
-                    { status: { $in: ['pending', 'bumped_back'] } }
-                ]
-            };
-        }
+        const query = { 
+            $and: [
+                { needsApproval: true },
+                { status: { $in: ['pending', 'bumped_back'] } }
+            ]
+        };
 
         console.log('Query being used:', query);
 
