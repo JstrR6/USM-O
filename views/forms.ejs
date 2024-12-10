@@ -532,31 +532,31 @@
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
-
+                
+                        <!-- Create Division -->
                         <div class="mb-6">
-                            <!-- Create Division -->
                             <h4 class="text-lg font-semibold mb-2">Create Division</h4>
                             <div class="flex gap-4">
                                 <input id="divisionName" type="text" placeholder="Division Name"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                                <select id="divisionParentDivision" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                <select id="divisionParentDivision"
                                         class="w-full px-3 py-2 border border-gray-300 rounded-md">
                                     <!-- Populated dynamically -->
                                 </select>
-                                <button onclick="createDivision()" 
+                                <button onclick="createDivision()"
                                         class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
                                     Create
                                 </button>
                             </div>
                         </div>
-
+                
+                        <!-- Add Personnel -->
                         <div class="mb-6">
-                            <!-- Add Personnel -->
                             <h4 class="text-lg font-semibold mb-2">Add Personnel</h4>
                             <div class="flex gap-4">
                                 <input id="personnelName" type="text" placeholder="Personnel Name"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                                <select id="personnelRank" 
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                <select id="personnelRank"
                                         class="w-full px-3 py-2 border border-gray-300 rounded-md">
                                     <option value="Soldier">Soldier</option>
                                     <option value="Squadron Leader">Squadron Leader</option>
@@ -567,19 +567,19 @@
                                     <option value="Deputy Commander">Deputy Commander</option>
                                     <option value="Commander">Commander</option>
                                 </select>
-                                <select id="divisionTargetDivision" 
+                                <select id="divisionTargetDivision"
                                         class="w-full px-3 py-2 border border-gray-300 rounded-md">
                                     <!-- Populated dynamically -->
                                 </select>
-                                <button onclick="addPersonnel()" 
+                                <button onclick="addPersonnel()"
                                         class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
                                     Add
                                 </button>
                             </div>
                         </div>
-
+                
+                        <!-- Division List -->
                         <div>
-                            <!-- Division List -->
                             <h4 class="text-lg font-semibold mb-2">Divisions</h4>
                             <div id="divisionList" class="grid gap-4">
                                 <!-- Populated dynamically -->
@@ -1454,8 +1454,8 @@ function closeDivisionModal() {
 // Load Divisions
 async function loadDivisions() {
     try {
-        const response = await fetch(DIVISION_API_BASE);
-        const data = await response.json();
+        const response = await fetch('/api/divisions');
+        const divisions = await response.json();
 
         const parentDivisionSelect = document.getElementById('divisionParentDivision');
         const targetDivisionSelect = document.getElementById('divisionTargetDivision');
@@ -1463,16 +1463,16 @@ async function loadDivisions() {
 
         // Clear existing options and list
         parentDivisionSelect.innerHTML = '<option value="">No Parent (Top Level)</option>';
-        targetDivisionSelect.innerHTML = '';
+        targetDivisionSelect.innerHTML = '<option value="">Select Target Division</option>';
         divisionsList.innerHTML = '';
 
-        // Populate divisions
-        data.forEach(division => {
+        // Populate dropdowns and division list
+        divisions.forEach(division => {
             const option = `<option value="${division._id}">${division.name}</option>`;
             parentDivisionSelect.innerHTML += option;
             targetDivisionSelect.innerHTML += option;
 
-            const personnel = division.personnel
+            const personnelList = division.personnel
                 .map(p => `<li>${p.name} - ${p.rank}</li>`)
                 .join('');
 
@@ -1481,7 +1481,7 @@ async function loadDivisions() {
                     <h4 class="font-bold">${division.name}</h4>
                     <p class="text-sm text-gray-500">Parent: ${division.parentDivision?.name || 'None'}</p>
                     <ul class="mt-2 text-sm text-gray-600">
-                        ${personnel || '<li>No personnel</li>'}
+                        ${personnelList || '<li>No personnel</li>'}
                     </ul>
                 </div>
             `;
@@ -1494,7 +1494,7 @@ async function loadDivisions() {
 // Create a New Division
 async function createDivision() {
     const name = document.getElementById('divisionName').value;
-    const parentId = document.getElementById('divisionParentDivision').value;
+    const parentDivisionId = document.getElementById('divisionParentDivision').value;
 
     if (!name) {
         alert('Division name is required');
@@ -1502,10 +1502,10 @@ async function createDivision() {
     }
 
     try {
-        const response = await fetch(DIVISION_API_BASE, {
+        const response = await fetch('/api/divisions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, parentDivisionId: parentId }),
+            body: JSON.stringify({ name, parentDivisionId }),
         });
 
         const data = await response.json();
@@ -1513,7 +1513,7 @@ async function createDivision() {
             alert('Division created successfully');
             loadDivisions(); // Reload divisions
         } else {
-            alert('Error creating division');
+            alert(data.error || 'Error creating division');
         }
     } catch (error) {
         console.error('Error creating division:', error);
@@ -1532,7 +1532,7 @@ async function addPersonnel() {
     }
 
     try {
-        const response = await fetch(`${DIVISION_API_BASE}/${divisionId}/personnel`, {
+        const response = await fetch(`/api/divisions/${divisionId}/personnel`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, rank }),
@@ -1543,7 +1543,7 @@ async function addPersonnel() {
             alert('Personnel added successfully');
             loadDivisions(); // Reload divisions
         } else {
-            alert('Error adding personnel');
+            alert(data.error || 'Error adding personnel');
         }
     } catch (error) {
         console.error('Error adding personnel:', error);

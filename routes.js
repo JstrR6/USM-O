@@ -659,10 +659,20 @@ router.post('/api/divisions', isAuthenticated, async (req, res) => {
     const { name, parentDivisionId } = req.body;
 
     try {
+        let parentDivision = null;
+
+        if (parentDivisionId) {
+            parentDivision = await Division.findById(parentDivisionId);
+            if (!parentDivision) {
+                return res.status(404).json({ error: 'Parent division not found' });
+            }
+        }
+
         const newDivision = new Division({
             name,
-            parentDivision: parentDivisionId || null // Assign parentDivision if provided
+            parentDivision: parentDivision ? parentDivision._id : null,
         });
+
         await newDivision.save();
 
         res.json({ success: true, division: newDivision });
@@ -687,7 +697,6 @@ router.post('/api/divisions/:divisionId/personnel', isAuthenticated, async (req,
             return res.status(404).json({ error: 'Division not found' });
         }
 
-        // Add personnel to the division
         division.personnel.push({ name, rank });
         await division.save();
 
