@@ -515,7 +515,13 @@ router.get('/api/trainings/pending', isAuthenticated, async (req, res) => {
             }))
         });
 
-        res.json({ trainings });
+        res.json({
+            user: {
+                isSenior: req.user.isSenior,
+                isOfficer: req.user.isOfficer
+            },
+            trainings: trainings
+        });
     } catch (error) {
         console.error('Error fetching pending trainings:', error);
         res.status(500).json({ error: 'Server error' });
