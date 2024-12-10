@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+// Define personnel schema
 const personnelSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -21,6 +22,7 @@ const personnelSchema = new mongoose.Schema({
     },
 });
 
+// Define division schema
 const divisionSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -29,14 +31,15 @@ const divisionSchema = new mongoose.Schema({
     },
     parentDivision: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Division',
+        ref: 'Division', // Reference to another Division
         default: null, // Null for top-level divisions
     },
     personnel: [personnelSchema], // Embedded personnel schema
 }, {
-    timestamps: true,
+    timestamps: true, // Adds createdAt and updatedAt fields
 });
 
+// Create the Division model
 const Division = mongoose.model('Division', divisionSchema);
 
 module.exports = Division;

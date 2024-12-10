@@ -650,7 +650,8 @@ router.get('/api/orbat', isAuthenticated, async (req, res) => {
     }
 });
 
-router.post('/api/orbat', isAuthenticated, async (req, res) => {
+// Create a new division
+router.post('/api/divisions', isAuthenticated, async (req, res) => {
     if (!req.user.isOfficer) {
         return res.status(403).json({ error: 'Not authorized' });
     }
@@ -658,9 +659,9 @@ router.post('/api/orbat', isAuthenticated, async (req, res) => {
     const { name, parentDivisionId } = req.body;
 
     try {
-        const newDivision = new Orbat({
+        const newDivision = new Division({
             name,
-            parentDivision: parentDivisionId || null
+            parentDivision: parentDivisionId || null // Assign parentDivision if provided
         });
         await newDivision.save();
 
@@ -671,7 +672,8 @@ router.post('/api/orbat', isAuthenticated, async (req, res) => {
     }
 });
 
-router.post('/api/orbat/:divisionId/personnel', isAuthenticated, async (req, res) => {
+// Add personnel to a division
+router.post('/api/divisions/:divisionId/personnel', isAuthenticated, async (req, res) => {
     if (!req.user.isOfficer) {
         return res.status(403).json({ error: 'Not authorized' });
     }
@@ -680,11 +682,12 @@ router.post('/api/orbat/:divisionId/personnel', isAuthenticated, async (req, res
     const { divisionId } = req.params;
 
     try {
-        const division = await Orbat.findById(divisionId);
+        const division = await Division.findById(divisionId);
         if (!division) {
             return res.status(404).json({ error: 'Division not found' });
         }
 
+        // Add personnel to the division
         division.personnel.push({ name, rank });
         await division.save();
 

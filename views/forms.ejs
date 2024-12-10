@@ -151,11 +151,11 @@
                                 <i class="fas fa-history text-2xl text-blue-600 mb-2"></i>
                                 <p class="text-sm">Training Logs</p>
                             </div>
-                            <!-- Orbat Management Button -->
+                            <!-- Division Management Button -->
                             <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
-                                onclick="openOrbatModal()">
+                                onclick="openDivisionModal()">
                                 <i class="fas fa-sitemap text-2xl text-blue-600 mb-2"></i>
-                                <p class="text-sm">Orbat Management</p>
+                                <p class="text-sm">Division Management</p>
                             </div>
                         </div>
                     </div>
@@ -523,26 +523,25 @@
                     </div>
                 </div>
 
-                <!-- Orbat Management Modal -->
-                <div id="orbatModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+                <!-- Division Modal -->
+                <div id="divisionModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
                     <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xl font-semibold text-gray-900">Orbat Management</h3>
-                            <button onclick="closeOrbatModal()" class="text-gray-500 hover:text-gray-700">
+                            <h3 class="text-xl font-semibold text-gray-900">Manage Divisions</h3>
+                            <button onclick="closeDivisionModal()" class="text-gray-500 hover:text-gray-700">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
-                        
-                        <!-- Division Creation -->
+
                         <div class="mb-6">
-                            <h4 class="font-medium mb-2">Create Division</h4>
+                            <!-- Create Division -->
+                            <h4 class="text-lg font-semibold mb-2">Create Division</h4>
                             <div class="flex gap-4">
-                                <input type="text" id="orbatDivisionName" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md" 
-                                    placeholder="Division Name">
-                                <select id="orbatParentDivision" 
-                                        class="w-1/3 px-3 py-2 border border-gray-300 rounded-md">
-                                    <option value="">No Parent (Top Level)</option>
+                                <input id="divisionName" type="text" placeholder="Division Name"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                <select id="divisionParentDivision" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                    <!-- Populated dynamically -->
                                 </select>
                                 <button onclick="createDivision()" 
                                         class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
@@ -551,15 +550,14 @@
                             </div>
                         </div>
 
-                        <!-- Add Personnel -->
                         <div class="mb-6">
-                            <h4 class="font-medium mb-2">Add Personnel</h4>
+                            <!-- Add Personnel -->
+                            <h4 class="text-lg font-semibold mb-2">Add Personnel</h4>
                             <div class="flex gap-4">
-                                <input type="text" id="orbatPersonnelName" 
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md" 
-                                    placeholder="Personnel Name">
-                                <select id="orbatPersonnelRank" 
-                                        class="w-1/3 px-3 py-2 border border-gray-300 rounded-md">
+                                <input id="personnelName" type="text" placeholder="Personnel Name"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                                <select id="personnelRank" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
                                     <option value="Soldier">Soldier</option>
                                     <option value="Squadron Leader">Squadron Leader</option>
                                     <option value="Squadron Sergeant">Squadron Sergeant</option>
@@ -569,8 +567,8 @@
                                     <option value="Deputy Commander">Deputy Commander</option>
                                     <option value="Commander">Commander</option>
                                 </select>
-                                <select id="orbatTargetDivision" 
-                                        class="w-1/3 px-3 py-2 border border-gray-300 rounded-md">
+                                <select id="divisionTargetDivision" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
                                     <!-- Populated dynamically -->
                                 </select>
                                 <button onclick="addPersonnel()" 
@@ -580,9 +578,12 @@
                             </div>
                         </div>
 
-                        <!-- Divisions Display -->
-                        <div id="orbatDivisionsList" class="space-y-4">
-                            <!-- Dynamic content will populate here -->
+                        <div>
+                            <!-- Division List -->
+                            <h4 class="text-lg font-semibold mb-2">Divisions</h4>
+                            <div id="divisionList" class="grid gap-4">
+                                <!-- Populated dynamically -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -618,7 +619,7 @@
                 let selectedUserId = null;
                 let currentUserRank = '<%= user.highestRole %>';
                 let currentFilter = 'all';
-                const ORBAT_API_BASE = '/api/orbat';
+                const DIVISION_API_BASE = '/api/divisions';
 
                 function openPromotionForm() {
                     document.getElementById('promotionModal').classList.remove('hidden');
@@ -1439,26 +1440,26 @@ function closeRejectTrainingModal() {
     document.getElementById('rejectTrainingModal').classList.add('hidden');
 }
 
-// Open Orbat Modal
-function openOrbatModal() {
-    document.getElementById('orbatModal').classList.remove('hidden');
+// Open Division Modal
+function openDivisionModal() {
+    document.getElementById('divisionModal').classList.remove('hidden');
     loadDivisions(); // Load divisions on modal open
 }
 
-// Close Orbat Modal
-function closeOrbatModal() {
-    document.getElementById('orbatModal').classList.add('hidden');
+// Close Division Modal
+function closeDivisionModal() {
+    document.getElementById('divisionModal').classList.add('hidden');
 }
 
 // Load Divisions
 async function loadDivisions() {
     try {
-        const response = await fetch(ORBAT_API_BASE);
+        const response = await fetch(DIVISION_API_BASE);
         const data = await response.json();
 
-        const parentDivisionSelect = document.getElementById('orbatParentDivision');
-        const targetDivisionSelect = document.getElementById('orbatTargetDivision');
-        const divisionsList = document.getElementById('orbatDivisionsList');
+        const parentDivisionSelect = document.getElementById('divisionParentDivision');
+        const targetDivisionSelect = document.getElementById('divisionTargetDivision');
+        const divisionsList = document.getElementById('divisionList');
 
         // Clear existing options and list
         parentDivisionSelect.innerHTML = '<option value="">No Parent (Top Level)</option>';
@@ -1492,8 +1493,8 @@ async function loadDivisions() {
 
 // Create a New Division
 async function createDivision() {
-    const name = document.getElementById('orbatDivisionName').value;
-    const parentId = document.getElementById('orbatParentDivision').value;
+    const name = document.getElementById('divisionName').value;
+    const parentId = document.getElementById('divisionParentDivision').value;
 
     if (!name) {
         alert('Division name is required');
@@ -1501,7 +1502,7 @@ async function createDivision() {
     }
 
     try {
-        const response = await fetch(ORBAT_API_BASE, {
+        const response = await fetch(DIVISION_API_BASE, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, parentDivisionId: parentId }),
@@ -1521,9 +1522,9 @@ async function createDivision() {
 
 // Add Personnel to a Division
 async function addPersonnel() {
-    const name = document.getElementById('orbatPersonnelName').value;
-    const rank = document.getElementById('orbatPersonnelRank').value;
-    const divisionId = document.getElementById('orbatTargetDivision').value;
+    const name = document.getElementById('personnelName').value;
+    const rank = document.getElementById('personnelRank').value;
+    const divisionId = document.getElementById('divisionTargetDivision').value;
 
     if (!name || !divisionId) {
         alert('Personnel name and target division are required');
@@ -1531,7 +1532,7 @@ async function addPersonnel() {
     }
 
     try {
-        const response = await fetch(`${ORBAT_API_BASE}/${divisionId}/personnel`, {
+        const response = await fetch(`${DIVISION_API_BASE}/${divisionId}/personnel`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, rank }),
