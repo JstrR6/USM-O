@@ -6,7 +6,7 @@ const { User } = require('./models/user');
 const { Promotion } = require('./models/promotion');
 const { Demotion } = require('./models/demotion');
 const { Training } = require('./models/training');
-const Division = require('./models/Division');
+const Division = require('../models/Division');
 const { handlePromotion } = require('./bot')
 
 // Middleware to check authentication
