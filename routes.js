@@ -618,7 +618,13 @@ router.get('/api/trainings/:id', isAuthenticated, async (req, res) => {
             return res.status(404).json({ error: 'Training not found' });
         }
 
-        res.json({ training });
+        res.json({
+            training: training,
+            user: {
+                isSenior: req.user.isSenior,
+                isOfficer: req.user.isOfficer
+            }
+        });
     } catch (error) {
         res.status(500).json({ error: 'Server error' });
     }

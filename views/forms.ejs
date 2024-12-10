@@ -1248,6 +1248,7 @@ async function showTrainingDetails(trainingId) {
         const response = await fetch(`/api/trainings/${trainingId}`);
         const data = await response.json();
         const training = data.training;
+        const user = data.user;
 
         const detailsContent = document.getElementById('trainingDetailsContent');
         detailsContent.innerHTML = `
@@ -1258,7 +1259,7 @@ async function showTrainingDetails(trainingId) {
                     <p class="font-medium ${getStatusClass(training.status).class}">${getStatusClass(training.status).label}</p>
                 </div>
                 <!-- ... -->
-                ${data.user.isOfficer && training.status === 'bumped_up' ? `
+                ${user.isOfficer && training.status === 'bumped_up' ? `
                     <div class="space-y-2">
                         <button onclick="handleTrainingAction('${training._id}', 'approve')"
                                 class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
