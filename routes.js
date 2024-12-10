@@ -639,4 +639,59 @@ router.get('/api/trainings/:id', isAuthenticated, async (req, res) => {
     }
 });
 
+router.get('/api/orbat', isAuthenticated, async (req, res) => {
+    try {
+        const divisions = await Orbat.find({}).populate('parentDivision').exec();
+        res.json({ divisions });
+    } catch (error) {
+        console.error('Error fetching Orbat:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+router.post('/api/orbat', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const { name, parentDivisionId } = req.body;
+
+    try {
+        const newDivision = new Orbat({
+            name,
+            parentDivision: parentDivisionId || null
+        });
+        await newDivision.save();
+
+        res.json({ success: true, division: newDivision });
+    } catch (error) {
+        console.error('Error creating division:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+router.post('/api/orbat/:divisionId/personnel', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const { name, rank } = req.body;
+    const { divisionId } = req.params;
+
+    try {
+        const division = await Orbat.findById(divisionId);
+        if (!division) {
+            return res.status(404).json({ error: 'Division not found' });
+        }
+
+        division.personnel.push({ name, rank });
+        await division.save();
+
+        res.json({ success: true, division });
+    } catch (error) {
+        console.error('Error adding personnel:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 module.exports = router;
