@@ -1455,7 +1455,8 @@ function closeDivisionModal() {
 async function loadDivisions() {
     try {
         const response = await fetch('/api/divisions');
-        const divisions = await response.json();
+        const data = await response.json();
+        console.log('Received divisions:', data); // Debug log
 
         const parentDivisionSelect = document.getElementById('divisionParentDivision');
         const targetDivisionSelect = document.getElementById('divisionTargetDivision');
@@ -1466,26 +1467,28 @@ async function loadDivisions() {
         targetDivisionSelect.innerHTML = '<option value="">Select Target Division</option>';
         divisionsList.innerHTML = '';
 
-        // Populate dropdowns and division list
-        divisions.forEach(division => {
-            const option = `<option value="${division._id}">${division.name}</option>`;
-            parentDivisionSelect.innerHTML += option;
-            targetDivisionSelect.innerHTML += option;
+        if (data.divisions && data.divisions.length > 0) {
+            // Populate dropdowns and division list
+            data.divisions.forEach(division => {
+                const option = `<option value="${division._id}">${division.name}</option>`;
+                parentDivisionSelect.innerHTML += option;
+                targetDivisionSelect.innerHTML += option;
 
-            const personnelList = division.personnel
-                .map(p => `<li>${p.name} - ${p.rank}</li>`)
-                .join('');
+                const personnelList = division.personnel && division.personnel.length > 0 ?
+                    division.personnel.map(p => `<li>${p.name} - ${p.rank}</li>`).join('') :
+                    '<li>No personnel</li>';
 
-            divisionsList.innerHTML += `
-                <div class="bg-gray-100 p-4 rounded-md">
-                    <h4 class="font-bold">${division.name}</h4>
-                    <p class="text-sm text-gray-500">Parent: ${division.parentDivision?.name || 'None'}</p>
-                    <ul class="mt-2 text-sm text-gray-600">
-                        ${personnelList || '<li>No personnel</li>'}
-                    </ul>
-                </div>
-            `;
-        });
+                divisionsList.innerHTML += `
+                    <div class="bg-gray-100 p-4 rounded-md">
+                        <h4 class="font-bold">${division.name}</h4>
+                        <p class="text-sm text-gray-500">Parent: ${division.parentDivision ? division.parentDivision.name : 'None'}</p>
+                        <ul class="mt-2 text-sm text-gray-600">
+                            ${personnelList}
+                        </ul>
+                    </div>
+                `;
+            });
+        }
     } catch (error) {
         console.error('Error loading divisions:', error);
     }
@@ -1505,18 +1508,23 @@ async function createDivision() {
         const response = await fetch('/api/divisions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, parentDivisionId }),
+            body: JSON.stringify({ 
+                name, 
+                parentDivisionId: parentDivisionId || null 
+            }),
         });
 
         const data = await response.json();
         if (data.success) {
+            document.getElementById('divisionName').value = ''; // Clear input
+            await loadDivisions(); // Reload divisions immediately
             alert('Division created successfully');
-            loadDivisions(); // Reload divisions
         } else {
             alert(data.error || 'Error creating division');
         }
     } catch (error) {
         console.error('Error creating division:', error);
+        alert('Error creating division');
     }
 }
 
