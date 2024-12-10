@@ -493,10 +493,7 @@ router.get('/api/trainings/pending', isAuthenticated, async (req, res) => {
 
     try {
         const query = { 
-            $and: [
-                { needsApproval: true },
-                { status: { $in: ['pending', 'bumped_back'] } }
-            ]
+            status: 'pending'
         };
 
         console.log('Query being used:', query);
@@ -515,13 +512,7 @@ router.get('/api/trainings/pending', isAuthenticated, async (req, res) => {
             }))
         });
 
-        res.json({
-            user: {
-                isSenior: req.user.isSenior,
-                isOfficer: req.user.isOfficer
-            },
-            trainings: trainings
-        });
+        res.json({ trainings });
     } catch (error) {
         console.error('Error fetching pending trainings:', error);
         res.status(500).json({ error: 'Server error' });

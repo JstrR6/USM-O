@@ -1214,24 +1214,14 @@ async function loadPendingTrainings() {
                             `<p class="text-sm text-red-600">* Bumped back from Officer Review</p>` : ''}
                     </div>
                     <div class="space-y-2">
-                        ${!data.user.isOfficer ? `
-                            <button onclick="handleTrainingAction('${training._id}', 'approve')" 
-                                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-                                Approve
-                            </button>
+                        <button onclick="handleTrainingAction('${training._id}', 'approve')" 
+                                class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            Approve
+                        </button>
+                        ${training.status !== 'bumped_back' ? `
                             <button onclick="handleTrainingAction('${training._id}', 'bump_up')"
                                     class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
                                 Bump Up
-                            </button>
-                        ` : ''}
-                        ${data.user.isOfficer ? `
-                            <button onclick="handleTrainingAction('${training._id}', 'approve')"
-                                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-                                Approve
-                            </button>
-                            <button onclick="handleTrainingAction('${training._id}', 'bump_back')"
-                                    class="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">
-                                Bump Down
                             </button>
                         ` : ''}
                         <button onclick="openRejectTrainingModal('${training._id}')"
@@ -1262,56 +1252,21 @@ async function showTrainingDetails(trainingId) {
         const detailsContent = document.getElementById('trainingDetailsContent');
         detailsContent.innerHTML = `
             <div class="space-y-4">
-                <div>
-                    <p class="text-sm text-gray-500">Date</p>
-                    <p class="font-medium">${new Date(training.createdAt).toLocaleString()}</p>
-                </div>
-                
-                <div>
-                    <p class="text-sm text-gray-500">Type</p>
-                    <p class="font-medium">${training.type}</p>
-                </div>
-
-                <div>
-                    <p class="text-sm text-gray-500">Instructor</p>
-                    <p class="font-medium">${training.instructor.username}</p>
-                </div>
-
-                <div>
-                    <p class="text-sm text-gray-500">Trainees</p>
-                    <p class="font-medium">${training.trainees.map(t => t.username).join(', ')}</p>
-                </div>
-
-                <div>
-                    <p class="text-sm text-gray-500">XP Amount</p>
-                    <p class="font-medium">${training.xpAmount}</p>
-                </div>
-
-                <div>
-                    <p class="text-sm text-gray-500">Status</p>
-                    <p class="font-medium ${getStatusClass(training.status)}">${training.status}</p>
-                </div>
-
-                ${training.rejectReason ? `
-                    <div>
-                        <p class="text-sm text-gray-500">Rejection Reason</p>
-                        <p class="font-medium text-red-600">${training.rejectReason}</p>
-                    </div>
-                ` : ''}
-
-                ${training.approvalChain && training.approvalChain.length > 0 ? `
-                    <div>
-                        <p class="text-sm text-gray-500">Approval Chain</p>
-                        ${training.approvalChain.map(approval => `
-                            <div class="ml-4 mt-2">
-                                <p class="text-sm">
-                                    <span class="font-medium">${approval.approver.username}</span> - 
-                                    ${approval.action} 
-                                    <span class="text-gray-500">(${new Date(approval.date).toLocaleString()})</span>
-                                </p>
-                                ${approval.reason ? `<p class="text-sm text-gray-600">Reason: ${approval.reason}</p>` : ''}
-                            </div>
-                        `).join('')}
+                <!-- ... -->
+                ${data.user.isOfficer && training.status === 'bumped_up' ? `
+                    <div class="space-y-2">
+                        <button onclick="handleTrainingAction('${training._id}', 'approve')"
+                                class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            Approve
+                        </button>
+                        <button onclick="handleTrainingAction('${training._id}', 'bump_back')"
+                                class="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">
+                            Bump Down
+                        </button>
+                        <button onclick="openRejectTrainingModal('${training._id}')"
+                                class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                            Reject
+                        </button>
                     </div>
                 ` : ''}
             </div>
