@@ -524,69 +524,69 @@
                 </div>
 
                 <!-- Division Modal -->
-                <div id="divisionModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-                    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xl font-semibold text-gray-900">Manage Divisions</h3>
-                            <button onclick="closeDivisionModal()" class="text-gray-500 hover:text-gray-700">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                
-                        <!-- Create Division -->
-                        <div class="mb-6">
-                            <h4 class="text-lg font-semibold mb-2">Create Division</h4>
-                            <div class="flex gap-4">
-                                <input id="divisionName" type="text" placeholder="Division Name"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                                <select id="divisionParentDivision"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                                    <!-- Populated dynamically -->
-                                </select>
-                                <button onclick="createDivision()"
-                                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                                    Create
-                                </button>
-                            </div>
-                        </div>
-                
-                        <!-- Add Personnel -->
-                        <div class="mb-6">
-                            <h4 class="text-lg font-semibold mb-2">Add Personnel</h4>
-                            <div class="flex gap-4">
-                                <input id="personnelName" type="text" placeholder="Personnel Name"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                                <select id="personnelRank"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                                    <option value="Soldier">Soldier</option>
-                                    <option value="Squadron Leader">Squadron Leader</option>
-                                    <option value="Squadron Sergeant">Squadron Sergeant</option>
-                                    <option value="Non-Commission Officer In Charge">Non-Commission Officer In Charge</option>
-                                    <option value="Section Chief">Section Chief</option>
-                                    <option value="Senior Enlisted Leader">Senior Enlisted Leader</option>
-                                    <option value="Deputy Commander">Deputy Commander</option>
-                                    <option value="Commander">Commander</option>
-                                </select>
-                                <select id="divisionTargetDivision"
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
-                                    <!-- Populated dynamically -->
-                                </select>
-                                <button onclick="addPersonnel()"
-                                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-                                    Add
-                                </button>
-                            </div>
-                        </div>
-                
-                        <!-- Division List -->
-                        <div>
-                            <h4 class="text-lg font-semibold mb-2">Divisions</h4>
-                            <div id="divisionList" class="grid gap-4">
-                                <!-- Populated dynamically -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<div id="divisionModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-gray-900">Manage Divisions</h3>
+            <button onclick="closeDivisionModal()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Create Division -->
+        <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+            <h4 class="text-lg font-semibold mb-2">Create Division</h4>
+            <div class="flex gap-4">
+                <input id="divisionName" type="text" placeholder="Division Name"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                <select id="divisionParentDivision"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <option value="">No Parent (Top Level)</option>
+                </select>
+                <button onclick="createDivision()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                    Create
+                </button>
+            </div>
+        </div>
+
+        <!-- Add Personnel -->
+        <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+            <h4 class="text-lg font-semibold mb-2">Add Personnel</h4>
+            <div class="flex gap-4">
+                <select id="personnelSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <option value="">Select User</option>
+                </select>
+                <select id="positionSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <option value="">Select Position</option>
+                    <option value="Commander">Commander</option>
+                    <option value="Deputy Commander">Deputy Commander</option>
+                    <option value="Senior Enlisted Leader">Senior Enlisted Leader</option>
+                    <option value="Section Chief">Section Chief</option>
+                    <option value="Non-Commission Officer In Charge">NCOIC</option>
+                    <option value="Squadron Sergeant">Squadron Sergeant</option>
+                    <option value="Squadron Leader">Squadron Leader</option>
+                    <option value="Soldier">Soldier</option>
+                </select>
+                <select id="targetDivisionSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <option value="">Select Division</option>
+                </select>
+                <button onclick="assignPersonnel()"
+                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                    Add
+                </button>
+            </div>
+        </div>
+
+        <!-- Division List -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="text-lg font-semibold mb-4">Current Divisions</h4>
+            <div id="divisionList" class="space-y-4">
+                <!-- Divisions will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
 
                 <script>
                     const RANK_ORDER = [
@@ -1440,67 +1440,111 @@ function closeRejectTrainingModal() {
     document.getElementById('rejectTrainingModal').classList.add('hidden');
 }
 
-// Open Division Modal
-function openDivisionModal() {
-    document.getElementById('divisionModal').classList.remove('hidden');
-    loadDivisions(); // Load divisions on modal open
-}
-
-// Close Division Modal
-function closeDivisionModal() {
-    document.getElementById('divisionModal').classList.add('hidden');
-}
-
-// Load Divisions
+// Division management functions
 async function loadDivisions() {
     try {
-        const response = await fetch('/api/divisions');
-        const data = await response.json();
-        console.log('Received divisions:', data); // Debug log
+        // Fetch both divisions and users data
+        const [divisionsResponse, usersResponse] = await Promise.all([
+            fetch('/api/divisions'),
+            fetch('/api/users')
+        ]);
 
-        const parentDivisionSelect = document.getElementById('divisionParentDivision');
-        const targetDivisionSelect = document.getElementById('divisionTargetDivision');
-        const divisionsList = document.getElementById('divisionList');
+        const divisionsData = await divisionsResponse.json();
+        const usersData = await usersResponse.json();
 
-        // Clear existing options and list
-        parentDivisionSelect.innerHTML = '<option value="">No Parent (Top Level)</option>';
-        targetDivisionSelect.innerHTML = '<option value="">Select Target Division</option>';
-        divisionsList.innerHTML = '';
+        // Populate the users dropdown
+        const personnelSelect = document.getElementById('personnelSelect');
+        personnelSelect.innerHTML = '<option value="">Select User</option>';
+        usersData.users.forEach(user => {
+            personnelSelect.innerHTML += `
+                <option value="${user._id}">${user.username}</option>
+            `;
+        });
 
-        if (data.divisions && data.divisions.length > 0) {
-            // Populate dropdowns and division list
-            data.divisions.forEach(division => {
-                const option = `<option value="${division._id}">${division.name}</option>`;
-                parentDivisionSelect.innerHTML += option;
-                targetDivisionSelect.innerHTML += option;
+        // Populate division dropdowns
+        const parentSelect = document.getElementById('divisionParentDivision');
+        const targetSelect = document.getElementById('targetDivisionSelect');
+        parentSelect.innerHTML = '<option value="">No Parent (Top Level)</option>';
+        targetSelect.innerHTML = '<option value="">Select Division</option>';
+        
+        divisionsData.divisions.forEach(division => {
+            const option = `
+                <option value="${division._id}">${division.name}</option>
+            `;
+            parentSelect.innerHTML += option;
+            targetSelect.innerHTML += option;
+        });
 
-                const personnelList = division.personnel && division.personnel.length > 0 ?
-                    division.personnel.map(p => `<li>${p.name} - ${p.rank}</li>`).join('') :
-                    '<li>No personnel</li>';
+        // Render division list
+        renderDivisions(divisionsData.divisions);
 
-                divisionsList.innerHTML += `
-                    <div class="bg-gray-100 p-4 rounded-md">
-                        <h4 class="font-bold">${division.name}</h4>
-                        <p class="text-sm text-gray-500">Parent: ${division.parentDivision ? division.parentDivision.name : 'None'}</p>
-                        <ul class="mt-2 text-sm text-gray-600">
-                            ${personnelList}
-                        </ul>
-                    </div>
-                `;
-            });
-        }
     } catch (error) {
         console.error('Error loading divisions:', error);
+        alert('Error loading divisions');
     }
 }
 
-// Create a New Division
+function renderDivisions(divisions) {
+    const divisionList = document.getElementById('divisionList');
+    divisionList.innerHTML = '';
+
+    // First render top-level divisions
+    const topLevelDivisions = divisions.filter(d => !d.parentDivision);
+    topLevelDivisions.forEach(division => {
+        renderDivisionWithChildren(division, divisions);
+    });
+}
+
+function renderDivisionWithChildren(division, allDivisions, level = 0) {
+    const divisionList = document.getElementById('divisionList');
+    
+    // Create division card
+    const divisionCard = document.createElement('div');
+    divisionCard.className = `bg-white rounded-lg shadow p-4 ${level > 0 ? 'ml-8' : ''}`;
+    
+    // Division header
+    divisionCard.innerHTML = `
+        <div class="flex justify-between items-center mb-3">
+            <h5 class="font-bold text-lg">${division.name}</h5>
+            <button onclick="removeDivision('${division._id}')" 
+                    class="text-red-600 hover:text-red-800">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <div class="space-y-2">
+            ${division.personnel.map(p => `
+                <div class="flex justify-between items-center bg-gray-50 p-2 rounded">
+                    <span>${p.user.username}</span>
+                    <div class="flex items-center">
+                        <span class="text-gray-600 mr-2">${p.position}</span>
+                        <button onclick="removePersonnel('${division._id}', '${p.user._id}')"
+                                class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    divisionList.appendChild(divisionCard);
+
+    // Render child divisions
+    const childDivisions = allDivisions.filter(d => 
+        d.parentDivision && d.parentDivision._id === division._id
+    );
+    
+    childDivisions.forEach(child => {
+        renderDivisionWithChildren(child, allDivisions, level + 1);
+    });
+}
+
 async function createDivision() {
     const name = document.getElementById('divisionName').value;
     const parentDivisionId = document.getElementById('divisionParentDivision').value;
 
     if (!name) {
-        alert('Division name is required');
+        alert('Please enter a division name');
         return;
     }
 
@@ -1508,34 +1552,32 @@ async function createDivision() {
         const response = await fetch('/api/divisions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                name, 
-                parentDivisionId: parentDivisionId || null 
-            }),
+            body: JSON.stringify({
+                name,
+                parentDivisionId: parentDivisionId || null
+            })
         });
 
         const data = await response.json();
         if (data.success) {
-            document.getElementById('divisionName').value = ''; // Clear input
-            await loadDivisions(); // Reload divisions immediately
-            alert('Division created successfully');
+            document.getElementById('divisionName').value = '';
+            loadDivisions();
         } else {
             alert(data.error || 'Error creating division');
         }
     } catch (error) {
-        console.error('Error creating division:', error);
+        console.error('Error:', error);
         alert('Error creating division');
     }
 }
 
-// Add Personnel to a Division
-async function addPersonnel() {
-    const name = document.getElementById('personnelName').value;
-    const rank = document.getElementById('personnelRank').value;
-    const divisionId = document.getElementById('divisionTargetDivision').value;
+async function assignPersonnel() {
+    const userId = document.getElementById('personnelSelect').value;
+    const position = document.getElementById('positionSelect').value;
+    const divisionId = document.getElementById('targetDivisionSelect').value;
 
-    if (!name || !divisionId) {
-        alert('Personnel name and target division are required');
+    if (!userId || !position || !divisionId) {
+        alert('Please select user, position, and division');
         return;
     }
 
@@ -1543,19 +1585,75 @@ async function addPersonnel() {
         const response = await fetch(`/api/divisions/${divisionId}/personnel`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, rank }),
+            body: JSON.stringify({ userId, position })
         });
 
         const data = await response.json();
         if (data.success) {
-            alert('Personnel added successfully');
-            loadDivisions(); // Reload divisions
+            document.getElementById('personnelSelect').value = '';
+            document.getElementById('positionSelect').value = '';
+            document.getElementById('targetDivisionSelect').value = '';
+            loadDivisions();
         } else {
-            alert(data.error || 'Error adding personnel');
+            alert(data.error || 'Error assigning personnel');
         }
     } catch (error) {
-        console.error('Error adding personnel:', error);
+        console.error('Error:', error);
+        alert('Error assigning personnel');
     }
+}
+
+async function removePersonnel(divisionId, userId) {
+    if (!confirm('Are you sure you want to remove this person from the division?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/divisions/${divisionId}/personnel/${userId}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            loadDivisions();
+        } else {
+            alert(data.error || 'Error removing personnel');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error removing personnel');
+    }
+}
+
+async function removeDivision(divisionId) {
+    if (!confirm('Are you sure you want to remove this division? This will also remove all personnel assignments.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/divisions/${divisionId}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            loadDivisions();
+        } else {
+            alert(data.error || 'Error removing division');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error removing division');
+    }
+}
+
+function openDivisionModal() {
+    document.getElementById('divisionModal').classList.remove('hidden');
+    loadDivisions();
+}
+
+function closeDivisionModal() {
+    document.getElementById('divisionModal').classList.add('hidden');
 }
                 </script>
             </main>

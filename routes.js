@@ -640,70 +640,147 @@ router.get('/api/trainings/:id', isAuthenticated, async (req, res) => {
     }
 });
 
-router.get('/api/orbat', isAuthenticated, async (req, res) => {
+// Get all divisions with their hierarchy
+router.get('/api/divisions', async (req, res) => {
     try {
-        const divisions = await Orbat.find({}).populate('parentDivision').exec();
+        // Fetch all divisions and populate their parent division references
+        const divisions = await Division.find({})
+            .populate('parentDivision')
+            .sort('name')
+            .exec();
+
         res.json({ divisions });
     } catch (error) {
-        console.error('Error fetching Orbat:', error);
-        res.status(500).json({ error: 'Server error' });
+        console.error('Error fetching divisions:', error);
+        res.status(500).json({ error: 'Failed to fetch divisions' });
     }
 });
 
 // Create a new division
-router.post('/api/divisions', isAuthenticated, async (req, res) => {
-    if (!req.user.isOfficer) {
-        return res.status(403).json({ error: 'Not authorized' });
-    }
-
-    const { name, parentDivisionId } = req.body;
-
+router.post('/api/divisions', async (req, res) => {
     try {
-        let parentDivision = null;
+        const { name, parentDivisionId } = req.body;
 
+        // Validate input
+        if (!name) {
+            return res.status(400).json({ error: 'Division name is required' });
+        }
+
+        // Check if division name already exists
+        const existingDivision = await Division.findOne({ name });
+        if (existingDivision) {
+            return res.status(400).json({ error: 'Division name already exists' });
+        }
+
+        // Create division data object
+        const divisionData = { name };
+
+        // If parentDivisionId is provided, verify it exists
         if (parentDivisionId) {
-            parentDivision = await Division.findById(parentDivisionId);
+            const parentDivision = await Division.findById(parentDivisionId);
             if (!parentDivision) {
                 return res.status(404).json({ error: 'Parent division not found' });
             }
+            divisionData.parentDivision = parentDivisionId;
         }
 
-        const newDivision = new Division({
-            name,
-            parentDivision: parentDivision ? parentDivision._id : null,
-        });
-
+        // Create new division
+        const newDivision = new Division(divisionData);
         await newDivision.save();
 
-        res.json({ success: true, division: newDivision });
+        // Return success with the new division
+        res.status(201).json({
+            success: true,
+            division: await Division.findById(newDivision._id).populate('parentDivision')
+        });
+
     } catch (error) {
         console.error('Error creating division:', error);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: 'Failed to create division' });
     }
 });
 
 // Add personnel to a division
-router.post('/api/divisions/:divisionId/personnel', isAuthenticated, async (req, res) => {
-    if (!req.user.isOfficer) {
-        return res.status(403).json({ error: 'Not authorized' });
-    }
-
-    const { name, rank } = req.body;
-    const { divisionId } = req.params;
-
+router.post('/api/divisions/:divisionId/personnel', async (req, res) => {
     try {
+        const { divisionId } = req.params;
+        const { name, rank } = req.body;
+
+        // Validate input
+        if (!name || !rank) {
+            return res.status(400).json({ error: 'Name and rank are required' });
+        }
+
+        // Find the division
         const division = await Division.findById(divisionId);
         if (!division) {
             return res.status(404).json({ error: 'Division not found' });
         }
 
+        // Add personnel to division
         division.personnel.push({ name, rank });
         await division.save();
 
-        res.json({ success: true, division });
+        res.json({
+            success: true,
+            division: await Division.findById(divisionId).populate('parentDivision')
+        });
+
     } catch (error) {
         console.error('Error adding personnel:', error);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: 'Failed to add personnel' });
+    }
+});
+
+// Get division hierarchy (returns tree structure)
+router.get('/api/divisions/hierarchy', async (req, res) => {
+    try {
+        // First get all divisions
+        const divisions = await Division.find({}).populate('parentDivision').exec();
+        
+        // Helper function to build tree
+        function buildHierarchy(divisions, parentId = null) {
+            return divisions
+                .filter(division => 
+                    parentId === null 
+                        ? !division.parentDivision
+                        : division.parentDivision?._id.toString() === parentId.toString()
+                )
+                .map(division => ({
+                    ...division.toObject(),
+                    children: buildHierarchy(divisions, division._id)
+                }));
+        }
+
+        const hierarchy = buildHierarchy(divisions);
+        res.json({ hierarchy });
+
+    } catch (error) {
+        console.error('Error fetching division hierarchy:', error);
+        res.status(500).json({ error: 'Failed to fetch division hierarchy' });
+    }
+});
+
+// Delete a division (only if it has no children)
+router.delete('/api/divisions/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Check if division has child divisions
+        const hasChildren = await Division.exists({ parentDivision: id });
+        if (hasChildren) {
+            return res.status(400).json({ 
+                error: 'Cannot delete division with child divisions. Please delete or reassign child divisions first.' 
+            });
+        }
+
+        // Delete the division
+        await Division.findByIdAndDelete(id);
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error('Error deleting division:', error);
+        res.status(500).json({ error: 'Failed to delete division' });
     }
 });
 
