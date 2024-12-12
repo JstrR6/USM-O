@@ -838,27 +838,40 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
             return res.status(404).json({ error: 'Recruitment not found' });
         }
 
-        const { action, notes } = req.body;
+        const { action, notes, newDivisionId } = req.body;
 
-        if (req.user.isSenior) {
-            recruitment.status = action === 'approve' ? 'approved' : 'rejected_appealed';
-            recruitment.sncoReviewNotes = notes;
-            recruitment.reviewedBy = req.user._id;
+        if (req.user.isOfficer) {
+            switch(action) {
+                case 'veto':
+                    // Place in original division
+                    const originalDivision = await Division.findById(recruitment.targetDivision._id);
+                    const user = await User.findOne({ username: recruitment.recruitUsername });
+                    originalDivision.personnel.push({
+                        user: user._id,
+                        position: recruitment.divisionPosition
+                    });
+                    await originalDivision.save();
+                    recruitment.status = 'approved';
+                    break;
 
-            if (action === 'approve') {
-                // Get user by username
-                const user = await User.findOne({ username: recruitment.recruitUsername });
-                if (!user) {
-                    return res.status(404).json({ error: 'User not found' });
-                }
+                case 'accept_rejection':
+                    // Place in new division
+                    const newDivision = await Division.findById(newDivisionId);
+                    const recruitUser = await User.findOne({ username: recruitment.recruitUsername });
+                    newDivision.personnel.push({
+                        user: recruitUser._id,
+                        position: recruitment.divisionPosition
+                    });
+                    await newDivision.save();
+                    recruitment.status = 'approved';
+                    break;
 
-                const division = await Division.findById(recruitment.targetDivision._id);
-                division.personnel.push({
-                    user: user._id, // Use the actual user ObjectId
-                    position: recruitment.divisionPosition
-                });
-                await division.save();
+                case 'final_reject':
+                    recruitment.status = 'final_rejected';
+                    break;
             }
+            recruitment.officerReviewNotes = notes;
+            recruitment.appealReviewedBy = req.user._id;
         }
 
         await recruitment.save();

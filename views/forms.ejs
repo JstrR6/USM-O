@@ -594,6 +594,30 @@
                 <!-- Rejected placements will be populated here -->
             </div>
         </div>
+
+        <div id="newDivisionModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Select New Division</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Division</label>
+                        <select id="newDivisionSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            <option value="">Select Division</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button onclick="closeNewDivisionModal()" 
+                                class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                            Cancel
+                        </button>
+                        <button onclick="confirmNewDivision()" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            Confirm
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -712,6 +736,7 @@
                 let currentUserRank = '<%= user.highestRole %>';
                 let currentFilter = 'all';
                 const DIVISION_API_BASE = '/api/divisions';
+                let currentRecruitmentId = null;
 
                 function openPromotionForm() {
                     document.getElementById('promotionModal').classList.remove('hidden');
@@ -1833,7 +1858,7 @@ async function submitRecruitment() {
         const data = await response.json();
         if (data.success) {
             alert('Recruitment form submitted successfully');
-            closeRecruitmentForm();
+            closeRecruitmentModal();
             // Clear form
             document.getElementById('recruitUsername').value = '';
             document.getElementById('recruitDiscord').value = '';
@@ -1997,30 +2022,23 @@ async function loadRejectedPlacements() {
 }
 
 async function handleOfficerReview(id, action) {
-    let notes = '';
-    if (action !== 'veto') {
-        notes = prompt('Please provide review notes:');
-        if (!notes) return; // Cancel if no notes provided
-    }
-
     try {
-        const response = await fetch(`/api/recruitment/${id}/review`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ action, notes })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            loadRejectedPlacements();
-            // If accepting rejection, refresh divisions
-            if (action === 'accept_rejection') {
-                loadDivisions();
-            }
-        } else {
-            alert(data.error || 'Error processing review');
+        switch(action) {
+            case 'veto':
+                // Veto directly places in original division
+                await submitOfficerReview(id, 'veto');
+                break;
+                
+            case 'accept_rejection':
+                // Open new division selection modal
+                openNewDivisionModal(id);
+                break;
+                
+            case 'final_reject':
+                const notes = prompt('Please provide rejection notes:');
+                if (!notes) return;
+                await submitOfficerReview(id, 'final_reject', notes);
+                break;
         }
     } catch (error) {
         console.error('Error:', error);
@@ -2046,6 +2064,71 @@ router.get('/api/recruitment/rejected', isAuthenticated, async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 });
+
+async function submitOfficerReview(id, action, notes = '', newDivisionId = null) {
+    try {
+        const response = await fetch(`/api/recruitment/${id}/review`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                action, 
+                notes,
+                newDivisionId // Used when accepting rejection with new division
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            loadRejectedPlacements();
+            if (action === 'accept_rejection') {
+                closeNewDivisionModal();
+            }
+        } else {
+            alert(data.error || 'Error processing review');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error processing review');
+    }
+}
+
+function openNewDivisionModal(recruitmentId) {
+    currentRecruitmentId = recruitmentId;
+    const modal = document.getElementById('newDivisionModal');
+    modal.classList.remove('hidden');
+    
+    // Load divisions
+    fetch('/api/divisions')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('newDivisionSelect');
+            select.innerHTML = '<option value="">Select Division</option>';
+            data.divisions.forEach(division => {
+                select.innerHTML += `
+                    <option value="${division._id}">${division.name}</option>
+                `;
+            });
+        })
+        .catch(error => console.error('Error loading divisions:', error));
+}
+
+function closeNewDivisionModal() {
+    document.getElementById('newDivisionModal').classList.add('hidden');
+    currentRecruitmentId = null;
+}
+
+async function confirmNewDivision() {
+    const newDivisionId = document.getElementById('newDivisionSelect').value;
+    if (!newDivisionId) {
+        alert('Please select a division');
+        return;
+    }
+
+    const notes = prompt('Please provide any notes about this placement:');
+    await submitOfficerReview(currentRecruitmentId, 'accept_rejection', notes, newDivisionId);
+}
                 </script>
             </main>
         </div>
