@@ -1934,7 +1934,7 @@ async function handlePlacement(id, action) {
     let notes = '';
     if (action === 'reject') {
         notes = prompt('Please provide a reason for rejection:');
-        if (!notes) return;
+        if (!notes) return; // Cancels if no reason provided
     }
 
     try {
@@ -1943,13 +1943,17 @@ async function handlePlacement(id, action) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ action, notes })
+            body: JSON.stringify({ 
+                action, 
+                notes,
+                status: action === 'reject' ? 'rejected_appealed' : 'approved'
+            })
         });
 
         const data = await response.json();
         if (data.success) {
-            loadPendingPlacements();
-            closePendingPlacements(); // Add this line
+            alert(`Placement ${action === 'reject' ? 'rejected' : 'approved'} successfully`);
+            loadPendingPlacements(); // Refresh the list
         } else {
             alert(data.error || 'Error processing placement');
         }
