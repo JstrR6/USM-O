@@ -883,6 +883,10 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
 });
 
 router.get('/api/recruitment/rejected', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
     try {
         const recruitments = await Recruitment.find({ status: 'rejected_appealed' })
             .populate('targetDivision')
@@ -890,11 +894,10 @@ router.get('/api/recruitment/rejected', isAuthenticated, async (req, res) => {
             .populate('reviewedBy', 'username')
             .sort('-createdAt');
 
-        console.log('Fetched rejected recruitments:', recruitments); // Debug log
         res.json({ recruitments });
     } catch (error) {
         console.error('Error fetching rejected recruitments:', error);
-        res.status(500).json({ error: 'Server error', message: error.message });
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
