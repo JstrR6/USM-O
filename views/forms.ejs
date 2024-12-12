@@ -652,7 +652,7 @@
                 </div>
 
                 <div class="flex justify-end gap-2 mt-4">
-                    <button onclick="closeRecruitmentModal()" 
+                    <button onclick="closeRecruitmentForm()" 
                             class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
                         Cancel
                     </button>
@@ -1792,7 +1792,7 @@ async function openRecruitmentForm() {
     }
 }
 
-function closeRecruitmentForm() {
+function closeRecruitmentModal() {
     document.getElementById('recruitmentModal').classList.add('hidden');
 }
 

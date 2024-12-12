@@ -785,7 +785,7 @@ router.delete('/api/divisions/:id', isAuthenticated, async (req, res) => {
 });
 
 router.post('/api/recruitment', isAuthenticated, async (req, res) => {
-    if (!req.user.isRecruiter) {
+    if (!req.user.isRecruiter && !req.user.isSenior && !req.user.isOfficer) {
         return res.status(403).json({ error: 'Not authorized' });
     }
 
