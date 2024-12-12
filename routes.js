@@ -832,7 +832,8 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
 
     try {
         const recruitment = await Recruitment.findById(req.params.id)
-            .populate('targetDivision');
+            .populate('targetDivision')
+            .populate('recruiter');
 
         if (!recruitment) {
             return res.status(404).json({ error: 'Recruitment not found' });
@@ -840,38 +841,92 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
 
         const { action, notes, newDivisionId } = req.body;
 
+        if (req.user.isSenior) {
+            // Existing SNCO logic remains the same
+            if (action === 'approve') {
+                const targetDivision = await Division.findById(recruitment.targetDivision._id);
+                const user = await User.findOne({ username: recruitment.recruitUsername });
+
+                if (!user) {
+                    return res.status(400).json({ error: 'Recruit user not found' });
+                }
+
+                targetDivision.personnel.push({
+                    user: user._id,
+                    position: recruitment.divisionPosition
+                });
+                await targetDivision.save();
+
+                recruitment.status = 'approved';
+                recruitment.sncoReviewNotes = 'Directly approved and placed';
+                recruitment.sncoReviewedBy = req.user._id;
+            } else if (action === 'reject') {
+                recruitment.status = 'rejected_appealed';
+                recruitment.sncoReviewNotes = notes;
+                recruitment.sncoReviewedBy = req.user._id;
+            }
+        }
+
         if (req.user.isOfficer) {
             switch(action) {
                 case 'veto':
                     // Place in original division
                     const originalDivision = await Division.findById(recruitment.targetDivision._id);
                     const user = await User.findOne({ username: recruitment.recruitUsername });
+                    
+                    if (!user) {
+                        return res.status(400).json({ error: 'Recruit user not found' });
+                    }
+
                     originalDivision.personnel.push({
                         user: user._id,
                         position: recruitment.divisionPosition
                     });
                     await originalDivision.save();
+                    
                     recruitment.status = 'approved';
+                    recruitment.officerReviewNotes = notes || 'Vetoed and placed in original division';
+                    recruitment.officerReviewedBy = req.user._id;
                     break;
 
                 case 'accept_rejection':
-                    // Place in new division
+                    // Require new division selection
+                    if (!newDivisionId) {
+                        return res.status(400).json({ error: 'New division must be selected' });
+                    }
+
                     const newDivision = await Division.findById(newDivisionId);
+                    if (!newDivision) {
+                        return res.status(404).json({ error: 'Selected division not found' });
+                    }
+
                     const recruitUser = await User.findOne({ username: recruitment.recruitUsername });
+                    if (!recruitUser) {
+                        return res.status(400).json({ error: 'Recruit user not found' });
+                    }
+
                     newDivision.personnel.push({
                         user: recruitUser._id,
                         position: recruitment.divisionPosition
                     });
                     await newDivision.save();
+                    
                     recruitment.status = 'approved';
+                    recruitment.targetDivision = newDivisionId;
+                    recruitment.officerReviewNotes = notes || 'Approved with new division placement';
+                    recruitment.officerReviewedBy = req.user._id;
                     break;
 
                 case 'final_reject':
+                    // Completely reject the recruitment
                     recruitment.status = 'final_rejected';
+                    recruitment.officerReviewNotes = notes || 'Recruitment fully rejected';
+                    recruitment.officerReviewedBy = req.user._id;
                     break;
+
+                default:
+                    return res.status(400).json({ error: 'Invalid action' });
             }
-            recruitment.officerReviewNotes = notes;
-            recruitment.appealReviewedBy = req.user._id;
         }
 
         await recruitment.save();

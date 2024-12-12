@@ -1945,14 +1945,17 @@ async function handlePlacement(id, action) {
             },
             body: JSON.stringify({ 
                 action, 
-                notes,
-                status: action === 'reject' ? 'rejected_appealed' : 'approved'
+                notes
             })
         });
 
         const data = await response.json();
         if (data.success) {
-            alert(`Placement ${action === 'reject' ? 'rejected' : 'approved'} successfully`);
+            if (action === 'approve') {
+                alert('Placement approved and recruit added to division');
+            } else {
+                alert('Placement rejected and sent to Officers Division Management');
+            }
             loadPendingPlacements(); // Refresh the list
         } else {
             alert(data.error || 'Error processing placement');
@@ -2030,7 +2033,8 @@ async function handleOfficerReview(id, action) {
         switch(action) {
             case 'veto':
                 // Veto directly places in original division
-                await submitOfficerReview(id, 'veto');
+                const vetoNotes = prompt('Optional notes for vetoing the rejection:');
+                await submitOfficerReview(id, 'veto', vetoNotes);
                 break;
                 
             case 'accept_rejection':
@@ -2039,7 +2043,7 @@ async function handleOfficerReview(id, action) {
                 break;
                 
             case 'final_reject':
-                const notes = prompt('Please provide rejection notes:');
+                const notes = prompt('Please provide final rejection notes:');
                 if (!notes) return;
                 await submitOfficerReview(id, 'final_reject', notes);
                 break;
@@ -2060,7 +2064,7 @@ async function submitOfficerReview(id, action, notes = '', newDivisionId = null)
             body: JSON.stringify({ 
                 action, 
                 notes,
-                newDivisionId // Used when accepting rejection with new division
+                newDivisionId 
             })
         });
 
@@ -2069,6 +2073,19 @@ async function submitOfficerReview(id, action, notes = '', newDivisionId = null)
             loadRejectedPlacements();
             if (action === 'accept_rejection') {
                 closeNewDivisionModal();
+            }
+            
+            // Provide specific feedback based on action
+            switch(action) {
+                case 'veto':
+                    alert('Recruitment vetoed. Recruit placed in original division.');
+                    break;
+                case 'accept_rejection':
+                    alert('Recruitment accepted. Recruit placed in new division.');
+                    break;
+                case 'final_reject':
+                    alert('Recruitment fully rejected. Recruit not placed in any division.');
+                    break;
             }
         } else {
             alert(data.error || 'Error processing review');
