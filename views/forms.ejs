@@ -2020,25 +2020,39 @@ async function loadRejectedPlacements() {
     }
 }
 
-async function handleOfficerReview(id, action) {
+async function submitOfficerReview(id, action, notes = '', newDivisionId = null) {
     try {
-        switch(action) {
-            case 'veto':
-                // Veto directly places in original division
-                const vetoNotes = prompt('Optional notes for vetoing the rejection:');
-                await submitOfficerReview(id, 'veto', vetoNotes);
-                break;
-                
-            case 'accept_rejection':
-                // Open new division selection modal
-                openNewDivisionModal(id);
-                break;
-                
-            case 'final_reject':
-                const notes = prompt('Please provide final rejection notes:');
-                if (!notes) return;
-                await submitOfficerReview(id, 'final_reject', notes);
-                break;
+        const response = await fetch(`/api/recruitment/${id}/review`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                action, 
+                notes,
+                newDivisionId 
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            loadRejectedPlacements();
+            
+            // Specific feedback based on action
+            switch(action) {
+                case 'veto':
+                    alert('Recruitment vetoed. Recruit placed in original division.');
+                    break;
+                case 'accept_rejection':
+                    alert('Recruitment accepted. Recruit placed in new division.');
+                    closeNewDivisionModal();
+                    break;
+                case 'final_reject':
+                    alert('Recruitment rejected. Recruit not placed in any division.');
+                    break;
+            }
+        } else {
+            alert(data.error || 'Error processing review');
         }
     } catch (error) {
         console.error('Error:', error);
