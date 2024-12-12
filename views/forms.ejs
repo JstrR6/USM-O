@@ -1949,7 +1949,6 @@ async function handlePlacement(id, action) {
         const data = await response.json();
         if (data.success) {
             loadPendingPlacements();
-            closePendingPlacements();
         } else {
             alert(data.error || 'Error processing placement');
         }
