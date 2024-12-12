@@ -176,6 +176,11 @@
                                 <i class="fas fa-check-double text-2xl text-green-600 mb-2"></i>
                                 <p class="text-sm">Training Approval</p>
                             </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openPendingPlacements()">
+                                <i class="fas fa-user-check text-2xl text-green-600 mb-2"></i>
+                                <p class="text-sm">Pending Placements</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -197,14 +202,11 @@
                     <div class="bg-white rounded-lg p-6">
                         <h3 class="text-lg font-semibold mb-4">Recruiter Forms</h3>
                         <div class="form-grid">
-                            <a href="#" class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100">
-                                <i class="fas fa-file-alt text-2xl text-purple-600 mb-2"></i>
-                                <p class="text-sm">Recruit Application</p>
-                            </a>
-                            <a href="#" class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100">
-                                <i class="fas fa-file-alt text-2xl text-purple-600 mb-2"></i>
-                                <p class="text-sm">Interview Form</p>
-                            </a>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openRecruitmentForm()">
+                                <i class="fas fa-user-plus text-2xl text-purple-600 mb-2"></i>
+                                <p class="text-sm">Recruitment Form</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -584,6 +586,96 @@
             <div id="divisionList" class="space-y-4">
                 <!-- Divisions will be populated here -->
             </div>
+        </div>
+
+        <div class="bg-gray-50 p-4 rounded-lg mt-4">
+            <h4 class="text-lg font-semibold mb-4">Rejected Placements</h4>
+            <div id="rejectedPlacementsList" class="space-y-4">
+                <!-- Rejected placements will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="recruitmentModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Recruitment Form</h3>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Recruit Username</label>
+                    <input type="text" id="recruitUsername" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Recruit Discord</label>
+                    <input type="text" id="recruitDiscord" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Recruit Rank</label>
+                    <select id="recruitRank" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="">Select Rank</option>
+                        <!-- Add your rank options here -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Target Division</label>
+                    <select id="recruitDivision" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="">Select Division</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Division Position</label>
+                    <select id="recruitPosition" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="">Select Position</option>
+                        <option value="Soldier">Soldier</option>
+                        <option value="Squadron Leader">Squadron Leader</option>
+                        <option value="Squadron Sergeant">Squadron Sergeant</option>
+                        <option value="Non-Commission Officer In Charge">NCOIC</option>
+                        <option value="Section Chief">Section Chief</option>
+                        <option value="Senior Enlisted Leader">Senior Enlisted Leader</option>
+                        <option value="Deputy Commander">Deputy Commander</option>
+                        <option value="Commander">Commander</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date of Recruitment</label>
+                    <input type="date" id="recruitmentDate" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+
+                <div class="flex justify-end gap-2 mt-4">
+                    <button onclick="closeRecruitmentModal()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                        Cancel
+                    </button>
+                    <button onclick="submitRecruitment()" 
+                            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">
+                        Sign & Submit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="pendingPlacementsModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-gray-900">Pending Placements</h3>
+            <button onclick="closePendingPlacements()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="pendingPlacementsList" class="space-y-4">
+            <!-- Pending placements will be populated here -->
         </div>
     </div>
 </div>
@@ -1656,11 +1748,256 @@ async function removeDivision(divisionId) {
 
 function openDivisionModal() {
     document.getElementById('divisionModal').classList.remove('hidden');
-    loadDivisions();
+    // Load both divisions and rejected placements
+    Promise.all([
+        loadDivisions(),
+        loadRejectedPlacements()
+    ]).catch(error => {
+        console.error('Error loading division modal data:', error);
+    });
 }
 
 function closeDivisionModal() {
     document.getElementById('divisionModal').classList.add('hidden');
+}
+
+// Recruitment Form Functions
+async function openRecruitmentForm() {
+    const modal = document.getElementById('recruitmentModal');
+    modal.classList.remove('hidden');
+    
+    // Load divisions for dropdown
+    try {
+        const response = await fetch('/api/divisions');
+        const data = await response.json();
+        
+        const divisionSelect = document.getElementById('recruitDivision');
+        divisionSelect.innerHTML = '<option value="">Select Division</option>';
+        data.divisions.forEach(division => {
+            divisionSelect.innerHTML += `
+                <option value="${division._id}">${division.name}</option>
+            `;
+        });
+    } catch (error) {
+        console.error('Error loading divisions:', error);
+    }
+}
+
+function closeRecruitmentForm() {
+    document.getElementById('recruitmentModal').classList.add('hidden');
+}
+
+async function submitRecruitment() {
+    const formData = {
+        recruitUsername: document.getElementById('recruitUsername').value,
+        recruitDiscord: document.getElementById('recruitDiscord').value,
+        recruitRank: document.getElementById('recruitRank').value,
+        targetDivision: document.getElementById('recruitDivision').value,
+        divisionPosition: document.getElementById('recruitPosition').value,
+        dateRecruited: document.getElementById('recruitmentDate').value
+    };
+
+    // Validate form data
+    for (const [key, value] of Object.entries(formData)) {
+        if (!value) {
+            alert(`Please fill in ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+            return;
+        }
+    }
+
+    try {
+        const response = await fetch('/api/recruitment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('Recruitment form submitted successfully');
+            closeRecruitmentForm();
+            // Clear form
+            document.getElementById('recruitUsername').value = '';
+            document.getElementById('recruitDiscord').value = '';
+            document.getElementById('recruitRank').value = '';
+            document.getElementById('recruitDivision').value = '';
+            document.getElementById('recruitPosition').value = '';
+            document.getElementById('recruitmentDate').value = '';
+        } else {
+            alert(data.error || 'Error submitting recruitment form');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error submitting recruitment form');
+    }
+}
+
+// Pending Placements Functions (SNCO)
+function openPendingPlacements() {
+    document.getElementById('pendingPlacementsModal').classList.remove('hidden');
+    loadPendingPlacements();
+}
+
+function closePendingPlacements() {
+    document.getElementById('pendingPlacementsModal').classList.add('hidden');
+}
+
+async function loadPendingPlacements() {
+    try {
+        const response = await fetch('/api/recruitment/pending');
+        const data = await response.json();
+        
+        const container = document.getElementById('pendingPlacementsList');
+        container.innerHTML = '';
+
+        if (!data.recruitments.length) {
+            container.innerHTML = '<p class="text-center text-gray-500">No pending placements</p>';
+            return;
+        }
+
+        data.recruitments.forEach(recruitment => {
+            container.innerHTML += `
+                <div class="bg-white p-4 rounded-lg shadow">
+                    <div class="flex justify-between">
+                        <div>
+                            <h5 class="font-semibold">${recruitment.recruitUsername}</h5>
+                            <p class="text-sm text-gray-600">Discord: ${recruitment.recruitDiscord}</p>
+                            <p class="text-sm text-gray-600">Rank: ${recruitment.recruitRank}</p>
+                            <p class="text-sm text-gray-600">Division: ${recruitment.targetDivision.name}</p>
+                            <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition}</p>
+                            <p class="text-sm text-gray-600">Recruited: ${new Date(recruitment.dateRecruited).toLocaleDateString()}</p>
+                            <p class="text-sm text-gray-600">Recruiter: ${recruitment.recruiter.username}</p>
+                        </div>
+                        <div class="space-y-2">
+                            <button onclick="handlePlacement('${recruitment._id}', 'approve')"
+                                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                                Approve
+                            </button>
+                            <button onclick="handlePlacement('${recruitment._id}', 'reject')"
+                                    class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (error) {
+        console.error('Error loading pending placements:', error);
+    }
+}
+
+async function handlePlacement(id, action) {
+    let notes = '';
+    if (action === 'reject') {
+        notes = prompt('Please provide a reason for rejection:');
+        if (!notes) return; // Cancel if no reason provided
+    }
+
+    try {
+        const response = await fetch(`/api/recruitment/${id}/review`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action, notes })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            loadPendingPlacements();
+        } else {
+            alert(data.error || 'Error processing placement');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error processing placement');
+    }
+}
+
+// Officer Rejected Placements Functions
+async function loadRejectedPlacements() {
+    try {
+        const response = await fetch('/api/recruitment/pending');
+        const data = await response.json();
+        
+        const container = document.getElementById('rejectedPlacementsList');
+        container.innerHTML = '';
+
+        if (!data.recruitments.length) {
+            container.innerHTML = '<p class="text-center text-gray-500">No rejected placements</p>';
+            return;
+        }
+
+        data.recruitments.forEach(recruitment => {
+            container.innerHTML += `
+                <div class="bg-white p-4 rounded-lg shadow mb-4">
+                    <div class="flex justify-between">
+                        <div>
+                            <h5 class="font-semibold">${recruitment.recruitUsername}</h5>
+                            <p class="text-sm text-gray-600">Discord: ${recruitment.recruitDiscord}</p>
+                            <p class="text-sm text-gray-600">Rank: ${recruitment.recruitRank}</p>
+                            <p class="text-sm text-gray-600">Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
+                            <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition}</p>
+                            <p class="text-sm text-gray-600">SNCO Notes: ${recruitment.sncoReviewNotes || 'No notes provided'}</p>
+                        </div>
+                        <div class="space-y-2">
+                            <button onclick="handleOfficerReview('${recruitment._id}', 'veto')"
+                                    class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700">
+                                Veto Rejection
+                            </button>
+                            <button onclick="handleOfficerReview('${recruitment._id}', 'accept_rejection')"
+                                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                Accept Rejection
+                            </button>
+                            <button onclick="handleOfficerReview('${recruitment._id}', 'final_reject')"
+                                    class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                                Reject Recruitment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    } catch (error) {
+        console.error('Error loading rejected placements:', error);
+        document.getElementById('rejectedPlacementsList').innerHTML = 
+            '<p class="text-red-500">Error loading rejected placements</p>';
+    }
+}
+
+async function handleOfficerReview(id, action) {
+    let notes = '';
+    if (action !== 'veto') {
+        notes = prompt('Please provide review notes:');
+        if (!notes) return; // Cancel if no notes provided
+    }
+
+    try {
+        const response = await fetch(`/api/recruitment/${id}/review`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action, notes })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            loadRejectedPlacements();
+            // If accepting rejection, refresh divisions
+            if (action === 'accept_rejection') {
+                loadDivisions();
+            }
+        } else {
+            alert(data.error || 'Error processing review');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error processing review');
+    }
 }
                 </script>
             </main>

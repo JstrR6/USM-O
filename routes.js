@@ -7,6 +7,7 @@ const { Promotion } = require('./models/promotion');
 const { Demotion } = require('./models/demotion');
 const { Training } = require('./models/training');
 const Division = require('./models/division');
+const Recruitment = require('./models/recruitment');
 const { handlePromotion } = require('./bot')
 
 // Middleware to check authentication
@@ -779,6 +780,105 @@ router.delete('/api/divisions/:id', isAuthenticated, async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('Error deleting division:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+router.post('/api/recruitment', isAuthenticated, async (req, res) => {
+    if (!req.user.isRecruiter) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const recruitment = new Recruitment({
+            ...req.body,
+            recruiter: req.user._id,
+            status: 'pending'
+        });
+        await recruitment.save();
+        res.json({ success: true, recruitment });
+    } catch (error) {
+        console.error('Recruitment error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+router.get('/api/recruitment/pending', isAuthenticated, async (req, res) => {
+    if (!req.user.isSenior && !req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const query = req.user.isSenior ? 
+            { status: 'pending' } : 
+            { status: 'rejected_appealed' };
+
+        const recruitments = await Recruitment.find(query)
+            .populate('recruiter', 'username')
+            .populate('targetDivision', 'name')
+            .sort('-createdAt');
+
+        res.json({ recruitments });
+    } catch (error) {
+        console.error('Error fetching pending recruitments:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => {
+    if (!req.user.isSenior && !req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const { action, notes } = req.body;
+        const recruitment = await Recruitment.findById(req.params.id);
+
+        if (!recruitment) {
+            return res.status(404).json({ error: 'Recruitment not found' });
+        }
+
+        if (req.user.isSenior) {
+            recruitment.status = action === 'approve' ? 'approved' : 'rejected_appealed';
+            recruitment.sncoReviewNotes = notes;
+            recruitment.reviewedBy = req.user._id;
+
+            if (action === 'approve') {
+                // Add to division automatically
+                const division = await Division.findById(recruitment.targetDivision);
+                division.personnel.push({
+                    user: recruitment.recruitUsername,
+                    position: recruitment.divisionPosition
+                });
+                await division.save();
+            }
+        } else if (req.user.isOfficer) {
+            switch(action) {
+                case 'veto':
+                    recruitment.status = 'veto_approved';
+                    // Add to original division
+                    const division = await Division.findById(recruitment.targetDivision);
+                    division.personnel.push({
+                        user: recruitment.recruitUsername,
+                        position: recruitment.divisionPosition
+                    });
+                    await division.save();
+                    break;
+                case 'accept_rejection':
+                    recruitment.status = 'rejected';
+                    break;
+                case 'final_reject':
+                    recruitment.status = 'final_rejected';
+                    break;
+            }
+            recruitment.officerReviewNotes = notes;
+            recruitment.appealReviewedBy = req.user._id;
+        }
+
+        await recruitment.save();
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Review error:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
