@@ -844,10 +844,10 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
             return res.status(404).json({ error: 'Recruitment not found' });
         }
 
-        const { action, notes } = req.body;
+        const { action, notes, newDivisionId } = req.body;
 
         // Validate action
-        if (!['approve', 'reject'].includes(action)) {
+        if (!['approve', 'reject', 'veto', 'accept_rejection', 'final_reject'].includes(action)) {
             console.error('Invalid action received:', action);
             return res.status(400).json({ error: 'Invalid action' });
         }
@@ -877,6 +877,7 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
                 recruitment.sncoReviewNotes = notes;
                 recruitment.sncoReviewedBy = req.user._id;
             }
+        }
 
         if (req.user.isOfficer) {
             switch(action) {
