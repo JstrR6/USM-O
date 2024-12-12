@@ -1,28 +1,5 @@
 const mongoose = require('mongoose');
 
-// Define personnel schema
-const personnelSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true,
-    },
-    rank: {
-        type: String,
-        enum: [
-            'Soldier',
-            'Squadron Leader',
-            'Squadron Sergeant',
-            'Non-Commission Officer In Charge',
-            'Section Chief',
-            'Senior Enlisted Leader',
-            'Deputy Commander',
-            'Commander',
-        ],
-        required: true,
-    },
-});
-
-// Define division schema
 const divisionSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -31,15 +8,32 @@ const divisionSchema = new mongoose.Schema({
     },
     parentDivision: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Division', // Reference to another Division
-        default: null, // Null for top-level divisions
+        ref: 'Division',
+        default: null,
     },
-    personnel: [personnelSchema], // Embedded personnel schema
+    personnel: [{
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        position: {
+            type: String,
+            enum: [
+                'Commander',
+                'Deputy Commander',
+                'Senior Enlisted Leader',
+                'Section Chief',
+                'Non-Commission Officer In Charge',
+                'Squadron Sergeant',
+                'Squadron Leader',
+                'Soldier'
+            ],
+            required: true
+        }
+    }]
 }, {
-    timestamps: true, // Adds createdAt and updatedAt fields
+    timestamps: true
 });
 
-// Create the Division model
-const Division = mongoose.model('Division', divisionSchema);
-
-module.exports = Division;
+module.exports = mongoose.model('Division', divisionSchema);

@@ -1455,11 +1455,13 @@ async function loadDivisions() {
         // Populate the users dropdown
         const personnelSelect = document.getElementById('personnelSelect');
         personnelSelect.innerHTML = '<option value="">Select User</option>';
-        usersData.users.forEach(user => {
-            personnelSelect.innerHTML += `
-                <option value="${user._id}">${user.username}</option>
-            `;
-        });
+        if (usersData.users && Array.isArray(usersData.users)) {
+            usersData.users.forEach(user => {
+                personnelSelect.innerHTML += `
+                    <option value="${user._id}">${user.username}</option>
+                `;
+            });
+        }
 
         // Populate division dropdowns
         const parentSelect = document.getElementById('divisionParentDivision');
@@ -1467,20 +1469,25 @@ async function loadDivisions() {
         parentSelect.innerHTML = '<option value="">No Parent (Top Level)</option>';
         targetSelect.innerHTML = '<option value="">Select Division</option>';
         
-        divisionsData.divisions.forEach(division => {
-            const option = `
-                <option value="${division._id}">${division.name}</option>
-            `;
-            parentSelect.innerHTML += option;
-            targetSelect.innerHTML += option;
-        });
+        if (divisionsData.divisions && Array.isArray(divisionsData.divisions)) {
+            divisionsData.divisions.forEach(division => {
+                const option = `
+                    <option value="${division._id}">${division.name}</option>
+                `;
+                parentSelect.innerHTML += option;
+                targetSelect.innerHTML += option;
+            });
 
-        // Render division list
-        renderDivisions(divisionsData.divisions);
+            // Render division list
+            renderDivisions(divisionsData.divisions);
+        } else {
+            // If no divisions, clear the list
+            document.getElementById('divisionList').innerHTML = '<p class="text-gray-500">No divisions found</p>';
+        }
 
     } catch (error) {
         console.error('Error loading divisions:', error);
-        alert('Error loading divisions');
+        document.getElementById('divisionList').innerHTML = '<p class="text-red-500">Error loading divisions</p>';
     }
 }
 

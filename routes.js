@@ -658,10 +658,11 @@ router.get('/api/divisions', isAuthenticated, async (req, res) => {
             .populate('parentDivision', 'name')
             .populate('personnel.user', 'username')
             .exec();
-        res.json({ divisions });
+        
+        res.json({ divisions: divisions || [] }); // Ensure we always send an array
     } catch (error) {
         console.error('Error fetching divisions:', error);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: 'Server error', divisions: [] });
     }
 });
 
