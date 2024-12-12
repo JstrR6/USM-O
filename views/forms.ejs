@@ -1934,10 +1934,8 @@ async function handlePlacement(id, action) {
     let notes = '';
     if (action === 'reject') {
         notes = prompt('Please provide a reason for rejection:');
-        if (!notes) return; // Cancels if no reason provided
+        if (!notes) return;
     }
-
-    console.log('Sending placement review:', { id, action, notes });
 
     try {
         const response = await fetch(`/api/recruitment/${id}/review`, {
@@ -1945,32 +1943,18 @@ async function handlePlacement(id, action) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ 
-                action: action === 'approve' ? 'approve' : 'reject', 
-                notes
-            })
+            body: JSON.stringify({ action, notes })
         });
 
-        const responseData = await response.json();
-
-        console.log('Server response:', {
-            status: response.status,
-            data: responseData
-        });
-
-        if (response.ok) {
-            if (action === 'approve') {
-                alert('Placement approved and recruit added to division');
-            } else {
-                alert('Placement rejected and sent to Officers Division Management');
-            }
-            loadPendingPlacements(); // Refresh the list
+        const data = await response.json();
+        if (data.success) {
+            loadPendingPlacements();
+            closePendingPlacementsModal(); // Add this line
         } else {
-            alert(responseData.error || 'Error processing placement');
-            console.error('Error details:', responseData);
+            alert(data.error || 'Error processing placement');
         }
     } catch (error) {
-        console.error('Fetch error:', error);
+        console.error('Error:', error);
         alert('Error processing placement');
     }
 }
