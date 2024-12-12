@@ -826,24 +826,35 @@ router.get('/api/recruitment/pending', isAuthenticated, async (req, res) => {
 });
 
 router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => {
+    console.log('Received review request:', {
+        user: req.user.username,
+        action: req.body.action,
+        notes: req.body.notes
+    });
+
     if (!req.user.isSenior && !req.user.isOfficer) {
         return res.status(403).json({ error: 'Not authorized' });
     }
 
     try {
         const recruitment = await Recruitment.findById(req.params.id)
-            .populate('targetDivision')
-            .populate('recruiter');
+            .populate('targetDivision');
 
         if (!recruitment) {
             return res.status(404).json({ error: 'Recruitment not found' });
         }
 
-        const { action, notes, newDivisionId } = req.body;
+        const { action, notes } = req.body;
+
+        // Validate action
+        if (!['approve', 'reject'].includes(action)) {
+            console.error('Invalid action received:', action);
+            return res.status(400).json({ error: 'Invalid action' });
+        }
 
         if (req.user.isSenior) {
-            // Existing SNCO logic remains the same
             if (action === 'approve') {
+                // Direct placement into the division
                 const targetDivision = await Division.findById(recruitment.targetDivision._id);
                 const user = await User.findOne({ username: recruitment.recruitUsername });
 
@@ -861,11 +872,11 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
                 recruitment.sncoReviewNotes = 'Directly approved and placed';
                 recruitment.sncoReviewedBy = req.user._id;
             } else if (action === 'reject') {
+                // Send to Officers Division Management
                 recruitment.status = 'rejected_appealed';
                 recruitment.sncoReviewNotes = notes;
                 recruitment.sncoReviewedBy = req.user._id;
             }
-        }
 
         if (req.user.isOfficer) {
             switch(action) {

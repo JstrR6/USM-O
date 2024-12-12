@@ -1944,7 +1944,7 @@ async function handlePlacement(id, action) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ 
-                action, 
+                action: action === 'approve' ? 'approve' : 'reject', 
                 notes
             })
         });
