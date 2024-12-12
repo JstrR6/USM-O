@@ -1937,11 +1937,17 @@ async function handlePlacement(id, action) {
 // Officer Rejected Placements Functions
 async function loadRejectedPlacements() {
     try {
+        console.log('Fetching rejected placements...'); // Debug log
         const response = await fetch('/api/recruitment/rejected');
         const data = await response.json();
         
+        console.log('Received data:', data); // Debug log
+
         const container = document.getElementById('rejectedPlacementsList');
-        if (!container) return; // Guard clause if element doesn't exist
+        if (!container) {
+            console.error('rejectedPlacementsList element not found'); // Debug log
+            return;
+        }
 
         container.innerHTML = '';
 
@@ -1951,15 +1957,16 @@ async function loadRejectedPlacements() {
         }
 
         data.recruitments.forEach(recruitment => {
+            console.log('Processing recruitment:', recruitment); // Debug log
             container.innerHTML += `
                 <div class="bg-white p-4 rounded-lg shadow mb-4">
                     <div class="flex justify-between">
                         <div>
-                            <h5 class="font-semibold">${recruitment.recruitUsername}</h5>
-                            <p class="text-sm text-gray-600">Discord: ${recruitment.recruitDiscord}</p>
-                            <p class="text-sm text-gray-600">Rank: ${recruitment.recruitRank}</p>
+                            <h5 class="font-semibold">${recruitment.recruitUsername || 'Unknown'}</h5>
+                            <p class="text-sm text-gray-600">Discord: ${recruitment.recruitDiscord || 'N/A'}</p>
+                            <p class="text-sm text-gray-600">Rank: ${recruitment.recruitRank || 'N/A'}</p>
                             <p class="text-sm text-gray-600">Proposed Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
-                            <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition}</p>
+                            <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition || 'N/A'}</p>
                             <p class="text-sm text-gray-600">SNCO Notes: ${recruitment.sncoReviewNotes || 'No notes'}</p>
                         </div>
                         <div class="space-y-2">
@@ -1981,10 +1988,10 @@ async function loadRejectedPlacements() {
             `;
         });
     } catch (error) {
-        console.error('Error loading rejected placements:', error);
+        console.error('Error loading rejected placements:', error); // Detailed error log
         const container = document.getElementById('rejectedPlacementsList');
         if (container) {
-            container.innerHTML = '<p class="text-red-500">Error loading rejected placements</p>';
+            container.innerHTML = `<p class="text-red-500">Error loading rejected placements: ${error.message}</p>`;
         }
     }
 }

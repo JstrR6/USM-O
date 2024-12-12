@@ -869,4 +869,20 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
     }
 });
 
+router.get('/api/recruitment/rejected', isAuthenticated, async (req, res) => {
+    try {
+        const recruitments = await Recruitment.find({ status: 'rejected_appealed' })
+            .populate('targetDivision')
+            .populate('recruiter', 'username')
+            .populate('reviewedBy', 'username')
+            .sort('-createdAt');
+
+        console.log('Fetched rejected recruitments:', recruitments); // Debug log
+        res.json({ recruitments });
+    } catch (error) {
+        console.error('Error fetching rejected recruitments:', error);
+        res.status(500).json({ error: 'Server error', message: error.message });
+    }
+});
+
 module.exports = router;
