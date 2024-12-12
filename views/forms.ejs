@@ -1794,6 +1794,13 @@ async function openRecruitmentForm() {
 
 function closeRecruitmentModal() {
     document.getElementById('recruitmentModal').classList.add('hidden');
+    // Clear form fields
+    document.getElementById('recruitUsername').value = '';
+    document.getElementById('recruitDiscord').value = '';
+    document.getElementById('recruitRank').value = '';
+    document.getElementById('recruitDivision').value = '';
+    document.getElementById('recruitPosition').value = '';
+    document.getElementById('recruitmentDate').value = '';
 }
 
 async function submitRecruitment() {
@@ -1902,7 +1909,7 @@ async function handlePlacement(id, action) {
     let notes = '';
     if (action === 'reject') {
         notes = prompt('Please provide a reason for rejection:');
-        if (!notes) return; // Cancel if no reason provided
+        if (!notes) return;
     }
 
     try {
@@ -1917,6 +1924,7 @@ async function handlePlacement(id, action) {
         const data = await response.json();
         if (data.success) {
             loadPendingPlacements();
+            closePendingPlacementsModal(); // Add this line
         } else {
             alert(data.error || 'Error processing placement');
         }
@@ -1929,13 +1937,15 @@ async function handlePlacement(id, action) {
 // Officer Rejected Placements Functions
 async function loadRejectedPlacements() {
     try {
-        const response = await fetch('/api/recruitment/pending');
+        const response = await fetch('/api/recruitment/rejected');
         const data = await response.json();
         
         const container = document.getElementById('rejectedPlacementsList');
+        if (!container) return; // Guard clause if element doesn't exist
+
         container.innerHTML = '';
 
-        if (!data.recruitments.length) {
+        if (!data.recruitments || data.recruitments.length === 0) {
             container.innerHTML = '<p class="text-center text-gray-500">No rejected placements</p>';
             return;
         }
@@ -1948,9 +1958,9 @@ async function loadRejectedPlacements() {
                             <h5 class="font-semibold">${recruitment.recruitUsername}</h5>
                             <p class="text-sm text-gray-600">Discord: ${recruitment.recruitDiscord}</p>
                             <p class="text-sm text-gray-600">Rank: ${recruitment.recruitRank}</p>
-                            <p class="text-sm text-gray-600">Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
+                            <p class="text-sm text-gray-600">Proposed Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
                             <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition}</p>
-                            <p class="text-sm text-gray-600">SNCO Notes: ${recruitment.sncoReviewNotes || 'No notes provided'}</p>
+                            <p class="text-sm text-gray-600">SNCO Notes: ${recruitment.sncoReviewNotes || 'No notes'}</p>
                         </div>
                         <div class="space-y-2">
                             <button onclick="handleOfficerReview('${recruitment._id}', 'veto')"
@@ -1972,8 +1982,10 @@ async function loadRejectedPlacements() {
         });
     } catch (error) {
         console.error('Error loading rejected placements:', error);
-        document.getElementById('rejectedPlacementsList').innerHTML = 
-            '<p class="text-red-500">Error loading rejected placements</p>';
+        const container = document.getElementById('rejectedPlacementsList');
+        if (container) {
+            container.innerHTML = '<p class="text-red-500">Error loading rejected placements</p>';
+        }
     }
 }
 
@@ -2008,6 +2020,25 @@ async function handleOfficerReview(id, action) {
         alert('Error processing review');
     }
 }
+
+router.get('/api/recruitment/rejected', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const recruitments = await Recruitment.find({ status: 'rejected_appealed' })
+            .populate('targetDivision')
+            .populate('recruiter', 'username')
+            .populate('reviewedBy', 'username')
+            .sort('-createdAt');
+
+        res.json({ recruitments });
+    } catch (error) {
+        console.error('Error fetching rejected recruitments:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
                 </script>
             </main>
         </div>

@@ -831,12 +831,14 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
     }
 
     try {
-        const { action, notes } = req.body;
-        const recruitment = await Recruitment.findById(req.params.id);
+        const recruitment = await Recruitment.findById(req.params.id)
+            .populate('targetDivision');
 
         if (!recruitment) {
             return res.status(404).json({ error: 'Recruitment not found' });
         }
+
+        const { action, notes } = req.body;
 
         if (req.user.isSenior) {
             recruitment.status = action === 'approve' ? 'approved' : 'rejected_appealed';
@@ -844,35 +846,19 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
             recruitment.reviewedBy = req.user._id;
 
             if (action === 'approve') {
-                // Add to division automatically
-                const division = await Division.findById(recruitment.targetDivision);
+                // Get user by username
+                const user = await User.findOne({ username: recruitment.recruitUsername });
+                if (!user) {
+                    return res.status(404).json({ error: 'User not found' });
+                }
+
+                const division = await Division.findById(recruitment.targetDivision._id);
                 division.personnel.push({
-                    user: recruitment.recruitUsername,
+                    user: user._id, // Use the actual user ObjectId
                     position: recruitment.divisionPosition
                 });
                 await division.save();
             }
-        } else if (req.user.isOfficer) {
-            switch(action) {
-                case 'veto':
-                    recruitment.status = 'veto_approved';
-                    // Add to original division
-                    const division = await Division.findById(recruitment.targetDivision);
-                    division.personnel.push({
-                        user: recruitment.recruitUsername,
-                        position: recruitment.divisionPosition
-                    });
-                    await division.save();
-                    break;
-                case 'accept_rejection':
-                    recruitment.status = 'rejected';
-                    break;
-                case 'final_reject':
-                    recruitment.status = 'final_rejected';
-                    break;
-            }
-            recruitment.officerReviewNotes = notes;
-            recruitment.appealReviewedBy = req.user._id;
         }
 
         await recruitment.save();
