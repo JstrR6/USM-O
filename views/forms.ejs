@@ -1937,6 +1937,8 @@ async function handlePlacement(id, action) {
         if (!notes) return; // Cancels if no reason provided
     }
 
+    console.log('Sending placement review:', { id, action, notes });
+
     try {
         const response = await fetch(`/api/recruitment/${id}/review`, {
             method: 'POST',
@@ -1949,8 +1951,14 @@ async function handlePlacement(id, action) {
             })
         });
 
-        const data = await response.json();
-        if (data.success) {
+        const responseData = await response.json();
+
+        console.log('Server response:', {
+            status: response.status,
+            data: responseData
+        });
+
+        if (response.ok) {
             if (action === 'approve') {
                 alert('Placement approved and recruit added to division');
             } else {
@@ -1958,10 +1966,11 @@ async function handlePlacement(id, action) {
             }
             loadPendingPlacements(); // Refresh the list
         } else {
-            alert(data.error || 'Error processing placement');
+            alert(responseData.error || 'Error processing placement');
+            console.error('Error details:', responseData);
         }
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Fetch error:', error);
         alert('Error processing placement');
     }
 }
