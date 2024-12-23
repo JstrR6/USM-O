@@ -2,12 +2,14 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const passport = require('passport');
+const { isAuthenticated } = require('./middleware/auth');
 const { User } = require('./models/user');
 const { Promotion } = require('./models/promotion');
 const { Demotion } = require('./models/demotion');
 const { Training } = require('./models/training');
 const Division = require('./models/division');
 const Recruitment = require('./models/recruitment');
+const { Regulation } = require('./models/regulation');
 const { handlePromotion } = require('./bot')
 
 // Middleware to check authentication
@@ -953,6 +955,264 @@ router.get('/api/recruitment/rejected', isAuthenticated, async (req, res) => {
         res.json({ recruitments });
     } catch (error) {
         console.error('Error fetching rejected recruitments:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+router.get('/api/regulations/active', isAuthenticated, async (req, res) => {
+    try {
+        const regulations = await Regulation.find({ isActive: true })
+            .populate('addedBy', 'username')
+            .populate('lastModifiedBy', 'username')
+            .sort('-dateAdded');
+        
+        res.json({ regulations });
+    } catch (error) {
+        console.error('Error fetching regulations:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get single regulation
+router.get('/api/regulations/:id', isAuthenticated, async (req, res) => {
+    try {
+        const regulation = await Regulation.findById(req.params.id)
+            .populate('addedBy', 'username')
+            .populate('lastModifiedBy', 'username')
+            .populate('changeHistory.modifiedBy', 'username');
+
+        if (!regulation) {
+            return res.status(404).json({ error: 'Regulation not found' });
+        }
+
+        res.json({ regulation });
+    } catch (error) {
+        console.error('Error fetching regulation:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Add new regulation
+router.post('/api/regulations', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Only officers can add regulations' });
+    }
+
+    try {
+        const { title, category, description, content } = req.body;
+
+        // Check for required fields
+        if (!title || !category || !description || !content) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        const regulation = new Regulation({
+            title,
+            category,
+            description,
+            content,
+            addedBy: req.user._id,
+            lastModifiedBy: req.user._id,
+            changeHistory: [{
+                modifiedBy: req.user._id,
+                changeType: 'added',
+                newContent: content
+            }]
+        });
+
+        await regulation.save();
+        res.json({ success: true, regulation });
+    } catch (error) {
+        console.error('Error adding regulation:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Update regulation
+router.put('/api/regulations/:id', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Only officers can modify regulations' });
+    }
+
+    try {
+        const regulation = await Regulation.findById(req.params.id);
+        if (!regulation) {
+            return res.status(404).json({ error: 'Regulation not found' });
+        }
+
+        const { title, category, description, content, reason } = req.body;
+
+        // Store previous values for change history
+        const previousContent = regulation.content;
+
+        // Update fields
+        regulation.title = title || regulation.title;
+        regulation.category = category || regulation.category;
+        regulation.description = description || regulation.description;
+        regulation.content = content || regulation.content;
+        regulation.lastModified = new Date();
+        regulation.lastModifiedBy = req.user._id;
+
+        // Add to change history if content was modified
+        if (content && content !== previousContent) {
+            regulation.changeHistory.push({
+                modifiedBy: req.user._id,
+                changeType: 'modified',
+                previousContent,
+                newContent: content,
+                reason
+            });
+        }
+
+        await regulation.save();
+        res.json({ success: true, regulation });
+    } catch (error) {
+        console.error('Error updating regulation:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Remove regulation (soft delete)
+router.delete('/api/regulations/:id', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Only officers can remove regulations' });
+    }
+
+    try {
+        const regulation = await Regulation.findById(req.params.id);
+        if (!regulation) {
+            return res.status(404).json({ error: 'Regulation not found' });
+        }
+
+        // Soft delete
+        regulation.isActive = false;
+        regulation.dateRemoved = new Date();
+        regulation.removedBy = req.user._id;
+        regulation.changeHistory.push({
+            modifiedBy: req.user._id,
+            changeType: 'removed',
+            previousContent: regulation.content,
+            reason: req.body.reason
+        });
+
+        await regulation.save();
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error removing regulation:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get regulation logs
+router.get('/api/regulations/logs', isAuthenticated, async (req, res) => {
+    try {
+        // Aggregate all changes across all regulations
+        const regulations = await Regulation.find({})
+            .populate('addedBy', 'username')
+            .populate('removedBy', 'username')
+            .populate('changeHistory.modifiedBy', 'username');
+
+        let logs = [];
+        regulations.forEach(regulation => {
+            // Add initial creation log
+            logs.push({
+                _id: regulation._id + '_creation',
+                title: regulation.title,
+                modifiedDate: regulation.dateAdded,
+                modifiedBy: regulation.addedBy,
+                changeType: 'added',
+                reason: 'Initial creation'
+            });
+
+            // Add all change history
+            regulation.changeHistory.forEach(change => {
+                logs.push({
+                    _id: change._id,
+                    title: regulation.title,
+                    modifiedDate: change.modifiedDate,
+                    modifiedBy: change.modifiedBy,
+                    changeType: change.changeType,
+                    reason: change.reason,
+                    previousContent: change.previousContent,
+                    newContent: change.newContent
+                });
+            });
+        });
+
+        // Sort by date, most recent first
+        logs.sort((a, b) => b.modifiedDate - a.modifiedDate);
+
+        res.json({ logs });
+    } catch (error) {
+        console.error('Error fetching regulation logs:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get specific log details
+router.get('/api/regulations/logs/:logId', isAuthenticated, async (req, res) => {
+    try {
+        const [regulationId, changeId] = req.params.logId.split('_');
+        
+        const regulation = await Regulation.findById(regulationId)
+            .populate('addedBy', 'username')
+            .populate('changeHistory.modifiedBy', 'username');
+
+        if (!regulation) {
+            return res.status(404).json({ error: 'Log not found' });
+        }
+
+        let log;
+        if (changeId === 'creation') {
+            log = {
+                _id: req.params.logId,
+                title: regulation.title,
+                modifiedDate: regulation.dateAdded,
+                modifiedBy: regulation.addedBy,
+                changeType: 'added',
+                reason: 'Initial creation',
+                newContent: regulation.content
+            };
+        } else {
+            log = regulation.changeHistory.id(changeId);
+            if (!log) {
+                return res.status(404).json({ error: 'Log not found' });
+            }
+            log = {
+                ...log.toObject(),
+                title: regulation.title
+            };
+        }
+
+        res.json({ log });
+    } catch (error) {
+        console.error('Error fetching log details:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Search regulations
+router.get('/api/regulations/search', isAuthenticated, async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) {
+            return res.status(400).json({ error: 'Search query is required' });
+        }
+
+        const regulations = await Regulation.find({
+            isActive: true,
+            $or: [
+                { title: { $regex: query, $options: 'i' } },
+                { description: { $regex: query, $options: 'i' } },
+                { content: { $regex: query, $options: 'i' } },
+                { category: { $regex: query, $options: 'i' } }
+            ]
+        }).populate('addedBy', 'username')
+          .populate('lastModifiedBy', 'username');
+
+        res.json({ regulations });
+    } catch (error) {
+        console.error('Error searching regulations:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });

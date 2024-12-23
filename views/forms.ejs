@@ -121,6 +121,13 @@
                         <h3 class="font-semibold">Recruiter Forms</h3>
                     </div>
                     <% } %>
+
+                    <div class="folder bg-white rounded-lg p-4 text-center cursor-pointer" onclick="toggleForms('afi-forms')">
+                        <div class="mb-2 text-gray-600">
+                            <i class="fas fa-book text-5xl"></i>
+                        </div>
+                        <h3 class="font-semibold">AFIs</h3>
+                    </div>
                 </div>
 
                 <!-- Forms Sections (Hidden by default) -->
@@ -156,6 +163,18 @@
                                 onclick="openDivisionModal()">
                                 <i class="fas fa-sitemap text-2xl text-blue-600 mb-2"></i>
                                 <p class="text-sm">Division Management</p>
+                            </div>
+                            <div id="afi-forms" class="hidden mt-6">
+                                <div class="bg-white rounded-lg p-6">
+                                    <h3 class="text-lg font-semibold mb-4">Air Force Instructions</h3>
+                                    <div class="mb-4">
+                                        <input type="text" id="afiSearch" placeholder="Search AFIs..." 
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-md">
+                                    </div>
+                                    <div id="afiList" class="space-y-4">
+                                        <!-- AFIs will be populated here -->
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -700,6 +719,113 @@
         </div>
         <div id="pendingPlacementsList" class="space-y-4">
             <!-- Pending placements will be populated here -->
+        </div>
+    </div>
+</div>
+
+<div id="regulationManagementModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-gray-900">Regulation Management</h3>
+            <button onclick="closeRegulationManagement()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-4 border-b">
+            <div class="flex space-x-4">
+                <button onclick="switchRegulationTab('add')" 
+                        class="py-2 px-4 border-b-2 regulation-tab" data-tab="add">
+                    Add Regulation
+                </button>
+                <button onclick="switchRegulationTab('remove')" 
+                        class="py-2 px-4 border-b-2 regulation-tab" data-tab="remove">
+                    Remove Regulation
+                </button>
+                <button onclick="switchRegulationTab('logs')" 
+                        class="py-2 px-4 border-b-2 regulation-tab" data-tab="logs">
+                    Regulation Logs
+                </button>
+            </div>
+        </div>
+
+        <!-- Add Regulation Tab -->
+        <div id="addRegulationTab" class="regulation-content">
+            <form id="addRegulationForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Title</label>
+                    <input type="text" id="regulationTitle" 
+                           class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Category</label>
+                    <input type="text" id="regulationCategory" 
+                           class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea id="regulationDescription" rows="2" 
+                            class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Content</label>
+                    <textarea id="regulationContent" rows="6" 
+                            class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Add Regulation
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Remove Regulation Tab -->
+        <div id="removeRegulationTab" class="regulation-content hidden">
+            <div class="space-y-4">
+                <input type="text" placeholder="Search regulations..." 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md"
+                       onkeyup="filterRegulations(this.value)">
+                <div id="regulationsList" class="space-y-2">
+                    <!-- Regulations will be listed here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Tab -->
+        <div id="regulationLogsTab" class="regulation-content hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Officer</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="regulationLogsBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Logs will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Regulation Details Modal -->
+<div id="regulationDetailsModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="regulationDetailsTitle" class="text-xl font-semibold text-gray-900"></h3>
+            <button onclick="closeRegulationDetails()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="regulationDetailsContent" class="prose max-w-none">
+            <!-- Regulation content will be populated here -->
         </div>
     </div>
 </div>
@@ -2123,6 +2249,317 @@ async function confirmNewDivision() {
     const notes = prompt('Please provide any notes about this placement:');
     await submitOfficerReview(currentRecruitmentId, 'accept_rejection', notes, newDivisionId);
 }
+
+// Regulation Management Functions
+function openRegulationManagement() {
+    document.getElementById('regulationManagementModal').classList.remove('hidden');
+    switchRegulationTab('add');
+    loadRegulations();
+}
+
+function closeRegulationManagement() {
+    document.getElementById('regulationManagementModal').classList.add('hidden');
+}
+
+function switchRegulationTab(tab) {
+    // Hide all content
+    document.querySelectorAll('.regulation-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    
+    // Show selected content
+    document.getElementById(`${tab}RegulationTab`).classList.remove('hidden');
+    
+    // Update tab styles
+    document.querySelectorAll('.regulation-tab').forEach(tabEl => {
+        if (tabEl.dataset.tab === tab) {
+            tabEl.classList.add('border-blue-600', 'text-blue-600');
+        } else {
+            tabEl.classList.remove('border-blue-600', 'text-blue-600');
+        }
+    });
+
+    // Load appropriate content
+    if (tab === 'logs') {
+        loadRegulationLogs();
+    } else if (tab === 'remove') {
+        loadActiveRegulations();
+    }
+}
+
+// Add Regulation
+async function submitRegulation(event) {
+    event.preventDefault();
+    
+    const regulationData = {
+        title: document.getElementById('regulationTitle').value,
+        category: document.getElementById('regulationCategory').value,
+        description: document.getElementById('regulationDescription').value,
+        content: document.getElementById('regulationContent').value
+    };
+
+    try {
+        const response = await fetch('/api/regulations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(regulationData)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('Regulation added successfully');
+            // Clear form
+            document.getElementById('addRegulationForm').reset();
+        } else {
+            alert(data.error || 'Error adding regulation');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error adding regulation');
+    }
+}
+
+// Load all regulations for the AFI view
+async function loadRegulations() {
+    try {
+        const response = await fetch('/api/regulations/active');
+        const data = await response.json();
+        
+        const afiList = document.getElementById('afiList');
+        afiList.innerHTML = data.regulations.map(reg => `
+            <div class="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+                 onclick="viewRegulationDetails('${reg._id}')">
+                <h4 class="font-semibold text-lg">${reg.title}</h4>
+                <p class="text-sm text-gray-600 mt-1">${reg.description}</p>
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-xs text-gray-500">Category: ${reg.category}</span>
+                    <span class="text-xs text-gray-500">Last updated: ${new Date(reg.lastModified || reg.dateAdded).toLocaleDateString()}</span>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading regulations:', error);
+    }
+}
+
+// Load Active Regulations for removal
+async function loadActiveRegulations() {
+    try {
+        const response = await fetch('/api/regulations/active');
+        const data = await response.json();
+        
+        const regulationsList = document.getElementById('regulationsList');
+        regulationsList.innerHTML = data.regulations.map(reg => `
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h4 class="font-semibold">${reg.title}</h4>
+                        <p class="text-sm text-gray-600">${reg.description}</p>
+                        <p class="text-xs text-gray-500">Category: ${reg.category}</p>
+                        <p class="text-xs text-gray-500">Added: ${new Date(reg.dateAdded).toLocaleDateString()}</p>
+                    </div>
+                    <div class="space-y-2">
+                        <button onclick="viewRegulationDetails('${reg._id}')"
+                                class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            View
+                        </button>
+                        <button onclick="removeRegulation('${reg._id}')"
+                                class="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading regulations:', error);
+        regulationsList.innerHTML = '<p class="text-red-500">Error loading regulations</p>';
+    }
+}
+
+// Remove Regulation
+async function removeRegulation(id) {
+    const reason = prompt('Please provide a reason for removing this regulation:');
+    if (!reason) return;
+
+    try {
+        const response = await fetch(`/api/regulations/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('Regulation removed successfully');
+            loadActiveRegulations();
+        } else {
+            alert(data.error || 'Error removing regulation');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error removing regulation');
+    }
+}
+
+// Load Regulation Logs
+async function loadRegulationLogs() {
+    try {
+        const response = await fetch('/api/regulations/logs');
+        const data = await response.json();
+        
+        const logsBody = document.getElementById('regulationLogsBody');
+        logsBody.innerHTML = data.logs.map(log => {
+            const date = new Date(log.modifiedDate).toLocaleString();
+            const actionClass = {
+                'added': 'text-green-600',
+                'removed': 'text-red-600',
+                'modified': 'text-blue-600'
+            }[log.changeType];
+
+            return `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">${date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="${actionClass} font-medium">
+                            ${log.changeType.charAt(0).toUpperCase() + log.changeType.slice(1)}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">${log.title}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${log.modifiedBy.username}</td>
+                    <td class="px-6 py-4">
+                        <button onclick="viewLogDetails('${log._id}')"
+                                class="text-blue-600 hover:text-blue-800">
+                            View Details
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        if (data.logs.length === 0) {
+            logsBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                        No regulation logs found
+                    </td>
+                </tr>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading regulation logs:', error);
+    }
+}
+
+// View Regulation Details
+async function viewRegulationDetails(id) {
+    try {
+        const response = await fetch(`/api/regulations/${id}`);
+        const data = await response.json();
+        
+        document.getElementById('regulationDetailsTitle').textContent = data.regulation.title;
+        document.getElementById('regulationDetailsContent').innerHTML = `
+            <div class="space-y-4">
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Category</h4>
+                    <p>${data.regulation.category}</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Description</h4>
+                    <p>${data.regulation.description}</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Content</h4>
+                    <div class="prose">${marked(data.regulation.content)}</div>
+                </div>
+                <div class="text-sm text-gray-500">
+                    Last modified: ${new Date(data.regulation.lastModified || data.regulation.dateAdded).toLocaleString()}
+                    ${data.regulation.lastModifiedBy ? `by ${data.regulation.lastModifiedBy.username}` : ''}
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('regulationDetailsModal').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error loading regulation details:', error);
+        alert('Error loading regulation details');
+    }
+}
+
+// View Log Details
+async function viewLogDetails(logId) {
+    try {
+        const response = await fetch(`/api/regulations/logs/${logId}`);
+        const data = await response.json();
+        const log = data.log;
+        
+        document.getElementById('regulationDetailsTitle').textContent = 'Change Log Details';
+        document.getElementById('regulationDetailsContent').innerHTML = `
+            <div class="space-y-4">
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Action</h4>
+                    <p>${log.changeType.charAt(0).toUpperCase() + log.changeType.slice(1)}</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Reason</h4>
+                    <p>${log.reason || 'No reason provided'}</p>
+                </div>
+                ${log.previousContent ? `
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-500">Previous Content</h4>
+                        <div class="prose">${marked(log.previousContent)}</div>
+                    </div>
+                ` : ''}
+                ${log.newContent ? `
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-500">New Content</h4>
+                        <div class="prose">${marked(log.newContent)}</div>
+                    </div>
+                ` : ''}
+                <div class="text-sm text-gray-500">
+                    Modified on ${new Date(log.modifiedDate).toLocaleString()}
+                    by ${log.modifiedBy.username}
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('regulationDetailsModal').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error loading log details:', error);
+        alert('Error loading log details');
+    }
+}
+
+// Close Regulation Details Modal
+function closeRegulationDetails() {
+    document.getElementById('regulationDetailsModal').classList.add('hidden');
+}
+
+// Filter regulations in the AFI view
+function filterRegulations(searchTerm) {
+    const regulations = document.querySelectorAll('#afiList > div');
+    searchTerm = searchTerm.toLowerCase();
+    
+    regulations.forEach(reg => {
+        const text = reg.textContent.toLowerCase();
+        reg.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+}
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('addRegulationForm').addEventListener('submit', submitRegulation);
+    document.getElementById('afiSearch').addEventListener('keyup', (e) => filterRegulations(e.target.value));
+    
+    // Initial load of regulations if we're on the forms page
+    if (document.getElementById('afiList')) {
+        loadRegulations();
+    }
+});
                 </script>
             </main>
         </div>
