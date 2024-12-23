@@ -6,6 +6,8 @@
     <title><%= title %> | Military Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         .folder {
             transition: transform 0.2s, box-shadow 0.2s;
@@ -164,17 +166,10 @@
                                 <i class="fas fa-sitemap text-2xl text-blue-600 mb-2"></i>
                                 <p class="text-sm">Division Management</p>
                             </div>
-                            <div id="afi-forms" class="hidden mt-6">
-                                <div class="bg-white rounded-lg p-6">
-                                    <h3 class="text-lg font-semibold mb-4">Air Force Instructions</h3>
-                                    <div class="mb-4">
-                                        <input type="text" id="afiSearch" placeholder="Search AFIs..." 
-                                               class="w-full px-4 py-2 border border-gray-300 rounded-md">
-                                    </div>
-                                    <div id="afiList" class="space-y-4">
-                                        <!-- AFIs will be populated here -->
-                                    </div>
-                                </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openRegulationManagement()">
+                                <i class="fas fa-gavel text-2xl text-blue-600 mb-2"></i>
+                                <p class="text-sm">Regulation Management</p>
                             </div>
                         </div>
                     </div>
@@ -719,6 +714,20 @@
         </div>
         <div id="pendingPlacementsList" class="space-y-4">
             <!-- Pending placements will be populated here -->
+        </div>
+    </div>
+</div>
+
+<div id="afi-forms" class="hidden mt-6">
+    <div class="bg-white rounded-lg p-6">
+        <h3 class="text-lg font-semibold mb-4">Air Force Instructions</h3>
+        <div class="mb-4">
+            <input type="text" id="afiSearch" 
+                   placeholder="Search AFIs..." 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md">
+        </div>
+        <div id="afiList" class="space-y-4">
+            <!-- AFIs will be populated here -->
         </div>
     </div>
 </div>
@@ -2248,6 +2257,24 @@ async function confirmNewDivision() {
 
     const notes = prompt('Please provide any notes about this placement:');
     await submitOfficerReview(currentRecruitmentId, 'accept_rejection', notes, newDivisionId);
+}
+
+function toggleForms(formId) {
+    // Hide all form sections first
+    document.querySelectorAll('[id$="-forms"]').forEach(section => {
+        section.classList.add('hidden');
+    });
+    
+    // Show the selected section
+    const selectedSection = document.getElementById(formId);
+    if (selectedSection) {
+        selectedSection.classList.remove('hidden');
+        
+        // If it's the AFI section, load the regulations
+        if (formId === 'afi-forms') {
+            loadRegulations();
+        }
+    }
 }
 
 // Regulation Management Functions
