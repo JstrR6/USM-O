@@ -9,6 +9,7 @@ const { Training } = require('./models/training');
 const Division = require('./models/division');
 const Recruitment = require('./models/recruitment');
 const { Regulation } = require('./models/regulation');
+const { DisciplinaryAction } = require('./models/disciplinary');
 const { handlePromotion } = require('./bot')
 
 // Middleware to check authentication
@@ -1215,5 +1216,200 @@ router.get('/api/regulations/search', isAuthenticated, async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 });
+
+// Submit a disciplinary action
+router.post('/api/disciplinary', isAuthenticated, async (req, res) => {
+    if (!req.user.isSenior && !req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized to issue disciplinary actions' });
+    }
+
+    try {
+        const { userId, grade, reason, xpDeduction, demotionRank } = req.body;
+        const targetUser = await User.findById(userId);
+        
+        if (!targetUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Determine if action needs officer approval
+        const needsApproval = grade === 4 || (grade === 3 && xpDeduction >= 10);
+        
+        const action = new DisciplinaryAction({
+            targetUser: userId,
+            issuedBy: req.user._id,
+            grade,
+            reason,
+            xpDeduction: grade === 2 ? 1 : xpDeduction,
+            demotionRank,
+            status: needsApproval ? 'pending' : 'completed'
+        });
+
+        await action.save();
+
+        // If no approval needed, process the action immediately
+        if (!needsApproval) {
+            await processAction(action);
+        }
+
+        res.json({ 
+            success: true, 
+            needsApproval,
+            action
+        });
+    } catch (error) {
+        console.error('Error submitting disciplinary action:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get pending disciplinary actions (for officers)
+router.get('/api/disciplinary/pending', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const actions = await DisciplinaryAction.find({ status: 'pending' })
+            .populate('targetUser', 'username highestRole')
+            .populate('issuedBy', 'username')
+            .sort('-dateIssued');
+        
+        res.json({ actions });
+    } catch (error) {
+        console.error('Error fetching pending actions:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get disciplinary logs
+router.get('/api/disciplinary/logs', isAuthenticated, async (req, res) => {
+    try {
+        const query = req.user.isOfficer ? {} : { issuedBy: req.user._id };
+        
+        const actions = await DisciplinaryAction.find(query)
+            .populate('targetUser', 'username highestRole')
+            .populate('issuedBy', 'username')
+            .populate('officerApproval.officer', 'username')
+            .sort('-dateIssued');
+        
+        res.json({ actions });
+    } catch (error) {
+        console.error('Error fetching disciplinary logs:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get single disciplinary action details
+router.get('/api/disciplinary/:id', isAuthenticated, async (req, res) => {
+    try {
+        const action = await DisciplinaryAction.findById(req.params.id)
+            .populate('targetUser', 'username highestRole')
+            .populate('issuedBy', 'username')
+            .populate('officerApproval.officer', 'username');
+        
+        if (!action) {
+            return res.status(404).json({ error: 'Action not found' });
+        }
+
+        res.json({ action });
+    } catch (error) {
+        console.error('Error fetching action details:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Approve disciplinary action (officers only)
+router.post('/api/disciplinary/:id/approve', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const action = await DisciplinaryAction.findById(req.params.id)
+            .populate('targetUser');
+        
+        if (!action) {
+            return res.status(404).json({ error: 'Action not found' });
+        }
+
+        if (action.status !== 'pending') {
+            return res.status(400).json({ error: 'Action already processed' });
+        }
+
+        action.status = 'approved';
+        action.officerApproval = {
+            officer: req.user._id,
+            date: new Date()
+        };
+
+        await action.save();
+        await processAction(action);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error approving action:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Reject disciplinary action (officers only)
+router.post('/api/disciplinary/:id/reject', isAuthenticated, async (req, res) => {
+    if (!req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const { reason } = req.body;
+        if (!reason) {
+            return res.status(400).json({ error: 'Rejection reason required' });
+        }
+
+        const action = await DisciplinaryAction.findById(req.params.id);
+        if (!action) {
+            return res.status(404).json({ error: 'Action not found' });
+        }
+
+        if (action.status !== 'pending') {
+            return res.status(400).json({ error: 'Action already processed' });
+        }
+
+        action.status = 'rejected';
+        action.officerApproval = {
+            officer: req.user._id,
+            date: new Date(),
+            notes: reason
+        };
+
+        await action.save();
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error rejecting action:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Helper function to process disciplinary actions
+async function processAction(action) {
+    try {
+        const user = await User.findById(action.targetUser._id || action.targetUser);
+        
+        switch (action.grade) {
+            case 2: // Violation (-1 XP)
+            case 3: // Violation II (Custom XP)
+                user.xp = Math.max(0, user.xp - action.xpDeduction);
+                await user.save();
+                break;
+                
+            case 4: // Demotion
+                await handlePromotion(user.discordId, action.demotionRank);
+                user.highestRole = action.demotionRank;
+                await user.save();
+                break;
+        }
+    } catch (error) {
+        console.error('Error processing disciplinary action:', error);
+        throw error;
+    }
+}
 
 module.exports = router;
