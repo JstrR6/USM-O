@@ -761,6 +761,25 @@
 
         <!-- Add Regulation Tab -->
         <div id="addRegulationTab" class="regulation-content">
+            <div class="mb-4 bg-gray-50 p-4 rounded-lg">
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Formatting Guide</h4>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p><code># Header 1</code> - Large Header</p>
+                        <p><code>## Header 2</code> - Medium Header</p>
+                        <p><code>### Header 3</code> - Small Header</p>
+                        <p><code>**bold text**</code> - <strong>bold text</strong></p>
+                        <p><code>*italic text*</code> - <em>italic text</em></p>
+                    </div>
+                    <div>
+                        <p><code>- item</code> - Bullet point</p>
+                        <p><code>1. item</code> - Numbered list</p>
+                        <p><code>---</code> - Horizontal line</p>
+                        <p>Double Enter - New paragraph</p>
+                        <p>Single Enter with two spaces - Line break</p>
+                    </div>
+                </div>
+            </div>
             <form id="addRegulationForm" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Title</label>
@@ -779,8 +798,20 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Content</label>
-                    <textarea id="regulationContent" rows="6" 
-                            class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                    <div class="relative">
+                        <textarea id="regulationContent" rows="15" 
+                                class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md font-mono"
+                                placeholder="Use Markdown formatting for content..."></textarea>
+                        <button type="button" 
+                                onclick="previewRegulation()"
+                                class="absolute right-2 top-2 px-3 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200">
+                            Preview
+                        </button>
+                    </div>
+                </div>
+                <div id="previewArea" class="hidden mt-4 p-4 border rounded-md bg-gray-50">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Preview</h4>
+                    <div id="previewContent" class="prose max-w-none"></div>
                 </div>
                 <div class="flex justify-end">
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
@@ -2289,10 +2320,12 @@ function closeRegulationManagement() {
 }
 
 function switchRegulationTab(tab) {
-    // First check if elements exist
-    const tabContent = document.getElementById(`${tab}RegulationTab`);
+    // Get the tab content based on the tab name
+    let tabContentId = tab + 'RegulationTab';
+    const tabContent = document.getElementById(tabContentId);
+    
     if (!tabContent) {
-        console.error(`Tab content for ${tab} not found`);
+        console.error(`Tab content for ${tabContentId} not found`);
         return;
     }
 
@@ -2490,6 +2523,17 @@ async function loadRegulationLogs() {
 }
 
 // View Regulation Details
+function previewRegulation() {
+    const content = document.getElementById('regulationContent').value;
+    const previewArea = document.getElementById('previewArea');
+    const previewContent = document.getElementById('previewContent');
+    
+    // Convert markdown to HTML
+    previewContent.innerHTML = marked.parse(content);
+    previewArea.classList.remove('hidden');
+}
+
+// Update the regulation display function
 async function viewRegulationDetails(id) {
     try {
         const response = await fetch(`/api/regulations/${id}`);
@@ -2508,7 +2552,9 @@ async function viewRegulationDetails(id) {
                 </div>
                 <div>
                     <h4 class="text-sm font-medium text-gray-500">Content</h4>
-                    <div class="prose">${data.regulation.content}</div>
+                    <div class="prose max-w-none">
+                        ${marked.parse(data.regulation.content)}
+                    </div>
                 </div>
                 <div class="text-sm text-gray-500">
                     Last modified: ${new Date(data.regulation.lastModified || data.regulation.dateAdded).toLocaleString()}
