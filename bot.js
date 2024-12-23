@@ -70,42 +70,43 @@ function determineHighestRole(roles) {
 
 // Main function to sync a single user
 async function syncUserData(member) {
-  try {      
-      // Create roles array with proper structure
-      const roles = Array.from(member.roles.cache).map(([id, role]) => ({
-          id: role.id,
-          name: role.name
-      }));
+    try {      
+        // Create roles array with proper structure
+        const roles = Array.from(member.roles.cache).map(([id, role]) => ({
+            id: role.id,
+            name: role.name
+        }));
 
-      // Calculate highest role and role flags
-      const highestRole = determineHighestRole(roles);
-      const roleFlags = determineRoleFlags(roles);
+        // Calculate highest role and role flags
+        const highestRole = determineHighestRole(roles);
+        const roleFlags = determineRoleFlags(roles);
 
-      // Create update object
-      const updateData = {
-          username: member.user.username,
-          discordId: member.user.id,
-          roles: roles,
-          highestRole: highestRole,
-          ...roleFlags  // Spread the role flags into the update
-      };
+        // Create update object
+        const updateData = {
+            username: member.user.username,
+            discordId: member.user.id,
+            roles: roles,
+            highestRole: highestRole,
+            ...roleFlags,  // Spread the role flags into the update
+            lastUpdated: new Date()
+        };
 
-      // Use findOneAndUpdate
-      const user = await User.findOneAndUpdate(
-          { discordId: member.user.id },
-          { $set: updateData },
-          { 
-              upsert: true, 
-              new: true,
-              runValidators: true 
-          }
-      );
+        // Use findOneAndUpdate
+        const user = await User.findOneAndUpdate(
+            { discordId: member.user.id },
+            { $set: updateData },
+            { 
+                upsert: true, 
+                new: true,
+                runValidators: true 
+            }
+        );
 
-      return user;
-  } catch (error) {
-      console.error(`Error syncing user ${member.user.username}:`, error);
-      throw error;
-  }
+        return user;
+    } catch (error) {
+        console.error(`Error syncing user ${member.user.username}:`, error);
+        throw error;
+    }
 }
 
 // Function to sync all users
@@ -189,30 +190,38 @@ process.on('unhandledRejection', error => {
 
 // Function to determine role flags
 function determineRoleFlags(roles) {
-  const isRecruiter = roles.some(role => 
-      ['Specialist', 'Corporal'].includes(role.name)
-  );
-
-  const isInstructor = roles.some(role => [
-      'Sergeant', 'Staff Sergeant', 'Sergeant First Class', 'Master Sergeant',
-      'First Sergeant', 'Sergeant Major', 'Command Sergeant Major', 
-      'Sergeant Major of the Army', 'Second Lieutenant', 'First Lieutenant',
-      'Captain', 'Major', 'Lieutenant Colonel', 'Colonel', 'Brigadier General',
-      'Major General', 'Lieutenant General', 'General', 'General of the Army'
-  ].includes(role.name));
-
-  const isSenior = roles.some(role => [
-      'Master Sergeant', 'First Sergeant', 'Sergeant Major', 
-      'Command Sergeant Major', 'Sergeant Major of the Army'
-  ].includes(role.name));
-
-  const isOfficer = roles.some(role => [
-      'Second Lieutenant', 'First Lieutenant', 'Captain', 'Major',
-      'Lieutenant Colonel', 'Colonel', 'Brigadier General', 'Major General',
-      'Lieutenant General', 'General', 'General of the Army'
-  ].includes(role.name));
-
-  return { isRecruiter, isInstructor, isSenior, isOfficer };
+    const highestRole = determineHighestRole(roles);
+    const rankIndex = RANK_ORDER.indexOf(highestRole);
+    
+    // Default all flags to false
+    const flags = {
+        isRecruiter: false,
+        isInstructor: false,
+        isSenior: false,
+        isOfficer: false
+    };
+    
+    // If rank is Specialist or higher, they get recruiter
+    if (rankIndex >= RANK_ORDER.indexOf('Specialist')) {
+        flags.isRecruiter = true;
+    }
+    
+    // If rank is Sergeant or higher, they get instructor
+    if (rankIndex >= RANK_ORDER.indexOf('Sergeant')) {
+        flags.isInstructor = true;
+    }
+    
+    // If rank is Sergeant Major or higher, they get senior
+    if (rankIndex >= RANK_ORDER.indexOf('Sergeant Major')) {
+        flags.isSenior = true;
+    }
+    
+    // If rank is Second Lieutenant or higher, they get officer
+    if (rankIndex >= RANK_ORDER.indexOf('Second Lieutenant')) {
+        flags.isOfficer = true;
+    }
+    
+    return flags;
 }
 
 // Function to handle role updates for promotions
