@@ -2280,8 +2280,8 @@ function toggleForms(formId) {
 // Regulation Management Functions
 function openRegulationManagement() {
     document.getElementById('regulationManagementModal').classList.remove('hidden');
+    // Initialize with the first tab
     switchRegulationTab('add');
-    loadRegulations();
 }
 
 function closeRegulationManagement() {
@@ -2289,13 +2289,20 @@ function closeRegulationManagement() {
 }
 
 function switchRegulationTab(tab) {
+    // First check if elements exist
+    const tabContent = document.getElementById(`${tab}RegulationTab`);
+    if (!tabContent) {
+        console.error(`Tab content for ${tab} not found`);
+        return;
+    }
+
     // Hide all content
     document.querySelectorAll('.regulation-content').forEach(content => {
         content.classList.add('hidden');
     });
     
     // Show selected content
-    document.getElementById(`${tab}RegulationTab`).classList.remove('hidden');
+    tabContent.classList.remove('hidden');
     
     // Update tab styles
     document.querySelectorAll('.regulation-tab').forEach(tabEl => {
@@ -2501,7 +2508,7 @@ async function viewRegulationDetails(id) {
                 </div>
                 <div>
                     <h4 class="text-sm font-medium text-gray-500">Content</h4>
-                    <div class="prose">${marked(data.regulation.content)}</div>
+                    <div class="prose">${data.regulation.content}</div>
                 </div>
                 <div class="text-sm text-gray-500">
                     Last modified: ${new Date(data.regulation.lastModified || data.regulation.dateAdded).toLocaleString()}
