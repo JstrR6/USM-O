@@ -840,7 +840,71 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
             return res.status(404).json({ error: 'Recruitment not found' });
         }
 
-        const { action, notes } = req.body;
+        const { action, notes, newDivisionId } = req.body;
+
+        // Officer logic
+        if (req.user.isOfficer) {
+            switch(action) {
+                case 'veto':
+                    // Immediately add to the Proposed Division
+                    const proposedDivision = await Division.findById(recruitment.targetDivision._id);
+                    const user = await User.findOne({ username: recruitment.recruitUsername });
+                    
+                    if (!user) {
+                        return res.status(400).json({ error: 'Recruit user not found' });
+                    }
+
+                    proposedDivision.personnel.push({
+                        user: user._id,
+                        position: recruitment.divisionPosition
+                    });
+                    await proposedDivision.save();
+                    
+                    recruitment.status = 'approved';
+                    recruitment.officerReviewNotes = notes || 'Vetoed and placed in proposed division';
+                    recruitment.officerReviewedBy = req.user._id;
+                    await recruitment.save();
+                    return res.json({ success: true });
+
+                case 'accept_rejection':
+                    if (!newDivisionId) {
+                        return res.status(400).json({ error: 'New division must be selected' });
+                    }
+
+                    const newDivision = await Division.findById(newDivisionId);
+                    if (!newDivision) {
+                        return res.status(404).json({ error: 'Selected division not found' });
+                    }
+
+                    const recruitUser = await User.findOne({ username: recruitment.recruitUsername });
+                    if (!recruitUser) {
+                        return res.status(400).json({ error: 'Recruit user not found' });
+                    }
+
+                    newDivision.personnel.push({
+                        user: recruitUser._id,
+                        position: recruitment.divisionPosition
+                    });
+                    await newDivision.save();
+                    
+                    recruitment.status = 'approved';
+                    recruitment.targetDivision = newDivisionId;
+                    recruitment.officerReviewNotes = notes || 'Approved with new division placement';
+                    recruitment.officerReviewedBy = req.user._id;
+                    await recruitment.save();
+                    return res.json({ success: true });
+
+                case 'final_reject':
+                    recruitment.status = 'final_rejected';
+                    recruitment.officerReviewNotes = notes || 'Recruitment fully rejected';
+                    recruitment.officerReviewedBy = req.user._id;
+                    await recruitment.save();
+                    return res.json({ success: true });
+
+                default:
+                    return res.status(400).json({ error: 'Invalid action' });
+            }
+        }
 
         // SNCO logic
         if (req.user.isSenior) {
@@ -863,88 +927,21 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
                     recruitment.sncoReviewNotes = 'Directly approved and placed';
                     recruitment.sncoReviewedBy = req.user._id;
                     await recruitment.save();
-                    break;
+                    return res.json({ success: true });
 
                 case 'reject':
                     recruitment.status = 'rejected_appealed';
                     recruitment.sncoReviewNotes = notes;
                     recruitment.sncoReviewedBy = req.user._id;
                     await recruitment.save();
-                    break;
-
-                default:
-                    return res.status(400).json({ error: 'Invalid action' });
-            }
-
-            return res.json({ success: true });
-        }
-
-        // Officer logic with new requirements
-        if (req.user.isOfficer) {
-            switch(action) {
-                case 'veto':
-                    // Immediately add to the Proposed Division
-                    const proposedDivision = await Division.findById(recruitment.targetDivision._id);
-                    const user = await User.findOne({ username: recruitment.recruitUsername });
-                    
-                    if (!user) {
-                        return res.status(400).json({ error: 'Recruit user not found' });
-                    }
-
-                    proposedDivision.personnel.push({
-                        user: user._id,
-                        position: recruitment.divisionPosition
-                    });
-                    await proposedDivision.save();
-                    
-                    recruitment.status = 'approved';
-                    recruitment.officerReviewNotes = notes || 'Vetoed and placed in proposed division';
-                    recruitment.officerReviewedBy = req.user._id;
-                    break;
-
-                case 'accept_rejection':
-                    // Officer must pick a new Division
-                    if (!newDivisionId) {
-                        return res.status(400).json({ error: 'New division must be selected' });
-                    }
-
-                    const newDivision = await Division.findById(newDivisionId);
-                    if (!newDivision) {
-                        return res.status(404).json({ error: 'Selected division not found' });
-                    }
-
-                    const recruitUser = await User.findOne({ username: recruitment.recruitUsername });
-                    if (!recruitUser) {
-                        return res.status(400).json({ error: 'Recruit user not found' });
-                    }
-
-                    // Immediately add to the new Division
-                    newDivision.personnel.push({
-                        user: recruitUser._id,
-                        position: recruitment.divisionPosition
-                    });
-                    await newDivision.save();
-                    
-                    recruitment.status = 'approved';
-                    recruitment.targetDivision = newDivisionId;
-                    recruitment.officerReviewNotes = notes || 'Approved with new division placement';
-                    recruitment.officerReviewedBy = req.user._id;
-                    break;
-
-                case 'final_reject':
-                    // Completely discard the Recruitment Form
-                    recruitment.status = 'final_rejected';
-                    recruitment.officerReviewNotes = notes || 'Recruitment fully rejected';
-                    recruitment.officerReviewedBy = req.user._id;
-                    break;
+                    return res.json({ success: true });
 
                 default:
                     return res.status(400).json({ error: 'Invalid action' });
             }
         }
 
-        await recruitment.save();
-        res.json({ success: true });
+        return res.status(400).json({ error: 'Invalid request' });
     } catch (error) {
         console.error('Review error:', error);
         res.status(500).json({ error: 'Server error' });

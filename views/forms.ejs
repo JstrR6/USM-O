@@ -2382,6 +2382,11 @@ async function submitOfficerReview(id, action, notes = '', newDivisionId = null)
             })
         });
 
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Error processing review');
+        }
+        
         const data = await response.json();
         if (data.success) {
             loadRejectedPlacements();
@@ -2406,7 +2411,7 @@ async function submitOfficerReview(id, action, notes = '', newDivisionId = null)
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error processing review');
+        alert(error.message || 'Error processing review');
     }
 }
 
@@ -3138,6 +3143,19 @@ async function viewDisciplinaryDetails(id) {
                         ${action.officerApproval.notes ? `
                             <p class="text-sm mt-1">Notes: ${action.officerApproval.notes}</p>
                         ` : ''}
+                    </div>
+                ` : ''}
+
+                ${action.status === 'pending' ? `
+                    <div class="flex justify-end space-x-2 mt-4">
+                        <button onclick="approveDisciplinaryAction('${action._id}')"
+                                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            Approve
+                        </button>
+                        <button onclick="rejectDisciplinaryAction('${action._id}')"
+                                class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                            Reject
+                        </button>
                     </div>
                 ` : ''}
             </div>
