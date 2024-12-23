@@ -840,32 +840,43 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
             return res.status(404).json({ error: 'Recruitment not found' });
         }
 
-        const { action, notes, newDivisionId } = req.body;
+        const { action, notes } = req.body;
 
-        // SNCO logic remains the same
+        // SNCO logic
         if (req.user.isSenior) {
-            if (action === 'approve') {
-                const targetDivision = await Division.findById(recruitment.targetDivision._id);
-                const user = await User.findOne({ username: recruitment.recruitUsername });
+            switch(action) {
+                case 'approve':
+                    const targetDivision = await Division.findById(recruitment.targetDivision._id);
+                    const user = await User.findOne({ username: recruitment.recruitUsername });
 
-                if (!user) {
-                    return res.status(400).json({ error: 'Recruit user not found' });
-                }
+                    if (!user) {
+                        return res.status(400).json({ error: 'Recruit user not found' });
+                    }
 
-                targetDivision.personnel.push({
-                    user: user._id,
-                    position: recruitment.divisionPosition
-                });
-                await targetDivision.save();
+                    targetDivision.personnel.push({
+                        user: user._id,
+                        position: recruitment.divisionPosition
+                    });
+                    await targetDivision.save();
 
-                recruitment.status = 'approved';
-                recruitment.sncoReviewNotes = 'Directly approved and placed';
-                recruitment.sncoReviewedBy = req.user._id;
-            } else if (action === 'reject') {
-                recruitment.status = 'rejected_appealed';
-                recruitment.sncoReviewNotes = notes;
-                recruitment.sncoReviewedBy = req.user._id;
+                    recruitment.status = 'approved';
+                    recruitment.sncoReviewNotes = 'Directly approved and placed';
+                    recruitment.sncoReviewedBy = req.user._id;
+                    await recruitment.save();
+                    break;
+
+                case 'reject':
+                    recruitment.status = 'rejected_appealed';
+                    recruitment.sncoReviewNotes = notes;
+                    recruitment.sncoReviewedBy = req.user._id;
+                    await recruitment.save();
+                    break;
+
+                default:
+                    return res.status(400).json({ error: 'Invalid action' });
             }
+
+            return res.json({ success: true });
         }
 
         // Officer logic with new requirements
