@@ -2261,12 +2261,10 @@ async function handlePlacement(id, action) {
 
     try {
         const body = {
-            action: action === 'approve' ? 'approve' : 'reject', // Ensure action is properly set
-            notes: notes || '',
-            type: 'snco_review' // Add a specific type for SNCO reviews
+            action: action,     // Just pass the action directly
+            notes: notes,
+            type: 'snco'       // Simplified type
         };
-
-        console.log('Sending request:', body); // Debug log
 
         const response = await fetch(`/api/recruitment/${id}/review`, {
             method: 'POST',
@@ -2276,15 +2274,15 @@ async function handlePlacement(id, action) {
             body: JSON.stringify(body)
         });
 
+        const data = await response.json();
+        
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Error processing placement');
+            throw new Error(data.error || 'Error processing placement');
         }
 
-        const data = await response.json();
         if (data.success) {
-            alert(action === 'approve' ? 'Placement approved successfully' : 'Placement rejected successfully');
-            loadPendingPlacements();
+            alert(data.message || `Placement ${action}ed successfully`);
+            await loadPendingPlacements();
         }
     } catch (error) {
         console.error('Error:', error);

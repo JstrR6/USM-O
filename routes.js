@@ -841,7 +841,7 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
         }
 
         const { action, notes, type } = req.body;
-        console.log('Received request:', { action, notes, type }); // Debug log
+        console.log('Received request:', { action, notes, type });
 
         // Officer logic
         if (req.user.isOfficer) {
@@ -908,33 +908,37 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
         }
 
         // SNCO logic
-        if (req.user.isSenior && type === 'snco_review') {
+        if (req.user.isSenior && type === 'snco') {
             if (action === 'approve') {
                 try {
                     const targetDivision = await Division.findById(recruitment.targetDivision._id);
-                    const user = await User.findOne({ username: recruitment.recruitUsername });
+                    if (!targetDivision) {
+                        return res.status(400).json({ error: 'Division not found' });
+                    }
 
+                    const user = await User.findOne({ username: recruitment.recruitUsername });
                     if (!user) {
                         return res.status(400).json({ error: 'Recruit user not found' });
                     }
 
-                    // Add user to division
                     targetDivision.personnel.push({
                         user: user._id,
                         position: recruitment.divisionPosition
                     });
                     await targetDivision.save();
 
-                    // Update recruitment status
                     recruitment.status = 'approved';
                     recruitment.sncoReviewNotes = 'Approved by SNCO';
                     recruitment.sncoReviewedBy = req.user._id;
                     await recruitment.save();
 
-                    return res.json({ success: true });
+                    return res.json({ 
+                        success: true,
+                        message: 'Placement approved successfully'
+                    });
                 } catch (error) {
-                    console.error('Error during approval:', error);
-                    return res.status(500).json({ error: 'Error processing approval' });
+                    console.error('SNCO approval error:', error);
+                    return res.status(500).json({ error: 'Error during approval process' });
                 }
             } 
             else if (action === 'reject') {
@@ -944,12 +948,16 @@ router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => 
                     recruitment.sncoReviewedBy = req.user._id;
                     await recruitment.save();
 
-                    return res.json({ success: true });
+                    return res.json({ 
+                        success: true,
+                        message: 'Placement rejected successfully'
+                    });
                 } catch (error) {
-                    console.error('Error during rejection:', error);
-                    return res.status(500).json({ error: 'Error processing rejection' });
+                    console.error('SNCO rejection error:', error);
+                    return res.status(500).json({ error: 'Error during rejection process' });
                 }
             }
+            return res.status(400).json({ error: 'Invalid SNCO action' });
         }
 
         return res.status(400).json({ error: 'Invalid request' });
