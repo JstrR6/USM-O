@@ -2260,27 +2260,35 @@ async function handlePlacement(id, action) {
     }
 
     try {
+        const body = {
+            action: action === 'approve' ? 'approve' : 'reject', // Ensure action is properly set
+            notes: notes || '',
+            type: 'snco_review' // Add a specific type for SNCO reviews
+        };
+
+        console.log('Sending request:', body); // Debug log
+
         const response = await fetch(`/api/recruitment/${id}/review`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ 
-                action,
-                notes,
-                type: 'snco'  // Add this to identify it's coming from SNCO
-            })
+            body: JSON.stringify(body)
         });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Error processing placement');
+        }
 
         const data = await response.json();
         if (data.success) {
+            alert(action === 'approve' ? 'Placement approved successfully' : 'Placement rejected successfully');
             loadPendingPlacements();
-        } else {
-            alert(data.error || 'Error processing placement');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Error processing placement');
+        alert(error.message || 'Error processing placement');
     }
 }
 
