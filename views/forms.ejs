@@ -2211,69 +2211,51 @@ async function loadPendingPlacements() {
     try {
         const response = await fetch('/api/recruitment/pending');
         const data = await response.json();
-        
+
         const container = document.getElementById('pendingPlacementsList');
         container.innerHTML = '';
 
         if (!data.recruitments.length) {
-            container.innerHTML = '<p class="text-center text-gray-500">No pending placements</p>';
+            container.innerHTML = '<p class="text-gray-500">No pending placements</p>';
             return;
         }
 
         data.recruitments.forEach(recruitment => {
             container.innerHTML += `
                 <div class="bg-white p-4 rounded-lg shadow">
-                    <div class="flex justify-between">
-                        <div>
-                            <h5 class="font-semibold">${recruitment.recruitUsername}</h5>
-                            <p class="text-sm text-gray-600">Discord: ${recruitment.recruitDiscord}</p>
-                            <p class="text-sm text-gray-600">Rank: ${recruitment.recruitRank}</p>
-                            <p class="text-sm text-gray-600">Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
-                            <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition}</p>
-                            <p class="text-sm text-gray-600">Recruited: ${new Date(recruitment.dateRecruited).toLocaleDateString()}</p>
-                            <p class="text-sm text-gray-600">Recruiter: ${recruitment.recruiter?.username || 'Unknown'}</p>
-                        </div>
-                        <div class="space-y-2">
-                            <button onclick="handlePlacement('${recruitment._id}', 'approve')"
-                                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-                                Approve
-                            </button>
-                            <button onclick="handlePlacement('${recruitment._id}', 'reject')"
-                                    class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-                                Reject
-                            </button>
-                        </div>
+                    <div>
+                        <h5>${recruitment.recruitUsername}</h5>
+                        <p>Discord: ${recruitment.recruitDiscord}</p>
+                        <p>Rank: ${recruitment.recruitRank}</p>
+                        <p>Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
+                        <p>Position: ${recruitment.divisionPosition}</p>
+                        <button onclick="handlePlacement('${recruitment._id}', 'approve')">Approve</button>
+                        <button onclick="handlePlacement('${recruitment._id}', 'reject')">Reject</button>
                     </div>
                 </div>
             `;
         });
     } catch (error) {
         console.error('Error loading pending placements:', error);
-        const container = document.getElementById('pendingPlacementsList');
-        container.innerHTML = '<p class="text-red-500">Error loading pending placements</p>';
+        document.getElementById('pendingPlacementsList').innerHTML =
+            '<p class="text-red-500">Error loading pending placements</p>';
     }
 }
 
 async function handlePlacement(id, action) {
     try {
-        // Convert the action to match exactly what server expects
         const requestAction = action === 'approve' ? 'approve' : 'reject';
-        
-        // For reject action, get the reason
         let notes = '';
+
         if (requestAction === 'reject') {
             notes = prompt('Please provide a reason for rejection:');
-            if (!notes) return; // If no reason provided, cancel the operation
+            if (!notes) return;
         }
 
-        // Debug log to check what we're sending
         console.log('Sending review request:', {
-            id,
-            body: {
-                action: requestAction,
-                notes,
-                type: 'snco'
-            }
+            action: requestAction,
+            notes,
+            type: 'snco'
         });
 
         const response = await fetch(`/api/recruitment/${id}/review`, {
@@ -2288,21 +2270,14 @@ async function handlePlacement(id, action) {
             })
         });
 
-        // Debug log response
-        console.log('Server response status:', response.status);
-        
         const data = await response.json();
-        console.log('Server response data:', data);
 
         if (!response.ok) {
             throw new Error(data.error || 'Error processing placement');
         }
 
-        if (data.success) {
-            alert(data.message || `Placement ${requestAction}ed successfully`);
-            // Refresh the list
-            await loadPendingPlacements();
-        }
+        alert(data.message || `Placement ${requestAction}ed successfully`);
+        await loadPendingPlacements(); // Refresh list
     } catch (error) {
         console.error('Placement error:', error);
         alert(error.message || 'Error processing placement');
