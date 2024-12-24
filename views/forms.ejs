@@ -2221,7 +2221,6 @@ async function loadPendingPlacements() {
         }
 
         data.recruitments.forEach(recruitment => {
-            // Use template literal with escaped backticks for onclick handlers
             container.innerHTML += `
                 <div class="bg-white p-4 rounded-lg shadow">
                     <div class="flex justify-between">
@@ -2235,11 +2234,11 @@ async function loadPendingPlacements() {
                             <p class="text-sm text-gray-600">Recruiter: ${recruitment.recruiter?.username || 'Unknown'}</p>
                         </div>
                         <div class="space-y-2">
-                            <button onclick="handlePlacement(\`${recruitment._id}\`, 'approve')"
+                            <button onclick="handlePlacement('${recruitment._id}', 'approve')"
                                     class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
                                 Approve
                             </button>
-                            <button onclick="handlePlacement(\`${recruitment._id}\`, 'reject')"
+                            <button onclick="handlePlacement('${recruitment._id}', 'reject')"
                                     class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
                                 Reject
                             </button>
@@ -2257,19 +2256,24 @@ async function loadPendingPlacements() {
 
 async function handlePlacement(id, action) {
     try {
+        // Convert the action to match exactly what server expects
+        const requestAction = action === 'approve' ? 'approve' : 'reject';
+        
         // For reject action, get the reason
         let notes = '';
-        if (action === 'reject') {
+        if (requestAction === 'reject') {
             notes = prompt('Please provide a reason for rejection:');
             if (!notes) return; // If no reason provided, cancel the operation
         }
 
-        // Print debug information
-        console.log('Sending request with:', { 
-            id, 
-            action, 
-            notes,
-            type: 'snco'
+        // Debug log to check what we're sending
+        console.log('Sending review request:', {
+            id,
+            body: {
+                action: requestAction,
+                notes,
+                type: 'snco'
+            }
         });
 
         const response = await fetch(`/api/recruitment/${id}/review`, {
@@ -2278,25 +2282,30 @@ async function handlePlacement(id, action) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                action: action === 'approve' ? 'approve' : 'reject',
-                notes: notes || '',
+                action: requestAction,
+                notes,
                 type: 'snco'
             })
         });
 
-        const data = await response.json();
+        // Debug log response
+        console.log('Server response status:', response.status);
         
+        const data = await response.json();
+        console.log('Server response data:', data);
+
         if (!response.ok) {
             throw new Error(data.error || 'Error processing placement');
         }
 
         if (data.success) {
-            alert(data.message || `Placement ${action}ed successfully`);
-            await loadPendingPlacements(); // Refresh the list
+            alert(data.message || `Placement ${requestAction}ed successfully`);
+            // Refresh the list
+            await loadPendingPlacements();
         }
     } catch (error) {
-        console.error('Error:', error);
-        alert('Error processing placement: ' + error.message);
+        console.error('Placement error:', error);
+        alert(error.message || 'Error processing placement');
     }
 }
 
