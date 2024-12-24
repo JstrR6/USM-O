@@ -2256,22 +2256,20 @@ async function handlePlacement(id, action) {
     let notes = '';
     if (action === 'reject') {
         notes = prompt('Please provide a reason for rejection:');
-        if (!notes) return;
+        if (!notes) return; // Cancel if no reason provided
     }
 
     try {
-        const body = {
-            action: action,     // Just pass the action directly
-            notes: notes,
-            type: 'snco'       // Simplified type
-        };
-
         const response = await fetch(`/api/recruitment/${id}/review`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(body)
+            body: JSON.stringify({
+                action: action,     // 'approve' or 'reject'
+                notes: notes,       // Rejection reason if applicable
+                type: 'snco'       // Specify SNCO review type
+            })
         });
 
         const data = await response.json();
@@ -2282,7 +2280,7 @@ async function handlePlacement(id, action) {
 
         if (data.success) {
             alert(data.message || `Placement ${action}ed successfully`);
-            await loadPendingPlacements();
+            await loadPendingPlacements(); // Refresh the list
         }
     } catch (error) {
         console.error('Error:', error);
