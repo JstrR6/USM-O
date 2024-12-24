@@ -2265,7 +2265,11 @@ async function handlePlacement(id, action) {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ action, notes })
+            body: JSON.stringify({ 
+                action,
+                notes,
+                type: 'snco'  // Add this to identify it's coming from SNCO
+            })
         });
 
         const data = await response.json();
