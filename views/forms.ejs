@@ -2221,6 +2221,7 @@ async function loadPendingPlacements() {
         }
 
         data.recruitments.forEach(recruitment => {
+            // Use template literal with escaped backticks for onclick handlers
             container.innerHTML += `
                 <div class="bg-white p-4 rounded-lg shadow">
                     <div class="flex justify-between">
@@ -2228,17 +2229,17 @@ async function loadPendingPlacements() {
                             <h5 class="font-semibold">${recruitment.recruitUsername}</h5>
                             <p class="text-sm text-gray-600">Discord: ${recruitment.recruitDiscord}</p>
                             <p class="text-sm text-gray-600">Rank: ${recruitment.recruitRank}</p>
-                            <p class="text-sm text-gray-600">Division: ${recruitment.targetDivision.name}</p>
+                            <p class="text-sm text-gray-600">Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
                             <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition}</p>
                             <p class="text-sm text-gray-600">Recruited: ${new Date(recruitment.dateRecruited).toLocaleDateString()}</p>
-                            <p class="text-sm text-gray-600">Recruiter: ${recruitment.recruiter.username}</p>
+                            <p class="text-sm text-gray-600">Recruiter: ${recruitment.recruiter?.username || 'Unknown'}</p>
                         </div>
                         <div class="space-y-2">
-                            <button onclick="handlePlacement('${recruitment._id}', 'approve')"
+                            <button onclick="handlePlacement(\`${recruitment._id}\`, 'approve')"
                                     class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
                                 Approve
                             </button>
-                            <button onclick="handlePlacement('${recruitment._id}', 'reject')"
+                            <button onclick="handlePlacement(\`${recruitment._id}\`, 'reject')"
                                     class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
                                 Reject
                             </button>
@@ -2249,26 +2250,31 @@ async function loadPendingPlacements() {
         });
     } catch (error) {
         console.error('Error loading pending placements:', error);
+        const container = document.getElementById('pendingPlacementsList');
+        container.innerHTML = '<p class="text-red-500">Error loading pending placements</p>';
     }
 }
 
 async function handlePlacement(id, action) {
-    let notes = '';
-    if (action === 'reject') {
-        notes = prompt('Please provide a reason for rejection:');
-        if (!notes) return; // Cancel if no reason provided
-    }
-
     try {
+        // For reject action, get the reason
+        let notes = '';
+        if (action === 'reject') {
+            notes = prompt('Please provide a reason for rejection:');
+            if (!notes) return; // If no reason provided, cancel the operation
+        }
+
+        console.log('Sending request with:', { id, action, notes }); // Debug log
+
         const response = await fetch(`/api/recruitment/${id}/review`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                action: action,     // 'approve' or 'reject'
-                notes: notes,       // Rejection reason if applicable
-                type: 'snco'       // Specify SNCO review type
+                action,
+                notes,
+                type: 'snco'
             })
         });
 
