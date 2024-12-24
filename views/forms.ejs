@@ -2264,7 +2264,13 @@ async function handlePlacement(id, action) {
             if (!notes) return; // If no reason provided, cancel the operation
         }
 
-        console.log('Sending request with:', { id, action, notes }); // Debug log
+        // Print debug information
+        console.log('Sending request with:', { 
+            id, 
+            action, 
+            notes,
+            type: 'snco'
+        });
 
         const response = await fetch(`/api/recruitment/${id}/review`, {
             method: 'POST',
@@ -2272,8 +2278,8 @@ async function handlePlacement(id, action) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                action,
-                notes,
+                action: action === 'approve' ? 'approve' : 'reject',
+                notes: notes || '',
                 type: 'snco'
             })
         });
@@ -2290,7 +2296,7 @@ async function handlePlacement(id, action) {
         }
     } catch (error) {
         console.error('Error:', error);
-        alert(error.message || 'Error processing placement');
+        alert('Error processing placement: ' + error.message);
     }
 }
 
