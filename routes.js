@@ -125,11 +125,6 @@ router.get('/profile', isAuthenticated, async (req, res) => {
             throw error;
         }
 
-        // Get division assignment history
-        const assignments = await DivisionHistory.find({
-            user: user._id
-        }).sort({ startDate: -1 });
-
         // Get recent activity
         const recentActivity = [...trainings, ...promotions, ...disciplinaryActions]
             .sort((a, b) => b.createdAt - a.createdAt)
@@ -146,7 +141,6 @@ router.get('/profile', isAuthenticated, async (req, res) => {
             trainings,
             promotions,
             disciplinaryActions,
-            assignments,
             recentActivity,
             path: req.path
         });
