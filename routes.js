@@ -786,6 +786,7 @@ router.delete('/api/divisions/:id', isAuthenticated, async (req, res) => {
     }
 });
 
+// Submit recruitment
 router.post('/api/recruitment', isAuthenticated, async (req, res) => {
     if (!req.user.isRecruiter && !req.user.isSenior && !req.user.isOfficer) {
         return res.status(403).json({ error: 'Not authorized' });
@@ -795,7 +796,8 @@ router.post('/api/recruitment', isAuthenticated, async (req, res) => {
         const recruitment = new Recruitment({
             ...req.body,
             recruiter: req.user._id,
-            status: 'pending'
+            status: 'pending',
+            dateSubmitted: new Date()
         });
         await recruitment.save();
         res.json({ success: true, recruitment });
@@ -805,180 +807,132 @@ router.post('/api/recruitment', isAuthenticated, async (req, res) => {
     }
 });
 
+// Get pending placements for SNCO review
 router.get('/api/recruitment/pending', isAuthenticated, async (req, res) => {
     if (!req.user.isSenior && !req.user.isOfficer) {
         return res.status(403).json({ error: 'Not authorized' });
     }
 
     try {
-        const query = req.user.isSenior ? 
-            { status: 'pending' } : 
-            { status: 'rejected_appealed' };
+        const query = { 
+            status: { $in: ['pending', 'bumped_back'] }
+        };
 
         const recruitments = await Recruitment.find(query)
             .populate('recruiter', 'username')
             .populate('targetDivision', 'name')
-            .sort('-createdAt');
+            .sort('-dateSubmitted');
 
-        res.json({ recruitments });
+        res.json({ 
+            recruitments,
+            user: {
+                isSenior: req.user.isSenior,
+                isOfficer: req.user.isOfficer
+            }
+        });
     } catch (error) {
         console.error('Error fetching pending recruitments:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
 
-router.post('/api/recruitment/:id/review', isAuthenticated, async (req, res) => {
-    // Check authentication level
-    if (!req.user.isSenior && !req.user.isOfficer) {
-        return res.status(403).json({ error: 'Not authorized' });
-    }
-
-    try {
-        // Fetch recruitment data
-        const recruitment = await Recruitment.findById(req.params.id)
-            .populate('targetDivision')
-            .populate('recruiter', 'username');
-
-        if (!recruitment) {
-            return res.status(404).json({ error: 'Recruitment not found' });
-        }
-
-        // Destructure request payload
-        const { action, notes, type } = req.body;
-        console.log('Review request received:', { action, notes, type });
-
-        // Officer logic
-        if (req.user.isOfficer) {
-            switch (action) {
-                case 'veto': {
-                    const proposedDivision = await Division.findById(recruitment.targetDivision._id);
-                    const user = await User.findOne({ username: recruitment.recruitUsername });
-
-                    if (!user) {
-                        return res.status(400).json({ error: 'Recruit user not found' });
-                    }
-
-                    proposedDivision.personnel.push({
-                        user: user._id,
-                        position: recruitment.divisionPosition
-                    });
-                    await proposedDivision.save();
-
-                    recruitment.status = 'approved';
-                    recruitment.officerReviewNotes = notes || 'Vetoed and placed in proposed division';
-                    recruitment.officerReviewedBy = req.user._id;
-                    await recruitment.save();
-                    return res.json({ success: true });
-                }
-
-                case 'accept_rejection': {
-                    const newDivision = await Division.findById(req.body.newDivisionId);
-                    if (!newDivision) {
-                        return res.status(404).json({ error: 'Selected division not found' });
-                    }
-
-                    const recruitUser = await User.findOne({ username: recruitment.recruitUsername });
-                    if (!recruitUser) {
-                        return res.status(400).json({ error: 'Recruit user not found' });
-                    }
-
-                    newDivision.personnel.push({
-                        user: recruitUser._id,
-                        position: recruitment.divisionPosition
-                    });
-                    await newDivision.save();
-
-                    recruitment.status = 'approved';
-                    recruitment.targetDivision = newDivision._id;
-                    recruitment.officerReviewNotes = notes || 'Approved with new division placement';
-                    recruitment.officerReviewedBy = req.user._id;
-                    await recruitment.save();
-                    return res.json({ success: true });
-                }
-
-                case 'final_reject': {
-                    recruitment.status = 'final_rejected';
-                    recruitment.officerReviewNotes = notes || 'Recruitment fully rejected';
-                    recruitment.officerReviewedBy = req.user._id;
-                    await recruitment.save();
-                    return res.json({ success: true });
-                }
-
-                default:
-                    return res.status(400).json({ error: 'Invalid action' });
-            }
-        }
-
-        // SNCO logic
-        if (req.user.isSenior && type === 'snco') {
-            console.log('Processing SNCO review with action:', action);
-
-            if (action === 'approve') {
-                const targetDivision = await Division.findById(recruitment.targetDivision._id);
-                const user = await User.findOne({ username: recruitment.recruitUsername });
-
-                if (!targetDivision || !user) {
-                    return res.status(400).json({
-                        error: !targetDivision ? 'Target division not found' : 'Recruit user not found'
-                    });
-                }
-
-                targetDivision.personnel.push({
-                    user: user._id,
-                    position: recruitment.divisionPosition
-                });
-                await targetDivision.save();
-
-                recruitment.status = 'approved';
-                recruitment.sncoReviewNotes = notes || 'Approved by SNCO';
-                recruitment.sncoReviewedBy = req.user._id;
-                await recruitment.save();
-
-                return res.json({
-                    success: true,
-                    message: 'Placement approved successfully'
-                });
-            }
-
-            if (action === 'reject') {
-                recruitment.status = 'rejected_appealed';
-                recruitment.sncoReviewNotes = notes || 'Rejected by SNCO';
-                recruitment.sncoReviewedBy = req.user._id;
-                await recruitment.save();
-
-                return res.json({
-                    success: true,
-                    message: 'Placement rejected successfully'
-                });
-            }
-
-            return res.status(400).json({
-                error: `Invalid SNCO review action: ${action}. Must be 'approve' or 'reject'.`
-            });
-        }
-
-        return res.status(400).json({ error: 'Invalid request' });
-    } catch (error) {
-        console.error('Review error:', error);
-        res.status(500).json({ error: 'Server error' });
-    }
-});
-
-router.get('/api/recruitment/rejected', isAuthenticated, async (req, res) => {
+// Get bumped placements for officer review
+router.get('/api/recruitment/bumped', isAuthenticated, async (req, res) => {
     if (!req.user.isOfficer) {
         return res.status(403).json({ error: 'Not authorized' });
     }
 
     try {
-        const recruitments = await Recruitment.find({ status: 'rejected_appealed' })
-            .populate('targetDivision')
+        const recruitments = await Recruitment.find({ status: 'bumped_up' })
             .populate('recruiter', 'username')
-            .populate('reviewedBy', 'username')
-            .sort('-createdAt');
+            .populate('targetDivision', 'name')
+            .populate('reviewChain.reviewer', 'username')
+            .sort('-dateSubmitted');
 
         res.json({ recruitments });
     } catch (error) {
-        console.error('Error fetching rejected recruitments:', error);
+        console.error('Error fetching bumped recruitments:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Handle recruitment actions (approve/bump/reject)
+router.post('/api/recruitment/:id/:action', isAuthenticated, async (req, res) => {
+    if (!req.user.isSenior && !req.user.isOfficer) {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    try {
+        const recruitment = await Recruitment.findById(req.params.id)
+            .populate('targetDivision');
+        
+        if (!recruitment) {
+            return res.status(404).json({ error: 'Recruitment not found' });
+        }
+
+        switch (req.params.action) {
+            case 'approve':
+                // For SNCO approval or Officer final approval
+                if (req.user.isSenior || req.user.isOfficer) {
+                    const targetDivision = req.body.newDivisionId ? 
+                        await Division.findById(req.body.newDivisionId) :
+                        recruitment.targetDivision;
+
+                    if (!targetDivision) {
+                        return res.status(404).json({ error: 'Division not found' });
+                    }
+
+                    const user = await User.findOne({ username: recruitment.recruitUsername });
+                    if (!user) {
+                        return res.status(400).json({ error: 'Recruit user not found' });
+                    }
+
+                    // Add to division
+                    targetDivision.personnel.push({
+                        user: user._id,
+                        position: recruitment.divisionPosition
+                    });
+                    await targetDivision.save();
+
+                    recruitment.status = 'approved';
+                    recruitment.finalDivision = targetDivision._id;
+                }
+                break;
+
+            case 'bump_up':
+                if (!req.user.isSenior) {
+                    return res.status(403).json({ error: 'Only SNCOs can bump up' });
+                }
+                recruitment.status = 'bumped_up';
+                break;
+
+            case 'bump_back':
+                if (!req.user.isOfficer) {
+                    return res.status(403).json({ error: 'Only officers can bump back' });
+                }
+                recruitment.status = 'bumped_back';
+                break;
+
+            case 'reject':
+                recruitment.status = 'rejected';
+                break;
+
+            default:
+                return res.status(400).json({ error: 'Invalid action' });
+        }
+
+        // Add to review chain
+        recruitment.reviewChain.push({
+            reviewer: req.user._id,
+            action: req.params.action,
+            notes: req.body.notes,
+            date: new Date()
+        });
+
+        await recruitment.save();
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Recruitment action error:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });

@@ -612,16 +612,22 @@
             </div>
         </div>
 
-        <div class="bg-gray-50 p-4 rounded-lg mt-4">
-            <h4 class="text-lg font-semibold mb-4">Rejected Placements</h4>
-            <div id="rejectedPlacementsList" class="space-y-4">
-                <!-- Rejected placements will be populated here -->
+        <div class="mt-8">
+            <h4 class="text-lg font-semibold mb-4">Bumped Placements</h4>
+            <div id="bumpedPlacementsList" class="space-y-4">
+                <!-- Bumped placements populated here -->
             </div>
         </div>
 
-        <div id="newDivisionModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+        <div id="newDivisionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
             <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Select New Division</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Select New Division</h3>
+                    <button onclick="closeNewDivisionModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Division</label>
@@ -714,11 +720,14 @@
     </div>
 </div>
 
-<div id="pendingPlacementsModal" class="hidden">
-    <div class="modal-content">
-        <h3>Pending Placements</h3>
-        <div id="pendingPlacementsList"></div>
-        <button onclick="closePendingPlacements()">Close</button>
+<div id="pendingPlacementsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-gray-900">Pending Placements</h3>
+            <button onclick="closePendingPlacements()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -2191,234 +2200,165 @@ async function submitRecruitment() {
     }
 }
 
-// Pending Placements Functions (SNCO)
 function openPendingPlacements() {
     document.getElementById('pendingPlacementsModal').classList.remove('hidden');
     loadPendingPlacements();
+    if (isOfficer) {
+        loadBumpedPlacements();
+    }
 }
 
 function closePendingPlacements() {
     document.getElementById('pendingPlacementsModal').classList.add('hidden');
 }
 
-async function loadPendingPlacements() {
-    try {
-        const response = await fetch('/api/recruitment/pending');
-        const data = await response.json();
+function loadPendingPlacements() {
+    fetch('/api/recruitment/pending')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('pendingPlacementsList');
+            container.innerHTML = '';
 
-        const container = document.getElementById('pendingPlacementsList');
-        container.innerHTML = '';
+            if (!data.recruitments || data.recruitments.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500">No pending placements</p>';
+                return;
+            }
 
-        if (!data.recruitments.length) {
-            container.innerHTML = '<p class="text-gray-500">No pending placements</p>';
-            return;
-        }
-
-        data.recruitments.forEach(recruitment => {
-            container.innerHTML += `
-                <div class="bg-white p-4 rounded-lg shadow">
-                    <div>
-                        <h5>${recruitment.recruitUsername}</h5>
-                        <p>Discord: ${recruitment.recruitDiscord}</p>
-                        <p>Rank: ${recruitment.recruitRank}</p>
-                        <p>Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
-                        <p>Position: ${recruitment.divisionPosition}</p>
-                        <button onclick="handlePlacement('${recruitment._id}', 'approve')">Approve</button>
-                        <button onclick="handlePlacement('${recruitment._id}', 'reject')">Reject</button>
-                    </div>
-                </div>
-            `;
-        });
-    } catch (error) {
-        console.error('Error loading pending placements:', error);
-        document.getElementById('pendingPlacementsList').innerHTML =
-            '<p class="text-red-500">Error loading pending placements</p>';
-    }
-}
-
-async function handlePlacement(id, action) {
-    try {
-        const requestAction = action === 'approve' ? 'approve' : 'reject';
-        let notes = '';
-
-        if (requestAction === 'reject') {
-            notes = prompt('Please provide a reason for rejection:');
-            if (!notes) return;
-        }
-
-        console.log('Sending review request:', {
-            action: requestAction,
-            notes,
-            type: 'snco'
-        });
-
-        const response = await fetch(`/api/recruitment/${id}/review`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                action: requestAction,
-                notes,
-                type: 'snco'
-            })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.error || 'Error processing placement');
-        }
-
-        alert(data.message || `Placement ${requestAction}ed successfully`);
-        await loadPendingPlacements(); // Refresh list
-    } catch (error) {
-        console.error('Placement error:', error);
-        alert(error.message || 'Error processing placement');
-    }
-}
-
-// Officer Rejected Placements Functions
-async function loadRejectedPlacements() {
-    try {
-        console.log('Fetching rejected placements...'); // Debug log
-        const response = await fetch('/api/recruitment/rejected');
-        const data = await response.json();
-        
-        console.log('Received data:', data); // Debug log
-
-        const container = document.getElementById('rejectedPlacementsList');
-        if (!container) {
-            console.error('rejectedPlacementsList element not found'); // Debug log
-            return;
-        }
-
-        container.innerHTML = '';
-
-        if (!data.recruitments || data.recruitments.length === 0) {
-            container.innerHTML = '<p class="text-center text-gray-500">No rejected placements</p>';
-            return;
-        }
-
-        data.recruitments.forEach(recruitment => {
-            console.log('Processing recruitment:', recruitment); // Debug log
-            container.innerHTML += `
+            container.innerHTML = data.recruitments.map(recruitment => `
                 <div class="bg-white p-4 rounded-lg shadow mb-4">
-                    <div class="flex justify-between">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <h5 class="font-semibold">${recruitment.recruitUsername || 'Unknown'}</h5>
-                            <p class="text-sm text-gray-600">Discord: ${recruitment.recruitDiscord || 'N/A'}</p>
-                            <p class="text-sm text-gray-600">Rank: ${recruitment.recruitRank || 'N/A'}</p>
+                            <p class="font-semibold">${recruitment.recruitUsername}</p>
+                            <p class="text-sm text-gray-600">Discord: ${recruitment.recruitDiscord}</p>
+                            <p class="text-sm text-gray-600">Rank: ${recruitment.recruitRank}</p>
                             <p class="text-sm text-gray-600">Proposed Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
-                            <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition || 'N/A'}</p>
-                            <p class="text-sm text-gray-600">SNCO Notes: ${recruitment.sncoReviewNotes || 'No notes'}</p>
+                            <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition}</p>
+                            <p class="text-sm text-gray-600">Recruiter: ${recruitment.recruiter.username}</p>
+                            ${recruitment.status === 'bumped_back' ? 
+                                '<p class="text-sm text-orange-600">* Bumped back from Officer review</p>' : ''}
+                            ${recruitment.reviewChain.length > 0 ? `
+                                <div class="mt-2">
+                                    <p class="text-sm text-gray-600">Review History:</p>
+                                    ${recruitment.reviewChain.map(review => `
+                                        <p class="text-sm text-gray-600">
+                                            ${review.action} by ${review.reviewer.username}
+                                            ${review.notes ? `: ${review.notes}` : ''}
+                                        </p>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
                         </div>
                         <div class="space-y-2">
-                            <button onclick="handleOfficerReview('${recruitment._id}', 'veto')"
-                                    class="w-full px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700">
-                                Veto Rejection
+                            <button onclick="handlePlacementAction('${recruitment._id}', 'approve')"
+                                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                                Approve
                             </button>
-                            <button onclick="handleOfficerReview('${recruitment._id}', 'accept_rejection')"
-                                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                                Accept Rejection
-                            </button>
-                            <button onclick="handleOfficerReview('${recruitment._id}', 'final_reject')"
+                            ${recruitment.status !== 'bumped_back' ? `
+                                <button onclick="handlePlacementAction('${recruitment._id}', 'bump_up')"
+                                        class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                    Bump to Officer
+                                </button>
+                            ` : ''}
+                            <button onclick="handlePlacementAction('${recruitment._id}', 'reject')"
                                     class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-                                Reject Recruitment
+                                Reject
                             </button>
                         </div>
                     </div>
                 </div>
-            `;
-        });
-    } catch (error) {
-        console.error('Error loading rejected placements:', error); // Detailed error log
-        const container = document.getElementById('rejectedPlacementsList');
-        if (container) {
-            container.innerHTML = `<p class="text-red-500">Error loading rejected placements: ${error.message}</p>`;
-        }
-    }
+            `).join('');
+        })
+        .catch(error => console.error('Error loading pending placements:', error));
 }
 
-function handleOfficerReview(id, action) {
-    try {
-        switch(action) {
-            case 'veto':
-                // Veto directly places in original division
-                const vetoNotes = prompt('Optional notes for vetoing the rejection:');
-                submitOfficerReview(id, 'veto', vetoNotes);
-                break;
-                
-            case 'accept_rejection':
-                // Open new division selection modal
-                openNewDivisionModal(id);
-                break;
-                
-            case 'final_reject':
-                const notes = prompt('Please provide final rejection notes:');
-                if (!notes) return;
-                submitOfficerReview(id, 'final_reject', notes);
-                break;
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error processing review');
-    }
+function loadBumpedPlacements() {
+    fetch('/api/recruitment/bumped')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('bumpedPlacementsList');
+            if (!container) return;
+            
+            container.innerHTML = '';
+
+            if (!data.recruitments || data.recruitments.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500">No bumped placements</p>';
+                return;
+            }
+
+            container.innerHTML = data.recruitments.map(recruitment => `
+                <div class="bg-white p-4 rounded-lg shadow mb-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-semibold">${recruitment.recruitUsername}</p>
+                            <p class="text-sm text-gray-600">Discord: ${recruitment.recruitDiscord}</p>
+                            <p class="text-sm text-gray-600">Rank: ${recruitment.recruitRank}</p>
+                            <p class="text-sm text-gray-600">Proposed Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
+                            <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition}</p>
+                            <p class="text-sm text-gray-600">Recruiter: ${recruitment.recruiter.username}</p>
+                            <p class="text-sm text-blue-600">* Bumped up by ${
+                                recruitment.reviewChain.find(r => r.action === 'bump_up')?.reviewer.username || 'SNCO'
+                            }</p>
+                        </div>
+                        <div class="space-y-2">
+                            <button onclick="handlePlacementAction('${recruitment._id}', 'approve')"
+                                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                                Approve Original
+                            </button>
+                            <button onclick="openNewDivisionModal('${recruitment._id}')"
+                                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                Place in New Division
+                            </button>
+                            <button onclick="handlePlacementAction('${recruitment._id}', 'bump_back')"
+                                    class="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">
+                                Bump Back to SNCO
+                            </button>
+                            <button onclick="handlePlacementAction('${recruitment._id}', 'reject')"
+                                    class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(error => console.error('Error loading bumped placements:', error));
 }
 
-async function submitOfficerReview(id, action, notes = '', newDivisionId = null) {
+async function handlePlacementAction(id, action) {
+    let notes = '';
+    if (action === 'reject') {
+        notes = prompt('Please provide a reason for rejection:');
+        if (!notes) return;
+    }
+
     try {
-        const response = await fetch(`/api/recruitment/${id}/review`, {
+        const response = await fetch(`/api/recruitment/${id}/${action}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ 
-                action, 
-                notes,
-                newDivisionId 
-            })
+            body: JSON.stringify({ notes })
         });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Error processing review');
-        }
-        
         const data = await response.json();
         if (data.success) {
-            loadRejectedPlacements();
-            if (action === 'accept_rejection') {
-                closeNewDivisionModal();
-            }
-            
-            // Provide specific feedback based on action
-            switch(action) {
-                case 'veto':
-                    alert('Recruitment vetoed. Recruit placed in original division.');
-                    break;
-                case 'accept_rejection':
-                    alert('Recruitment accepted. Recruit placed in new division.');
-                    break;
-                case 'final_reject':
-                    alert('Recruitment fully rejected. Recruit not placed in any division.');
-                    break;
+            loadPendingPlacements();
+            if (isOfficer) {
+                loadBumpedPlacements();
             }
         } else {
-            alert(data.error || 'Error processing review');
+            alert(data.error || 'Error processing action');
         }
     } catch (error) {
         console.error('Error:', error);
-        alert(error.message || 'Error processing review');
+        alert('Error processing action');
     }
 }
 
 function openNewDivisionModal(recruitmentId) {
     currentRecruitmentId = recruitmentId;
-    const modal = document.getElementById('newDivisionModal');
-    modal.classList.remove('hidden');
+    document.getElementById('newDivisionModal').classList.remove('hidden');
     
-    // Load divisions
     fetch('/api/divisions')
         .then(response => response.json())
         .then(data => {
@@ -2446,7 +2386,30 @@ async function confirmNewDivision() {
     }
 
     const notes = prompt('Please provide any notes about this placement:');
-    await submitOfficerReview(currentRecruitmentId, 'accept_rejection', notes, newDivisionId);
+    
+    try {
+        const response = await fetch(`/api/recruitment/${currentRecruitmentId}/approve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                newDivisionId,
+                notes
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            closeNewDivisionModal();
+            loadBumpedPlacements();
+        } else {
+            alert(data.error || 'Error processing placement');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error processing placement');
+    }
 }
 
 function toggleForms(formId) {
