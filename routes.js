@@ -96,7 +96,7 @@ router.get('/profile', isAuthenticated, async (req, res) => {
         const division = await Division.findOne({ 'personnel.user': user._id });
         const currentDivision = division ? {
             name: division.name,
-            position: division.personnel.find(p => p.user.toString() === user._id.toString()).position
+            position: division.personnel && division.personnel.find(p => p.user.toString() === user._id.toString())?.position
         } : null;
 
         // Get training history
