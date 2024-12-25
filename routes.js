@@ -113,10 +113,13 @@ router.get('/profile', isAuthenticated, async (req, res) => {
             status: 'approved'
         }).sort({ createdAt: -1 });
 
-        // Get disciplinary actions for the target user
+        // Get disciplinary actions for the user
         const disciplinaryActions = await DisciplinaryAction.find({
             targetUser: user._id
-        }).sort({ dateIssued: -1 });
+        })
+        .populate('issuedBy', 'username')
+        .populate('officerApproval.officer', 'username')
+        .sort({ dateIssued: -1 });
 
         // Get recent activity
         const recentActivity = [...trainings, ...promotions, ...disciplinaryActions]
