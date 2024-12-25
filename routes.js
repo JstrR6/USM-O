@@ -871,24 +871,39 @@ router.post('/api/recruitment/:id/:action', isAuthenticated, async (req, res) =>
             return res.status(404).json({ error: 'Recruitment not found' });
         }
 
+        // First find or create the user
+        let user = await User.findOne({ username: recruitment.recruitUsername });
+        if (!user) {
+            user = new User({
+                username: recruitment.recruitUsername,
+                discordId: recruitment.recruitDiscord,
+                highestRole: recruitment.recruitRank
+            });
+            await user.save();
+        }
+
         switch (req.params.action) {
             case 'approve':
-                // Handle regular approval
+                // Handle regular approval using original division
                 const division = await Division.findById(recruitment.targetDivision._id);
                 if (!division) {
                     return res.status(404).json({ error: 'Division not found' });
                 }
 
                 division.personnel.push({
-                    user: recruitment.recruitUsername,
+                    user: user._id,
                     position: recruitment.divisionPosition
                 });
                 await division.save();
 
                 recruitment.status = 'approved';
+                recruitment.finalDivision = division._id;
                 break;
 
             case 'manual_place':
+                if (!req.user.isOfficer) {
+                    return res.status(403).json({ error: 'Only officers can manually place recruits' });
+                }
                 // Handle manual placement by officer
                 const newDivision = await Division.findById(req.body.newDivisionId);
                 if (!newDivision) {
@@ -896,7 +911,7 @@ router.post('/api/recruitment/:id/:action', isAuthenticated, async (req, res) =>
                 }
 
                 newDivision.personnel.push({
-                    user: recruitment.recruitUsername,
+                    user: user._id,
                     position: recruitment.divisionPosition
                 });
                 await newDivision.save();
@@ -936,10 +951,29 @@ router.post('/api/recruitment/:id/:action', isAuthenticated, async (req, res) =>
         });
 
         await recruitment.save();
-        res.json({ success: true });
+
+        // Return success with message
+        let message = '';
+        switch (req.params.action) {
+            case 'approve':
+            case 'manual_place':
+                message = 'Recruit successfully placed in division';
+                break;
+            case 'bump_up':
+                message = 'Recruitment bumped up to officer review';
+                break;
+            case 'bump_back':
+                message = 'Recruitment returned to SNCO review';
+                break;
+            case 'reject':
+                message = 'Recruitment rejected';
+                break;
+        }
+
+        res.json({ success: true, message });
     } catch (error) {
         console.error('Error processing recruitment action:', error);
-        res.status(500).json({ error: 'Server error' });
+        res.status(500).json({ error: 'Server error: ' + error.message });
     }
 });
 
