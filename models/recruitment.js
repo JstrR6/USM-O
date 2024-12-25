@@ -48,7 +48,7 @@ const RecruitmentSchema = new mongoose.Schema({
         },
         action: {
             type: String,
-            enum: ['approve', 'bump_up', 'bump_back', 'reject'],
+            enum: ['approve', 'manual_place', 'bump_up', 'bump_back', 'reject'],
             required: true
         },
         notes: String,
