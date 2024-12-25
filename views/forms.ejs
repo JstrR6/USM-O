@@ -622,7 +622,7 @@
         <div id="newDivisionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
             <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-medium text-gray-900">Select New Division</h3>
+                    <h3 class="text-lg font-medium text-gray-900">Manual Division Placement</h3>
                     <button onclick="closeNewDivisionModal()" class="text-gray-500 hover:text-gray-700">
                         <i class="fas fa-times"></i>
                     </button>
@@ -630,7 +630,7 @@
                 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Division</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Select New Division</label>
                         <select id="newDivisionSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md">
                             <option value="">Select Division</option>
                         </select>
@@ -642,7 +642,7 @@
                         </button>
                         <button onclick="confirmNewDivision()" 
                                 class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                            Confirm
+                            Confirm Placement
                         </button>
                     </div>
                 </div>
@@ -727,6 +727,10 @@
             <button onclick="closePendingPlacements()" class="text-gray-500 hover:text-gray-700">
                 <i class="fas fa-times"></i>
             </button>
+        </div>
+
+        <div id="pendingPlacementsList" class="space-y-4">
+            <!-- Pending placements populated here -->
         </div>
     </div>
 </div>
@@ -2200,18 +2204,17 @@ async function submitRecruitment() {
     }
 }
 
+// SNCO Pending Placements Modal
 function openPendingPlacements() {
     document.getElementById('pendingPlacementsModal').classList.remove('hidden');
     loadPendingPlacements();
-    if (isOfficer) {
-        loadBumpedPlacements();
-    }
 }
 
 function closePendingPlacements() {
     document.getElementById('pendingPlacementsModal').classList.add('hidden');
 }
 
+// Load pending placements for SNCO review
 function loadPendingPlacements() {
     fetch('/api/recruitment/pending')
         .then(response => response.json())
@@ -2234,24 +2237,17 @@ function loadPendingPlacements() {
                             <p class="text-sm text-gray-600">Proposed Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
                             <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition}</p>
                             <p class="text-sm text-gray-600">Recruiter: ${recruitment.recruiter.username}</p>
-                            ${recruitment.status === 'bumped_back' ? 
-                                '<p class="text-sm text-orange-600">* Bumped back from Officer review</p>' : ''}
-                            ${recruitment.reviewChain.length > 0 ? `
-                                <div class="mt-2">
-                                    <p class="text-sm text-gray-600">Review History:</p>
-                                    ${recruitment.reviewChain.map(review => `
-                                        <p class="text-sm text-gray-600">
-                                            ${review.action} by ${review.reviewer.username}
-                                            ${review.notes ? `: ${review.notes}` : ''}
-                                        </p>
-                                    `).join('')}
+                            ${recruitment.status === 'bumped_back' ? `
+                                <div class="mt-2 p-2 bg-orange-50 border border-orange-200 rounded">
+                                    <p class="text-sm text-orange-600">Bumped back from Officer review</p>
+                                    <p class="text-sm text-gray-600">Officer Notes: ${recruitment.reviewChain[recruitment.reviewChain.length - 1].notes || 'No notes provided'}</p>
                                 </div>
                             ` : ''}
                         </div>
                         <div class="space-y-2">
                             <button onclick="handlePlacementAction('${recruitment._id}', 'approve')"
                                     class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
-                                Approve
+                                ${recruitment.status === 'bumped_back' ? 'Approve Original' : 'Approve'}
                             </button>
                             ${recruitment.status !== 'bumped_back' ? `
                                 <button onclick="handlePlacementAction('${recruitment._id}', 'bump_up')"
@@ -2271,13 +2267,12 @@ function loadPendingPlacements() {
         .catch(error => console.error('Error loading pending placements:', error));
 }
 
+// Load bumped placements for Officer review
 function loadBumpedPlacements() {
     fetch('/api/recruitment/bumped')
         .then(response => response.json())
         .then(data => {
             const container = document.getElementById('bumpedPlacementsList');
-            if (!container) return;
-            
             container.innerHTML = '';
 
             if (!data.recruitments || data.recruitments.length === 0) {
@@ -2295,9 +2290,14 @@ function loadBumpedPlacements() {
                             <p class="text-sm text-gray-600">Proposed Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
                             <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition}</p>
                             <p class="text-sm text-gray-600">Recruiter: ${recruitment.recruiter.username}</p>
-                            <p class="text-sm text-blue-600">* Bumped up by ${
-                                recruitment.reviewChain.find(r => r.action === 'bump_up')?.reviewer.username || 'SNCO'
-                            }</p>
+                            <div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                                <p class="text-sm text-blue-600">Bumped up by: ${
+                                    recruitment.reviewChain.find(r => r.action === 'bump_up')?.reviewer.username || 'SNCO'
+                                }</p>
+                                <p class="text-sm text-gray-600">Notes: ${
+                                    recruitment.reviewChain.find(r => r.action === 'bump_up')?.notes || 'No notes provided'
+                                }</p>
+                            </div>
                         </div>
                         <div class="space-y-2">
                             <button onclick="handlePlacementAction('${recruitment._id}', 'approve')"
@@ -2306,15 +2306,11 @@ function loadBumpedPlacements() {
                             </button>
                             <button onclick="openNewDivisionModal('${recruitment._id}')"
                                     class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                                Place in New Division
+                                Manual Placement
                             </button>
                             <button onclick="handlePlacementAction('${recruitment._id}', 'bump_back')"
                                     class="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">
                                 Bump Back to SNCO
-                            </button>
-                            <button onclick="handlePlacementAction('${recruitment._id}', 'reject')"
-                                    class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
-                                Reject
                             </button>
                         </div>
                     </div>
@@ -2326,8 +2322,8 @@ function loadBumpedPlacements() {
 
 async function handlePlacementAction(id, action) {
     let notes = '';
-    if (action === 'reject') {
-        notes = prompt('Please provide a reason for rejection:');
+    if (action === 'reject' || action === 'bump_up' || action === 'bump_back') {
+        notes = prompt('Please provide notes for this action:');
         if (!notes) return;
     }
 
@@ -2342,10 +2338,12 @@ async function handlePlacementAction(id, action) {
 
         const data = await response.json();
         if (data.success) {
-            loadPendingPlacements();
-            if (isOfficer) {
+            if (window.isOfficer) {
                 loadBumpedPlacements();
+            } else {
+                loadPendingPlacements();
             }
+            alert(data.message || 'Action processed successfully');
         } else {
             alert(data.error || 'Error processing action');
         }
@@ -2357,7 +2355,8 @@ async function handlePlacementAction(id, action) {
 
 function openNewDivisionModal(recruitmentId) {
     currentRecruitmentId = recruitmentId;
-    document.getElementById('newDivisionModal').classList.remove('hidden');
+    const modal = document.getElementById('newDivisionModal');
+    modal.classList.remove('hidden');
     
     fetch('/api/divisions')
         .then(response => response.json())
@@ -2386,9 +2385,10 @@ async function confirmNewDivision() {
     }
 
     const notes = prompt('Please provide any notes about this placement:');
+    if (!notes) return;
     
     try {
-        const response = await fetch(`/api/recruitment/${currentRecruitmentId}/approve`, {
+        const response = await fetch(`/api/recruitment/${currentRecruitmentId}/manual_place`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -2403,6 +2403,7 @@ async function confirmNewDivision() {
         if (data.success) {
             closeNewDivisionModal();
             loadBumpedPlacements();
+            alert('Recruit successfully placed in new division');
         } else {
             alert(data.error || 'Error processing placement');
         }
