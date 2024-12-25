@@ -10,7 +10,7 @@
 <body class="bg-gray-100">
     <div class="min-h-screen flex">
         <!-- Sidebar -->
-        <div class="bg-gray-800 text-white w-64 py-6 flex flex-col">
+        <div class="bg-gray-800 text-white w-64 flex-shrink-0 flex flex-col">
             <div class="px-6 py-4">
                 <h1 class="text-2xl font-semibold">Military Portal</h1>
             </div>
@@ -47,8 +47,22 @@
             </div>
         </div>
 
-        <!-- Main Content Area -->
-    <main class="p-6">
+        <!-- Main Content Container -->
+        <div class="flex-1 flex flex-col h-screen overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white shadow-sm flex-shrink-0">
+                <div class="px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-semibold text-gray-800">Profile</h2>
+                        <div class="flex items-center">
+                            <span class="text-gray-600"><%= new Date().toLocaleDateString() %></span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Scrollable Main Content -->
+            <main class="flex-1 overflow-auto p-6">
         <!-- Profile Header -->
         <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div class="flex items-center">
@@ -251,5 +265,7 @@
     // Initialize active tab
     document.querySelector('.tab-btn.active').click();
     </script>
+        </div>
+    </div>
 </body>
 </html>
