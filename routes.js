@@ -90,10 +90,57 @@ router.get('/dashboard', isAuthenticated, async (req, res) => {
 // Profile route
 router.get('/profile', isAuthenticated, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).exec();
+        const user = await User.findById(req.user.id);
+        
+        // Get user's current division
+        const division = await Division.findOne({ 'personnel.user': user._id });
+        const currentDivision = division ? {
+            name: division.name,
+            position: division.personnel.find(p => p.user.toString() === user._id.toString()).position
+        } : null;
+
+        // Get training history
+        const trainings = await Training.find({
+            $or: [
+                { instructor: user._id },
+                { trainees: user._id }
+            ]
+        }).sort({ createdAt: -1 });
+
+        // Get promotion history
+        const promotions = await Promotion.find({
+            targetUser: user._id,
+            status: 'approved'
+        }).sort({ createdAt: -1 });
+
+        // Get disciplinary actions
+        const disciplinaryActions = await DisciplinaryAction.find({
+            targetUser: user._id
+        }).sort({ dateIssued: -1 });
+
+        // Get division assignment history
+        const assignments = await DivisionHistory.find({
+            user: user._id
+        }).sort({ startDate: -1 });
+
+        // Get recent activity
+        const recentActivity = [...trainings, ...promotions, ...disciplinaryActions]
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .slice(0, 5)
+            .map(activity => ({
+                date: activity.createdAt || activity.dateIssued,
+                description: getActivityDescription(activity)
+            }));
+
         res.render('profile', {
             title: 'Profile',
-            user: user,
+            user,
+            currentDivision,
+            trainings,
+            promotions,
+            disciplinaryActions,
+            assignments,
+            recentActivity,
             path: req.path
         });
     } catch (error) {
