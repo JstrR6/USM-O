@@ -96,7 +96,7 @@ router.get('/profile', isAuthenticated, async (req, res) => {
         const division = await Division.findOne({ 'personnel.user': user._id });
         const currentDivision = division ? {
             name: division.name,
-            position: division.personnel && division.personnel.find(p => p.user.toString() === user._id.toString())?.position
+            position: division.personnel?.find(p => p.user.toString() === user._id.toString())?.position || 'None'
         } : null;
 
         // Get training history
@@ -114,9 +114,16 @@ router.get('/profile', isAuthenticated, async (req, res) => {
         }).sort({ createdAt: -1 });
 
         // Get disciplinary actions
-        const disciplinaryActions = await DisciplinaryAction.find({
-            targetUser: user._id
-        }).sort({ dateIssued: -1 });
+        let disciplinaryActions = [];
+        try {
+            disciplinaryActions = await DisciplinaryAction.find({
+                targetUser: user._id
+            }).sort({ dateIssued: -1 });
+            console.log('Disciplinary Actions:', disciplinaryActions);
+        } catch (error) {
+            console.error('Error fetching disciplinary actions:', error);
+            throw error;
+        }
 
         // Get division assignment history
         const assignments = await DivisionHistory.find({
