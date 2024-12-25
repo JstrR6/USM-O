@@ -127,7 +127,7 @@ router.get('/profile', isAuthenticated, async (req, res) => {
             .slice(0, 5)
             .map(activity => ({
                 date: activity.createdAt || activity.dateIssued,
-                description: getActivityDescription(activity)
+                description: activity.type || activity.reason || 'Activity'
             }));
 
         res.render('profile', {
