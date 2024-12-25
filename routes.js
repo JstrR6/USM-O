@@ -864,39 +864,45 @@ router.post('/api/recruitment/:id/:action', isAuthenticated, async (req, res) =>
 
     try {
         const recruitment = await Recruitment.findById(req.params.id)
-            .populate('targetDivision');
-        
+            .populate('targetDivision')
+            .populate('recruiter', 'username');
+
         if (!recruitment) {
             return res.status(404).json({ error: 'Recruitment not found' });
         }
 
         switch (req.params.action) {
             case 'approve':
-                // For SNCO approval or Officer final approval
-                if (req.user.isSenior || req.user.isOfficer) {
-                    const targetDivision = req.body.newDivisionId ? 
-                        await Division.findById(req.body.newDivisionId) :
-                        recruitment.targetDivision;
-
-                    if (!targetDivision) {
-                        return res.status(404).json({ error: 'Division not found' });
-                    }
-
-                    const user = await User.findOne({ username: recruitment.recruitUsername });
-                    if (!user) {
-                        return res.status(400).json({ error: 'Recruit user not found' });
-                    }
-
-                    // Add to division
-                    targetDivision.personnel.push({
-                        user: user._id,
-                        position: recruitment.divisionPosition
-                    });
-                    await targetDivision.save();
-
-                    recruitment.status = 'approved';
-                    recruitment.finalDivision = targetDivision._id;
+                // Handle regular approval
+                const division = await Division.findById(recruitment.targetDivision._id);
+                if (!division) {
+                    return res.status(404).json({ error: 'Division not found' });
                 }
+
+                division.personnel.push({
+                    user: recruitment.recruitUsername,
+                    position: recruitment.divisionPosition
+                });
+                await division.save();
+
+                recruitment.status = 'approved';
+                break;
+
+            case 'manual_place':
+                // Handle manual placement by officer
+                const newDivision = await Division.findById(req.body.newDivisionId);
+                if (!newDivision) {
+                    return res.status(404).json({ error: 'New division not found' });
+                }
+
+                newDivision.personnel.push({
+                    user: recruitment.recruitUsername,
+                    position: recruitment.divisionPosition
+                });
+                await newDivision.save();
+
+                recruitment.status = 'approved';
+                recruitment.finalDivision = newDivision._id;
                 break;
 
             case 'bump_up':
@@ -932,7 +938,7 @@ router.post('/api/recruitment/:id/:action', isAuthenticated, async (req, res) =>
         await recruitment.save();
         res.json({ success: true });
     } catch (error) {
-        console.error('Recruitment action error:', error);
+        console.error('Error processing recruitment action:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
