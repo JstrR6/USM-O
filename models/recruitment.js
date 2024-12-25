@@ -1,7 +1,6 @@
-// models/recruitment.js
 const mongoose = require('mongoose');
 
-const recruitmentSchema = new mongoose.Schema({
+const RecruitmentSchema = new mongoose.Schema({
     recruitUsername: {
         type: String,
         required: true
@@ -14,51 +13,54 @@ const recruitmentSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    targetDivision: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Division',
-        required: true
-    },
-    divisionPosition: {
-        type: String,
-        required: true,
-        enum: [
-            'Commander',
-            'Deputy Commander',
-            'Senior Enlisted Leader',
-            'Section Chief',
-            'Non-Commission Officer In Charge',
-            'Squadron Sergeant',
-            'Squadron Leader',
-            'Soldier'
-        ]
-    },
-    dateRecruited: {
+    dateSubmitted: {
         type: Date,
-        required: true
+        default: Date.now
     },
     recruiter: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
     },
+    targetDivision: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Division',
+        required: true
+    },
+    finalDivision: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Division'
+    },
+    divisionPosition: {
+        type: String,
+        required: true
+    },
     status: {
         type: String,
-        enum: ['pending', 'approved', 'rejected', 'rejected_appealed', 'veto_approved', 'final_rejected'],
+        enum: ['pending', 'bumped_up', 'bumped_back', 'approved', 'rejected'],
         default: 'pending'
     },
-    sncoReviewNotes: String,
-    officerReviewNotes: String,
-    reviewedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
-    },
-    appealReviewedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+    reviewChain: [{
+        reviewer: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        action: {
+            type: String,
+            enum: ['approve', 'bump_up', 'bump_back', 'reject'],
+            required: true
+        },
+        notes: String,
+        date: {
+            type: Date,
+            default: Date.now
+        }
+    }],
+    processed: {
+        type: Boolean,
+        default: false
     }
-}, {
-    timestamps: true
 });
 
-module.exports = mongoose.model('Recruitment', recruitmentSchema);
+module.exports = mongoose.model('Recruitment', RecruitmentSchema);
