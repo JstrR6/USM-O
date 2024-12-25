@@ -113,17 +113,10 @@ router.get('/profile', isAuthenticated, async (req, res) => {
             status: 'approved'
         }).sort({ createdAt: -1 });
 
-        // Get disciplinary actions
-        let disciplinaryActions = [];
-        try {
-            disciplinaryActions = await DisciplinaryAction.find({
-                targetUser: user._id
-            }).sort({ dateIssued: -1 });
-            console.log('Disciplinary Actions:', disciplinaryActions);
-        } catch (error) {
-            console.error('Error fetching disciplinary actions:', error);
-            throw error;
-        }
+        // Get disciplinary actions for the target user
+        const disciplinaryActions = await DisciplinaryAction.find({
+            targetUser: user._id
+        }).sort({ dateIssued: -1 });
 
         // Get recent activity
         const recentActivity = [...trainings, ...promotions, ...disciplinaryActions]
