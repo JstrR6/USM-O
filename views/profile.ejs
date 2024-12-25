@@ -92,9 +92,6 @@
                             <button onclick="switchTab('disciplinary')" class="tab-btn px-6 py-3 border-b-2 font-medium text-sm">
                                 Disciplinary
                             </button>
-                            <button onclick="switchTab('assignments')" class="tab-btn px-6 py-3 border-b-2 font-medium text-sm">
-                                Assignments
-                            </button>
                         </nav>
                     </div>
 
@@ -231,27 +228,6 @@
                                             'bg-red-100 text-red-800' %>">
                                         <%= action.status %>
                                     </span>
-                                </div>
-                            </div>
-                            <% }) %>
-                        </div>
-                    </div>
-
-                    <!-- Assignments Tab Content -->
-                    <div id="assignmentsTab" class="tab-content hidden p-6">
-                        <div class="space-y-6">
-                            <% assignments.forEach(assignment => { %>
-                            <div class="flex items-center p-4 bg-gray-50 rounded">
-                                <div class="p-3 rounded-full bg-gray-200">
-                                    <i class="fas fa-sitemap text-gray-600 text-xl"></i>
-                                </div>
-                                <div class="ml-4">
-                                    <h4 class="font-medium"><%= assignment.divisionName %></h4>
-                                    <p class="text-sm text-gray-600"><%= assignment.position %></p>
-                                    <p class="text-sm text-gray-500">
-                                        <%= new Date(assignment.startDate).toLocaleDateString() %> - 
-                                        <%= assignment.endDate ? new Date(assignment.endDate).toLocaleDateString() : 'Present' %>
-                                    </p>
                                 </div>
                             </div>
                             <% }) %>
