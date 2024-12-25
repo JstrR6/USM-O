@@ -2105,7 +2105,7 @@ function openDivisionModal() {
     // Load both divisions and rejected placements
     Promise.all([
         loadDivisions(),
-        loadRejectedPlacements()
+        loadBumpedPlacements()
     ]).catch(error => {
         console.error('Error loading division modal data:', error);
     });
