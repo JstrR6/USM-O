@@ -147,8 +147,15 @@ function determineHighestRole(roles) {
 }
 
 // Function to determine role flags
+// Function to determine role flags
 function determineRoleFlags(roles) {
-    const highestRole = determineHighestRole(roles);
+    // First, get the actual highest role from all roles, including officer ranks
+    const highestRole = roles.reduce((highest, role) => {
+        const currentIndex = RANK_ORDER.indexOf(role.name);
+        const highestIndex = RANK_ORDER.indexOf(highest);
+        return currentIndex > highestIndex ? role.name : highest;
+    }, 'Citizen');
+
     const rankIndex = RANK_ORDER.indexOf(highestRole);
     
     const flags = {
@@ -161,14 +168,24 @@ function determineRoleFlags(roles) {
     if (rankIndex >= RANK_ORDER.indexOf('Specialist')) {
         flags.isRecruiter = true;
     }
+    
     if (rankIndex >= RANK_ORDER.indexOf('Sergeant')) {
         flags.isInstructor = true;
+        flags.isRecruiter = true;
     }
+    
     if (rankIndex >= RANK_ORDER.indexOf('Master Sergeant')) {
         flags.isSenior = true;
+        flags.isInstructor = true;
+        flags.isRecruiter = true;
     }
+    
+    // Fix: Check full RANK_ORDER for officer status
     if (rankIndex >= RANK_ORDER.indexOf('Second Lieutenant')) {
         flags.isOfficer = true;
+        flags.isInstructor = true;  // Officers should also be instructors
+        flags.isRecruiter = true;   // Officers should also be recruiters
+        flags.isSenior = true;      // Officers should also be senior
     }
     
     return flags;
