@@ -166,10 +166,10 @@ router.get('/members', isAuthenticated, async (req, res) => {
     }
 });
 
-// New API endpoint for filtered members
+// API endpoint for filtered members
 router.get('/api/members/filter', isAuthenticated, async (req, res) => {
     try {
-        const { rank, sort, search } = req.query;
+        const { rank, sort, direction, search } = req.query;
         let query = {};
 
         // Handle rank filtering
@@ -180,16 +180,23 @@ router.get('/api/members/filter', isAuthenticated, async (req, res) => {
                 query.highestRole = {
                     $in: [
                         'Corporal', 'Sergeant', 'Staff Sergeant', 
-                        'Sergeant First Class', 'Master Sergeant',
-                        'First Sergeant', 'Sergeant Major'
+                        'Sergeant First Class', 
                     ]
                 };
+            } else if (rank === 'snco') {
+                query.highestRole = {
+                    $in: [
+                        'Master Sergeant', 'First Sergeant', 'Sergeant Major', 
+                        'Command Sergeant Major', 'Sergeant Major of the Army'
+                    ]
+                };
+            }
             } else if (rank === 'officer') {
                 query.highestRole = {
                     $in: [
                         'Second Lieutenant', 'First Lieutenant', 
                         'Captain', 'Major', 'Lieutenant Colonel', 
-                        'Colonel'
+                        'Colonel', 'Brigadier General', 'Major General', 'Lieutenant General', 'General', 'General of the Army'
                     ]
                 };
             } else {
@@ -205,18 +212,20 @@ router.get('/api/members/filter', isAuthenticated, async (req, res) => {
 
         // Handle sorting
         let sortOption = {};
+        const sortDirection = direction === 'asc' ? 1 : -1;
+
         switch (sort) {
             case 'rank':
-                sortOption = { highestRole: -1, xp: -1 };
+                sortOption = { highestRole: sortDirection, xp: sortDirection };
                 break;
             case 'xp':
-                sortOption = { xp: -1, highestRole: -1 };
+                sortOption = { xp: sortDirection, highestRole: sortDirection };
                 break;
             case 'username':
-                sortOption = { username: 1 };
+                sortOption = { username: sortDirection };
                 break;
             case 'joinDate':
-                sortOption = { dateJoined: -1 };
+                sortOption = { dateJoined: sortDirection };
                 break;
             default:
                 sortOption = { highestRole: -1, xp: -1 };
@@ -251,7 +260,18 @@ router.get('/api/members/:id/profile', isAuthenticated, async (req, res) => {
             position: division.personnel?.find(p => p.user.toString() === user._id.toString())?.position || 'None'
         } : null;
 
-        // Get training history
+        // Get all promotions and demotions
+        const [promotions, demotions] = await Promise.all([
+            Promotion.find({ targetUser: user._id })
+                .sort({ createdAt: -1 })
+                .populate('promotedBy', 'username')
+                .populate('officerApproval.officer', 'username'),
+            Demotion.find({ targetUser: user._id })
+                .sort({ createdAt: -1 })
+                .populate('demotedBy', 'username')
+        ]);
+
+        // Get all trainings
         const trainings = await Training.find({
             $or: [
                 { instructor: user._id },
@@ -259,56 +279,27 @@ router.get('/api/members/:id/profile', isAuthenticated, async (req, res) => {
             ]
         })
         .sort({ createdAt: -1 })
-        .limit(10)
         .populate('instructor', 'username')
-        .exec();
+        .populate('trainees', 'username')
+        .populate('approvalChain.approver', 'username');
 
-        // Format training history
-        const formattedTrainings = trainings.map(training => ({
-            date: training.createdAt,
-            type: training.type,
-            role: training.instructor.toString() === user._id.toString() ? 'Instructor' : 'Trainee',
-            status: training.status
-        }));
-
-        // Get recent activity (promotions, trainings, disciplinary actions)
-        const [promotions, disciplinaryActions] = await Promise.all([
-            Promotion.find({ targetUser: user._id, status: 'approved' })
-                .sort({ createdAt: -1 })
-                .limit(5)
-                .populate('promotedBy', 'username'),
-            DisciplinaryAction.find({ targetUser: user._id, status: 'completed' })
-                .sort({ dateIssued: -1 })
-                .limit(5)
-                .populate('issuedBy', 'username')
-        ]);
-
-        // Combine and format recent activity
-        const recentActivity = [
-            ...promotions.map(p => ({
-                date: p.createdAt,
-                description: `Promoted to ${p.promotionRank} by ${p.promotedBy.username}`
-            })),
-            ...trainings.map(t => ({
-                date: t.createdAt,
-                description: `${t.instructor.toString() === user._id.toString() ? 'Instructed' : 'Completed'} ${t.type} training`
-            })),
-            ...disciplinaryActions.map(d => ({
-                date: d.dateIssued,
-                description: `Received Grade ${d.grade} disciplinary action`
-            }))
-        ]
-        .sort((a, b) => b.date - a.date)
-        .slice(0, 10);
+        // Get disciplinary actions
+        const disciplinaryActions = await DisciplinaryAction.find({ targetUser: user._id })
+            .sort({ dateIssued: -1 })
+            .populate('issuedBy', 'username')
+            .populate('officerApproval.officer', 'username');
 
         res.json({
+            _id: user._id,
             username: user.username,
             highestRole: user.highestRole,
             xp: user.xp,
             dateJoined: user.dateJoined,
             division: currentDivision,
-            trainings: formattedTrainings,
-            recentActivity
+            trainings,
+            promotions,
+            demotions,
+            disciplinaryActions
         });
 
     } catch (error) {
