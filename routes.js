@@ -149,7 +149,11 @@ router.get('/profile', isAuthenticated, async (req, res) => {
 // Members route
 router.get('/members', isAuthenticated, async (req, res) => {
     try {
-        const users = await User.find({}).sort({ highestRole: -1 }).exec();
+        const users = await User.find({})
+            .sort({ highestRole: -1, xp: -1 })
+            .select('username highestRole xp dateJoined')
+            .exec();
+
         res.render('members', {
             title: 'Members',
             users: users,
@@ -159,6 +163,157 @@ router.get('/members', isAuthenticated, async (req, res) => {
     } catch (error) {
         console.error('Members error:', error);
         res.status(500).send('Error loading members');
+    }
+});
+
+// New API endpoint for filtered members
+router.get('/api/members/filter', isAuthenticated, async (req, res) => {
+    try {
+        const { rank, sort, search } = req.query;
+        let query = {};
+
+        // Handle rank filtering
+        if (rank && rank !== 'all') {
+            if (rank === 'enlisted') {
+                query.highestRole = { $in: ['Private', 'Private First Class', 'Specialist'] };
+            } else if (rank === 'nco') {
+                query.highestRole = {
+                    $in: [
+                        'Corporal', 'Sergeant', 'Staff Sergeant', 
+                        'Sergeant First Class', 'Master Sergeant',
+                        'First Sergeant', 'Sergeant Major'
+                    ]
+                };
+            } else if (rank === 'officer') {
+                query.highestRole = {
+                    $in: [
+                        'Second Lieutenant', 'First Lieutenant', 
+                        'Captain', 'Major', 'Lieutenant Colonel', 
+                        'Colonel'
+                    ]
+                };
+            } else {
+                // Specific rank filter
+                query.highestRole = rank;
+            }
+        }
+
+        // Handle search
+        if (search) {
+            query.username = { $regex: search, $options: 'i' };
+        }
+
+        // Handle sorting
+        let sortOption = {};
+        switch (sort) {
+            case 'rank':
+                sortOption = { highestRole: -1, xp: -1 };
+                break;
+            case 'xp':
+                sortOption = { xp: -1, highestRole: -1 };
+                break;
+            case 'username':
+                sortOption = { username: 1 };
+                break;
+            case 'joinDate':
+                sortOption = { dateJoined: -1 };
+                break;
+            default:
+                sortOption = { highestRole: -1, xp: -1 };
+        }
+
+        const users = await User.find(query)
+            .sort(sortOption)
+            .select('username highestRole xp dateJoined')
+            .exec();
+
+        res.json({ users });
+    } catch (error) {
+        console.error('Filter error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// Get member profile details
+router.get('/api/members/:id/profile', isAuthenticated, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id)
+            .select('username highestRole xp dateJoined');
+
+        if (!user) {
+            return res.status(404).json({ error: 'Member not found' });
+        }
+
+        // Get user's current division
+        const division = await Division.findOne({ 'personnel.user': user._id });
+        const currentDivision = division ? {
+            name: division.name,
+            position: division.personnel?.find(p => p.user.toString() === user._id.toString())?.position || 'None'
+        } : null;
+
+        // Get training history
+        const trainings = await Training.find({
+            $or: [
+                { instructor: user._id },
+                { trainees: user._id }
+            ]
+        })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .populate('instructor', 'username')
+        .exec();
+
+        // Format training history
+        const formattedTrainings = trainings.map(training => ({
+            date: training.createdAt,
+            type: training.type,
+            role: training.instructor.toString() === user._id.toString() ? 'Instructor' : 'Trainee',
+            status: training.status
+        }));
+
+        // Get recent activity (promotions, trainings, disciplinary actions)
+        const [promotions, disciplinaryActions] = await Promise.all([
+            Promotion.find({ targetUser: user._id, status: 'approved' })
+                .sort({ createdAt: -1 })
+                .limit(5)
+                .populate('promotedBy', 'username'),
+            DisciplinaryAction.find({ targetUser: user._id, status: 'completed' })
+                .sort({ dateIssued: -1 })
+                .limit(5)
+                .populate('issuedBy', 'username')
+        ]);
+
+        // Combine and format recent activity
+        const recentActivity = [
+            ...promotions.map(p => ({
+                date: p.createdAt,
+                description: `Promoted to ${p.promotionRank} by ${p.promotedBy.username}`
+            })),
+            ...trainings.map(t => ({
+                date: t.createdAt,
+                description: `${t.instructor.toString() === user._id.toString() ? 'Instructed' : 'Completed'} ${t.type} training`
+            })),
+            ...disciplinaryActions.map(d => ({
+                date: d.dateIssued,
+                description: `Received Grade ${d.grade} disciplinary action`
+            }))
+        ]
+        .sort((a, b) => b.date - a.date)
+        .slice(0, 10);
+
+        res.json({
+            username: user.username,
+            highestRole: user.highestRole,
+            xp: user.xp,
+            dateJoined: user.dateJoined,
+            division: currentDivision,
+            trainings: formattedTrainings,
+            recentActivity
+        });
+
+    } catch (error) {
+        console.error('Profile error:', error);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
