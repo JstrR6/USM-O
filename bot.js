@@ -167,6 +167,9 @@ function determineRoleFlags(roles) {
     if (rankIndex >= RANK_ORDER.indexOf('Master Sergeant')) {
         flags.isSenior = true;
     }
+    if (rankIndex >= RANK_ORDER.indexOf('Second Lieutenant')) {
+        flags.isOfficer = true;
+    }
     
     return flags;
 }
