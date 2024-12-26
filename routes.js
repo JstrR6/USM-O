@@ -180,7 +180,7 @@ router.get('/api/members/filter', isAuthenticated, async (req, res) => {
                 query.highestRole = {
                     $in: [
                         'Corporal', 'Sergeant', 'Staff Sergeant', 
-                        'Sergeant First Class', 
+                        'Sergeant First Class'
                     ]
                 };
             } else if (rank === 'snco') {
@@ -190,13 +190,13 @@ router.get('/api/members/filter', isAuthenticated, async (req, res) => {
                         'Command Sergeant Major', 'Sergeant Major of the Army'
                     ]
                 };
-            }
             } else if (rank === 'officer') {
                 query.highestRole = {
                     $in: [
                         'Second Lieutenant', 'First Lieutenant', 
                         'Captain', 'Major', 'Lieutenant Colonel', 
-                        'Colonel', 'Brigadier General', 'Major General', 'Lieutenant General', 'General', 'General of the Army'
+                        'Colonel', 'Brigadier General', 'Major General', 
+                        'Lieutenant General', 'General', 'General of the Army'
                     ]
                 };
             } else {
