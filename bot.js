@@ -82,34 +82,61 @@ async function logRankChange(user, newRank, oldRank) {
         const newRankIndex = RANK_ORDER.indexOf(newRank);
         const isPromotion = newRankIndex > oldRankIndex;
 
+        // Check for existing log within the last minute to prevent duplicates
+        const oneMinuteAgo = new Date(Date.now() - 60000); // 1 minute ago
+
         if (isPromotion) {
-            const promotion = new Promotion({
+            // Check for recent promotion with same details
+            const existingPromotion = await Promotion.findOne({
                 targetUser: user._id,
-                promotedBy: user._id,
                 currentRank: oldRank,
                 promotionRank: newRank,
-                reason: `Automatic promotion due to XP threshold (${user.xp} XP)`,
-                status: 'approved',
-                needsOfficerApproval: false,
-                processed: true,
-                officerApproval: {
-                    officer: user._id,
-                    date: new Date()
-                }
+                createdAt: { $gte: oneMinuteAgo }
             });
-            await promotion.save();
-            console.log(`Logged promotion for ${user.username}: ${oldRank} -> ${newRank}`);
+
+            if (!existingPromotion) {
+                const promotion = new Promotion({
+                    targetUser: user._id,
+                    promotedBy: user._id,
+                    currentRank: oldRank,
+                    promotionRank: newRank,
+                    reason: `Automatic promotion due to XP threshold (${user.xp} XP)`,
+                    status: 'approved',
+                    needsOfficerApproval: false,
+                    processed: true,
+                    officerApproval: {
+                        officer: user._id,
+                        date: new Date()
+                    }
+                });
+                await promotion.save();
+                console.log(`Logged promotion for ${user.username}: ${oldRank} -> ${newRank}`);
+            } else {
+                console.log(`Skipping duplicate promotion log for ${user.username}`);
+            }
         } else {
-            const demotion = new Demotion({
+            // Check for recent demotion with same details
+            const existingDemotion = await Demotion.findOne({
                 targetUser: user._id,
-                demotedBy: user._id,
                 previousRank: oldRank,
                 demotionRank: newRank,
-                reason: `Automatic demotion due to XP threshold (${user.xp} XP)`,
-                processed: true
+                createdAt: { $gte: oneMinuteAgo }
             });
-            await demotion.save();
-            console.log(`Logged demotion for ${user.username}: ${oldRank} -> ${newRank}`);
+
+            if (!existingDemotion) {
+                const demotion = new Demotion({
+                    targetUser: user._id,
+                    demotedBy: user._id,
+                    previousRank: oldRank,
+                    demotionRank: newRank,
+                    reason: `Automatic demotion due to XP threshold (${user.xp} XP)`,
+                    processed: true
+                });
+                await demotion.save();
+                console.log(`Logged demotion for ${user.username}: ${oldRank} -> ${newRank}`);
+            } else {
+                console.log(`Skipping duplicate demotion log for ${user.username}`);
+            }
         }
     } catch (error) {
         console.error('Error logging rank change:', error);
