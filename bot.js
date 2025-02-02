@@ -6,19 +6,23 @@ const { Demotion } = require('./models/demotion');
 
 // Define rank hierarchy (from lowest to highest)
 const RANK_ORDER = [
-    'Citizen',                    // Lowest rank
-    'Private',
-    'Private First Class',
-    'Specialist',
-    'Corporal',
-    'Sergeant',
+    'Citizen',
+    'Airman Basic',
+    'Airman',
+    'Airman First Class',
+    'Senior Airman',
     'Staff Sergeant',
-    'Sergeant First Class',
+    'Technical Sergeant',
     'Master Sergeant',
     'First Sergeant',
-    'Sergeant Major',
-    'Command Sergeant Major',
-    'Sergeant Major of the Army',
+    'Senior Master Sergeant',
+    'Senior First Sergeant',
+    'Chief Master Sergeant',
+    'Chief First Sergeant',
+    'Command Chief Master Sergeant',
+    'Senior Enlisted Leader',
+    'Chief Senior Enlisted Leader',
+    'Chief Master Sergeant of the Air Force',
     'Second Lieutenant',
     'First Lieutenant',
     'Captain',
@@ -29,7 +33,7 @@ const RANK_ORDER = [
     'Major General',
     'Lieutenant General',
     'General',
-    'General of the Army'
+    'General of the Air Force'
 ];
 
 // Configure bot with necessary intents
@@ -51,14 +55,16 @@ mongoose.connect(process.env.MONGODB_URI)
 // XP rank mapping constant
 const XP_RANKS = [
     { xp: 0, rank: 'Citizen' },
-    { xp: 1, rank: 'Private' },
-    { xp: 10, rank: 'Private First Class' },
-    { xp: 25, rank: 'Specialist' },
-    { xp: 50, rank: 'Corporal' },
-    { xp: 100, rank: 'Sergeant' },
-    { xp: 175, rank: 'Staff Sergeant' },
-    { xp: 300, rank: 'Sergeant First Class' },
-    { xp: 500, rank: 'Master Sergeant' }
+    { xp: 1, rank: 'Airman Basic' },
+    { xp: 10, rank: 'Airman' },
+    { xp: 25, rank: 'Airman First Class' },
+    { xp: 50, rank: 'Senior Airman' },
+    { xp: 100, rank: 'Staff Sergeant' },
+    { xp: 175, rank: 'Technical Sergeant' },
+    { xp: 300, rank: 'Master Sergeant' },
+    { xp: 500, rank: 'First Sergeant' },
+    { xp: 1000, rank: 'Senior Master Sergeant' },
+    { xp: 1500, rank: 'Senior First Sergeant' }
 ].sort((a, b) => b.xp - a.xp); // Sort by XP descending
 
 const OFFICER_RANKS = [
@@ -72,7 +78,7 @@ const OFFICER_RANKS = [
     'Major General',
     'Lieutenant General',
     'General',
-    'General of the Army'
+    'General of the Air Force'
 ];
 
 // Function to log rank changes
