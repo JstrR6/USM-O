@@ -2,18 +2,22 @@ const mongoose = require('mongoose');
 
 const ARMY_RANKS = [
     'Citizen',
-    'Private',
-    'Private First Class',
-    'Specialist',
-    'Corporal',
-    'Sergeant',
+    'Airman Basic',
+    'Airman',
+    'Airman First Class',
+    'Senior Airman',
     'Staff Sergeant',
-    'Sergeant First Class',
+    'Technical Sergeant',
     'Master Sergeant',
     'First Sergeant',
-    'Sergeant Major',
-    'Command Sergeant Major',
-    'Sergeant Major of the Army',
+    'Senior Master Sergeant',
+    'Senior First Sergeant',
+    'Chief Master Sergeant',
+    'Chief First Sergeant',
+    'Command Chief Master Sergeant',
+    'Senior Enlisted Leader',
+    'Chief Senior Enlisted Leader',
+    'Chief Master Sergeant of the Air Force',
     'Second Lieutenant',
     'First Lieutenant',
     'Captain',
@@ -24,7 +28,7 @@ const ARMY_RANKS = [
     'Major General',
     'Lieutenant General',
     'General',
-    'General of the Army'
+    'General of the Air Force'
 ];
 
 const roleSchema = new mongoose.Schema({

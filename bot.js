@@ -230,18 +230,22 @@ async function handlePromotion(userId, newRank) {
         // Define rank categories
         const rankCategories = {
             'Citizen': [],
-            'Private': ['Enlisted', 'Enlisted Personnel'],
-            'Private First Class': ['Enlisted', 'Enlisted Personnel'],
-            'Specialist': ['Enlisted', 'Enlisted Personnel'],
-            'Corporal': ['Enlisted', 'Enlisted Personnel'],
-            'Sergeant': ['Non-Commissioned Officers', 'Enlisted Personnel'],
+            'Airman Basic': ['Enlisted', 'Enlisted Personnel'],
+            'Airman': ['Enlisted', 'Enlisted Personnel'],
+            'Airman First Class': ['Enlisted', 'Enlisted Personnel'],
+            'Senior Airman': ['Enlisted', 'Enlisted Personnel'],
             'Staff Sergeant': ['Non-Commissioned Officers', 'Enlisted Personnel'],
-            'Sergeant First Class': ['Non-Commissioned Officers', 'Enlisted Personnel'],
-            'Master Sergeant': ['Senior Non-Commissioned Officers', 'Enlisted Personnel'],
-            'First Sergeant': ['Senior Non-Commissioned Officers', 'Enlisted Personnel'],
-            'Sergeant Major': ['Senior Non-Commissioned Officers', 'Enlisted Personnel'],
-            'Command Sergeant Major': ['Senior Non-Commissioned Officers', 'Enlisted Personnel'],
-            'Sergeant Major of the Army': ['Senior Non-Commissioned Officers', 'Enlisted Personnel'],
+            'Technical Sergeant': ['Non-Commissioned Officers', 'Enlisted Personnel'],
+            'Master Sergeant': ['Non-Commissioned Officers', 'Enlisted Personnel'],
+            'First Sergeant': ['Non-Commissioned Officers', 'Enlisted Personnel'],
+            'Senior Master Sergeant': ['Non-Commissioned Officers', 'Enlisted Personnel'],
+            'Senior First Sergeant': ['Non-Commissioned Officers', 'Enlisted Personnel'],
+            'Chief Master Sergeant': ['Senior Non-Commissioned Officers', 'Enlisted Personnel'],
+            'Chief First Sergeant': ['Senior Non-Commissioned Officers', 'Enlisted Personnel'],
+            'Command Chief Master Sergeant': ['Senior Non-Commissioned Officers', 'Enlisted Personnel'],
+            'Senior Enlisted Leader': ['Senior Non-Commissioned Officers', 'Enlisted Personnel'],
+            'Chief Senior Enlisted Leader': ['Senior Non-Commissioned Officers', 'Enlisted Personnel'],
+            'Chief Master Sergeant of the Air Force': ['Senior Non-Commissioned Officers', 'Enlisted Personnel'],
             'Second Lieutenant': ['Commissioned Officers', 'Company Grade Officers'],
             'First Lieutenant': ['Commissioned Officers', 'Company Grade Officers'],
             'Captain': ['Commissioned Officers', 'Company Grade Officers'],
@@ -252,7 +256,7 @@ async function handlePromotion(userId, newRank) {
             'Major General': ['Commissioned Officers', 'General Grade Officers'],
             'Lieutenant General': ['Commissioned Officers', 'General Grade Officers'],
             'General': ['Commissioned Officers', 'General Grade Officers'],
-            'General of the Army': ['Commissioned Officers', 'General Grade Officers']
+            'General of the Air Force': ['Commissioned Officers', 'General Grade Officers']
         };
 
         // Remove current roles

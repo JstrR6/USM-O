@@ -175,19 +175,19 @@ router.get('/api/members/filter', isAuthenticated, async (req, res) => {
         // Handle rank filtering
         if (rank && rank !== 'all') {
             if (rank === 'enlisted') {
-                query.highestRole = { $in: ['Private', 'Private First Class', 'Specialist'] };
+                query.highestRole = { $in: ['Airman', 'Airman First Class', 'Senior Airman'] };
             } else if (rank === 'nco') {
                 query.highestRole = {
                     $in: [
-                        'Corporal', 'Sergeant', 'Staff Sergeant', 
-                        'Sergeant First Class'
+                        'Staff Sergeant', 'Technical Sergeant', 'Master Sergeant', 'First Sergeant', 'Senior Master Sergeant', 
+                        'Senior First Sergeant'
                     ]
                 };
             } else if (rank === 'snco') {
                 query.highestRole = {
                     $in: [
-                        'Master Sergeant', 'First Sergeant', 'Sergeant Major', 
-                        'Command Sergeant Major', 'Sergeant Major of the Army'
+                        'Chief Master Sergeant', 'Chief First Sergeant', 'Command Chief Master Sergeant', 'Senior Enlisted Leader', 
+                        'Chief Senior Enlisted Leader', 'Chief Master Sergeant of the Air Force'
                     ]
                 };
             } else if (rank === 'officer') {
@@ -196,7 +196,7 @@ router.get('/api/members/filter', isAuthenticated, async (req, res) => {
                         'Second Lieutenant', 'First Lieutenant', 
                         'Captain', 'Major', 'Lieutenant Colonel', 
                         'Colonel', 'Brigadier General', 'Major General', 
-                        'Lieutenant General', 'General', 'General of the Army'
+                        'Lieutenant General', 'General', 'General of the Air Force'
                     ]
                 };
             } else {
