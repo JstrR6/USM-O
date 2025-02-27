@@ -63,8 +63,6 @@ const XP_RANKS = [
     { xp: 175, rank: 'Technical Sergeant' },
     { xp: 300, rank: 'Master Sergeant' },
     { xp: 500, rank: 'First Sergeant' },
-    { xp: 1000, rank: 'Senior Master Sergeant' },
-    { xp: 1500, rank: 'Senior First Sergeant' }
 ].sort((a, b) => b.xp - a.xp); // Sort by XP descending
 
 const OFFICER_RANKS = [
@@ -316,12 +314,15 @@ async function syncUserData(member) {
         }));
 
         let user = await User.findOne({ discordId: member.user.id });
-        const currentXP = user ? user.xp || 0 : 0;
+        let currentXP = user ? user.xp || 0 : 0;
         let highestRole = determineHighestRole(roles);
         const currentRank = highestRole;
 
-        // Only update rank based on XP if not an officer
-        if (!OFFICER_RANKS.includes(highestRole)) {
+        // Only update rank based on XP if the member is not an officer 
+        // AND their current rank is within the XP-based range (up to "First Sergeant")
+        if (!OFFICER_RANKS.includes(highestRole) &&
+            RANK_ORDER.indexOf(highestRole) <= RANK_ORDER.indexOf('First Sergeant')) {
+            
             const xpBasedRank = determineRankFromXP(currentXP);
             
             if (xpBasedRank !== highestRole) {
@@ -343,6 +344,16 @@ async function syncUserData(member) {
             }
         }
 
+        // Adjust XP if the user's current rank is within the XP-based range and their XP is below the threshold.
+        const xpMappingForRank = XP_RANKS.find(r => r.rank === highestRole);
+        let updatedXP = currentXP;
+        if (xpMappingForRank) {
+            if (currentXP < xpMappingForRank.xp) {
+                console.log(`Adjusting XP for ${member.user.username} from ${currentXP} to ${xpMappingForRank.xp} to match rank ${highestRole}`);
+                updatedXP = xpMappingForRank.xp;
+            }
+        }
+
         const roleFlags = determineRoleFlags(roles);
         
         const updateData = {
@@ -351,11 +362,13 @@ async function syncUserData(member) {
             roles: roles,
             highestRole: highestRole,
             ...roleFlags,
+            xp: updatedXP,
             lastUpdated: new Date()
         };
 
+        // If user does not exist, initialize XP appropriately.
         if (!user) {
-            updateData.xp = 0;
+            updateData.xp = xpMappingForRank ? xpMappingForRank.xp : 0;
         }
 
         user = await User.findOneAndUpdate(
@@ -374,6 +387,7 @@ async function syncUserData(member) {
         throw error;
     }
 }
+
 
 // Function to sync all users
 async function syncAllUsers() {
