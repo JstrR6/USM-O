@@ -1140,7 +1140,8 @@
                     selectElement.addEventListener('change', function() {
                         const selectedRank = this.value;
                         const needsOfficerApproval = ['Senior Master Sergeant', 'Senior First Sergeant', 'Chief Master Sergeant', 'Chief First Sergeant', 'Command Chief Master Sergeant', 'Senior Enlisted Leader', 
-                            'Chief Senior Enlisted Leader', 'Chief Master Sergeant of the Air Force'].includes(selectedRank);
+                            'Chief Senior Enlisted Leader', 'Chief Master Sergeant of the Air Force', 'Second Lieutenant', 'First Lieutenant', 'Captain', 'Major', 'Lieutenant Colonel', 'Colonel', 'Brigadier General', 'Major General', 
+                            'Lieutenant General', 'General', 'General of the Air Force'].includes(selectedRank);
                         
                         const officerNote = document.getElementById('officerApprovalNote');
                         if (needsOfficerApproval) {
@@ -1165,8 +1166,9 @@
                         return;
                     }
 
-                    const needsOfficerApproval = ['Master Sergeant', 'First Sergeant', 'Sergeant Major', 
-                        'Command Sergeant Major', 'Sergeant Major of the Army'].includes(promotionRank);
+                    const needsOfficerApproval = ['Senior Master Sergeant', 'Senior First Sergeant', 'Chief Master Sergeant', 'Chief First Sergeant', 'Command Chief Master Sergeant', 'Senior Enlisted Leader', 
+                            'Chief Senior Enlisted Leader', 'Chief Master Sergeant of the Air Force', 'Second Lieutenant', 'First Lieutenant', 'Captain', 'Major', 'Lieutenant Colonel', 'Colonel', 'Brigadier General', 'Major General', 
+                            'Lieutenant General', 'General', 'General of the Air Force'].includes(promotionRank);
 
                     const promotionData = {
                         userId: selectedUserId,
