@@ -4,6 +4,8 @@ const { User } = require('./models/user');
 const { Promotion } = require('./models/promotion');
 const { Demotion } = require('./models/demotion');  
 
+const router = express.Router();
+
 // Define rank hierarchy (from lowest to highest)
 const RANK_ORDER = [
     'Citizen',
@@ -78,6 +80,43 @@ const OFFICER_RANKS = [
     'General',
     'General of the Air Force'
 ];
+
+// API to fetch user rank using Roblox ID (Auto-fetches Discord ID via RoVer)
+router.get('/api/get-rank-by-roblox/:robloxId', async (req, res) => {
+    try {
+        const { robloxId } = req.params;
+
+        // Fetch the player's Discord ID using RoVer
+        const roVerResponse = await axios.get(`https://verify.eryn.io/api/roblox/${robloxId}`);
+        if (!roVerResponse.data || !roVerResponse.data.discordId) {
+            return res.status(404).json({ error: 'Discord ID not found via RoVer' });
+        }
+
+        const discordId = roVerResponse.data.discordId;
+
+        // Fetch user's rank from MongoDB using Discord ID
+        const user = await User.findOne({ discordId });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found in database' });
+        }
+
+        return res.json({
+            discordId,
+            robloxId,
+            robloxUsername: roVerResponse.data.robloxUsername,
+            highestRole: user.highestRole
+        });
+
+    } catch (error) {
+        console.error('Error fetching rank:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+module.exports = router;
+
+module.exports = router;
 
 // Function to log rank changes
 async function logRankChange(user, newRank, oldRank) {
