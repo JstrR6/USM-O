@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const { User } = require('./models/user');
 const { Promotion } = require('./models/promotion');
 const { Demotion } = require('./models/demotion');  
-
+const express = require('express');
 const router = express.Router();
 
 // Define rank hierarchy (from lowest to highest)
