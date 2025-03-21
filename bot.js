@@ -188,9 +188,11 @@ mongoose.connect("mongodb://localhost:27017/roblox-discord", {
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildPresences,
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
-        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.DirectMessages
     ],
 });
 
@@ -198,71 +200,81 @@ client.once("ready", () => {
     console.log(`Bot is online as ${client.user.tag}`);
 });
 
+// ✅ Register Slash Commands Directly in `bot.js`
+client.once(Events.ClientReady, async () => {
+    console.log(`🤖 Bot is online as ${client.user.tag}`);
+
+    const commands = [
+        new SlashCommandBuilder()
+            .setName('link')
+            .setDescription('Link your Roblox account to your Discord account')
+    ].map(command => command.toJSON());
+
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
+    
+    try {
+        console.log('🔄 Registering slash commands...');
+        await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
+        console.log('✅ Slash commands registered!');
+    } catch (error) {
+        console.error('❌ Error registering slash commands:', error);
+    }
+});
+
+// ✅ Handle `/link` Command
 client.on("interactionCreate", async (interaction) => {
     if (!interaction.isCommand()) return;
 
     if (interaction.commandName === "link") {
         try {
-            // DM the user asking for their Roblox username
-            await interaction.user.send(
-                "Hello! Please reply with your **Roblox username** to link it with your Discord."
-            );
+            await interaction.reply({
+                content: "📩 Check your DMs to continue the linking process.",
+                ephemeral: true
+            });
 
-            const filter = (m) => m.author.id === interaction.user.id;
-            const collected = await interaction.user.dmChannel.awaitMessages({
-                filter,
+            // DM the user asking for their Roblox username
+            const dmChannel = await interaction.user.createDM();
+            await dmChannel.send("👋 Please reply with your **Roblox username** to link it to your Discord account.");
+
+            const collected = await dmChannel.awaitMessages({
+                filter: m => m.author.id === interaction.user.id,
                 max: 1,
                 time: 30000,
-                errors: ["time"],
+                errors: ['time']
             });
 
             const robloxUsername = collected.first().content;
 
-            // Fetch Roblox ID
-            const response = await axios.post(
-                "https://users.roblox.com/v1/usernames/users",
-                {
-                    usernames: [robloxUsername],
-                    excludeBannedUsers: false,
-                }
-            );
+            // Get Roblox ID via username
+            const response = await axios.post("https://users.roblox.com/v1/usernames/users", {
+                usernames: [robloxUsername],
+                excludeBannedUsers: false
+            });
 
-            if (response.data.data.length === 0) {
-                return interaction.user.send("Roblox username not found.");
+            if (!response.data.data.length) {
+                return dmChannel.send("⚠️ Roblox username not found.");
             }
 
             const robloxId = response.data.data[0].id;
 
-            // Save to database
+            // Save to MongoDB
             let user = await User.findOne({ discordId: interaction.user.id });
-
             if (user) {
                 user.robloxId = robloxId;
             } else {
                 user = new User({
                     discordId: interaction.user.id,
                     username: interaction.user.username,
-                    robloxId: robloxId,
+                    robloxId: robloxId
                 });
             }
+
             await user.save();
 
-            // Confirm linking
-            interaction.user.send(
-                `✅ Successfully linked your Roblox username **${robloxUsername}** (ID: ${robloxId}) to your Discord!`
-            );
-
-            // Send confirmation in the Discord server
-            interaction.reply({
-                content: "Check your DMs! 📩",
-                ephemeral: true,
-            });
-        } catch (error) {
-            console.error(error);
-            interaction.reply({
-                content: "⚠️ There was an error processing your request.",
-                ephemeral: true,
-            });
+            await dmChannel.send(`✅ Your Roblox account **${robloxUsername}** (ID: ${robloxId}) has been successfully linked to your Discord.`);
+        } catch (err) {
+            console.error(err);
+            await interaction.user.send("❌ Something went wrong while trying to link your Roblox account.");
         }
     }
 });
