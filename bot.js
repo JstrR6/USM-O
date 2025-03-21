@@ -6,7 +6,7 @@ const { Demotion } = require('./models/demotion');
 const express = require('express');
 const axios = require("axios");
 const router = express.Router();
-const { REST, Routes, SlashCommandBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Events, REST, Routes, SlashCommandBuilder } = require('discord.js');
 
 // Define rank hierarchy (from lowest to highest)
 const RANK_ORDER = [
@@ -181,91 +181,89 @@ const client = new Client({
     ],
 });
 
+// Register slash commands on startup
 client.once(Events.ClientReady, async () => {
-    console.log(`Bot logged in as ${client.user.tag}`);
+    console.log(`🤖 Logged in as ${client.user.tag}`);
 
-    // Register slash commands
     const commands = [
         new SlashCommandBuilder()
             .setName('link')
             .setDescription('Link your Roblox account to your Discord account')
-            .toJSON()
-    ];
+    ].map(cmd => cmd.toJSON());
 
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
 
     try {
         console.log('🔄 Registering slash commands...');
         await rest.put(
-            Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+            Routes.applicationCommands(process.env.CLIENT_ID),
             { body: commands }
         );
-        console.log('✅ Slash commands registered!');
-    } catch (error) {
-        console.error('❌ Error registering slash commands:', error);
+        console.log('✅ Slash commands registered.');
+    } catch (err) {
+        console.error('❌ Error registering commands:', err);
     }
+});
+
+// Handle `/link` command
+client.on(Events.InteractionCreate, async interaction => {
+    if (!interaction.isChatInputCommand() || interaction.commandName !== 'link') return;
 
     try {
-        await syncAllUsers();
-        startAutoSync();
-    } catch (error) {
-        console.error('Error during initial sync:', error);
-    }
-});
+        // Defer reply to avoid timeout
+        await interaction.deferReply({ ephemeral: true });
 
-client.on("interactionCreate", async (interaction) => {
-    if (!interaction.isCommand()) return;
+        // Avoid hitting rate limits by reusing DM channel
+        const dmChannel = interaction.user.dmChannel ?? await interaction.user.createDM();
+        await dmChannel.send("👋 Please reply with your **Roblox username** to link it to your Discord account.");
+        await interaction.editReply({ content: "📩 Check your DMs to continue the linking process." });
 
-    if (interaction.commandName === "link") {
-        try {
-            await interaction.reply({
-                content: "📩 Check your DMs to continue the linking process.",
-                ephemeral: true
-            });
+        const collected = await dmChannel.awaitMessages({
+            filter: msg => msg.author.id === interaction.user.id,
+            max: 1,
+            time: 30000,
+            errors: ['time']
+        });
 
-            const dmChannel = await interaction.user.createDM();
-            await dmChannel.send("👋 Please reply with your **Roblox username** to link it to your Discord account.");
+        const robloxUsername = collected.first().content;
 
-            const collected = await dmChannel.awaitMessages({
-                filter: m => m.author.id === interaction.user.id,
-                max: 1,
-                time: 30000,
-                errors: ['time']
-            });
+        // Fetch Roblox ID
+        const response = await axios.post("https://users.roblox.com/v1/usernames/users", {
+            usernames: [robloxUsername],
+            excludeBannedUsers: false
+        });
 
-            const robloxUsername = collected.first().content;
-
-            const response = await axios.post("https://users.roblox.com/v1/usernames/users", {
-                usernames: [robloxUsername],
-                excludeBannedUsers: false
-            });
-
-            if (!response.data.data.length) {
-                return dmChannel.send("⚠️ Roblox username not found.");
-            }
-
-            const robloxId = response.data.data[0].id;
-
-            let user = await User.findOne({ discordId: interaction.user.id });
-            if (user) {
-                user.robloxId = robloxId;
-            } else {
-                user = new User({
-                    discordId: interaction.user.id,
-                    username: interaction.user.username,
-                    robloxId: robloxId
-                });
-            }
-
-            await user.save();
-
-            await dmChannel.send(`✅ Your Roblox account **${robloxUsername}** (ID: ${robloxId}) has been successfully linked to your Discord.`);
-        } catch (err) {
-            console.error(err);
-            await interaction.user.send("❌ Something went wrong while trying to link your Roblox account.");
+        if (!response.data.data.length) {
+            return dmChannel.send("❌ Roblox username not found.");
         }
+
+        const robloxId = response.data.data[0].id;
+
+        // Save or update user in MongoDB
+        let user = await User.findOne({ discordId: interaction.user.id });
+        if (user) {
+            user.robloxId = robloxId;
+        } else {
+            user = new User({
+                discordId: interaction.user.id,
+                username: interaction.user.username,
+                robloxId: robloxId
+            });
+        }
+
+        await user.save();
+        await dmChannel.send(`✅ Your Roblox account **${robloxUsername}** (ID: ${robloxId}) has been linked.`);
+
+    } catch (err) {
+        console.error('❌ Error in /link command:', err);
+        try {
+            await interaction.editReply({ content: "❌ An error occurred while linking your Roblox account." });
+        } catch {}
     }
 });
+
+// Error logging
+process.on('unhandledRejection', err => console.error('Unhandled Rejection:', err));
 
 // Function to determine role flags
 function determineRoleFlags(roles) {
