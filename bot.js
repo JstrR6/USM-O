@@ -170,11 +170,6 @@ function determineHighestRole(roles) {
     return highestRank;
 }
 
-mongoose.connect("mongodb://localhost:27017/roblox-discord", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-});
-
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -190,9 +185,6 @@ client.once("ready", () => {
     console.log(`Bot is online as ${client.user.tag}`);
 });
 
-// ✅ Register Slash Commands Directly in `bot.js`
-client.once(Events.ClientReady, async () => {
-    console.log(`🤖 Bot is online as ${client.user.tag}`);
 
     const commands = [
         new SlashCommandBuilder()
