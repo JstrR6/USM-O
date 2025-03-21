@@ -81,48 +81,6 @@ const OFFICER_RANKS = [
     'General of the Air Force'
 ];
 
-// API to fetch user rank using Roblox ID (Auto-fetches Discord ID via RoVer)
-router.get('/get-rank-by-roblox/:robloxId', async (req, res) => {
-    try {
-        const { robloxId } = req.params;
-
-        console.log(`Received request for Roblox ID: ${robloxId}`); // Debugging log
-
-        // Fetch Discord ID from RoVer
-        const roVerResponse = await axios.get(`https://verify.eryn.io/api/roblox/${robloxId}`);
-        const discordId = roVerResponse.data?.discordId;
-        const robloxUsername = roVerResponse.data?.robloxUsername;
-
-        if (!discordId) {
-            console.log(`No Discord ID found for Roblox ID: ${robloxId}`);
-            return res.status(404).json({ error: 'Discord ID not found via RoVer' });
-        }
-
-        // Fetch user's rank from MongoDB using Discord ID
-        const user = await User.findOne({ discordId });
-
-        if (!user) {
-            console.log(`No user found for Discord ID: ${discordId}`);
-            return res.status(404).json({ error: 'User not found in database' });
-        }
-
-        console.log(`Returning rank for Roblox ID ${robloxId}: ${user.highestRole}`);
-        return res.json({
-            discordId,
-            robloxId,
-            robloxUsername,
-            highestRole: user.highestRole
-        });
-
-    } catch (error) {
-        console.error(`Error fetching rank for Roblox ID ${req.params.robloxId}:`, error);
-        return res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-// Export router
-module.exports = router;
-
 // Function to log rank changes
 async function logRankChange(user, newRank, oldRank) {
     try {

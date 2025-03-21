@@ -1,4 +1,5 @@
 const express = require('express');
+const axios = require('axios');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const passport = require('passport');
@@ -1619,5 +1620,36 @@ async function processAction(action) {
         throw error;
     }
 }
+
+// Add Roblox Rank API endpoint
+router.get('/api/get-rank-by-roblox/:robloxId', async (req, res) => {
+    try {
+        const robloxId = req.params.robloxId;
+
+        const roVerResponse = await axios.get(`https://verify.eryn.io/api/roblox/${robloxId}`);
+        const discordId = roVerResponse.data?.discordId;
+        const robloxUsername = roVerResponse.data?.robloxUsername;
+
+        if (!discordId) {
+            return res.status(404).json({ error: 'Discord ID not found via RoVer' });
+        }
+
+        const user = await User.findOne({ discordId });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found in database' });
+        }
+
+        return res.json({
+            discordId,
+            robloxId,
+            robloxUsername,
+            highestRole: user.highestRole
+        });
+    } catch (error) {
+        console.error('Error fetching Roblox rank:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 module.exports = router;
