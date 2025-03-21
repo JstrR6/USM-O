@@ -39,17 +39,6 @@ const RANK_ORDER = [
     'General of the Air Force'
 ];
 
-// Configure bot with necessary intents
-const client = new Client({ 
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildPresences,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
-    ] 
-});
-
 // Connect to MongoDB with error handling
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => console.log('MongoDB Connected Successfully'))
