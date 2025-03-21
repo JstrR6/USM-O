@@ -10,6 +10,9 @@ const { User } = require('./models/user');
 const routes = require('./routes');
 
 const app = express();
+const rankRoutes = require('./routes/rank'); // Adjust path if needed
+app.use(express.json());
+app.use('/api', rankRoutes); // <-- mounts /api/ route
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
