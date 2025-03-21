@@ -82,19 +82,18 @@ const OFFICER_RANKS = [
 ];
 
 // API to fetch user rank using Roblox ID (Auto-fetches Discord ID via RoVer)
-router.get('/api/get-rank-by-roblox/:robloxId', async (req, res) => {
+router.get('/get-rank-by-roblox/:robloxId', async (req, res) => {
     try {
-        const { robloxId } = req.params;
+        const robloxId = req.params.robloxId;
 
-        // Fetch the player's Discord ID using RoVer
         const roVerResponse = await axios.get(`https://verify.eryn.io/api/roblox/${robloxId}`);
-        if (!roVerResponse.data || !roVerResponse.data.discordId) {
+        const discordId = roVerResponse.data?.discordId;
+        const robloxUsername = roVerResponse.data?.robloxUsername;
+
+        if (!discordId) {
             return res.status(404).json({ error: 'Discord ID not found via RoVer' });
         }
 
-        const discordId = roVerResponse.data.discordId;
-
-        // Fetch user's rank from MongoDB using Discord ID
         const user = await User.findOne({ discordId });
 
         if (!user) {
@@ -104,17 +103,15 @@ router.get('/api/get-rank-by-roblox/:robloxId', async (req, res) => {
         return res.json({
             discordId,
             robloxId,
-            robloxUsername: roVerResponse.data.robloxUsername,
+            robloxUsername,
             highestRole: user.highestRole
         });
 
-    } catch (error) {
-        console.error('Error fetching rank:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Internal server error' });
     }
 });
-
-module.exports = router;
 
 module.exports = router;
 
