@@ -1,98 +1,102 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const ARMY_RANKS = [
-    'Citizen',
-    'Airman Basic',
-    'Airman',
-    'Airman First Class',
-    'Senior Airman',
-    'Staff Sergeant',
-    'Technical Sergeant',
-    'Master Sergeant',
-    'First Sergeant',
-    'Senior Master Sergeant',
-    'Senior First Sergeant',
-    'Chief Master Sergeant',
-    'Chief First Sergeant',
-    'Command Chief Master Sergeant',
-    'Senior Enlisted Leader',
-    'Chief Senior Enlisted Leader',
-    'Chief Master Sergeant of the Air Force',
-    'Second Lieutenant',
-    'First Lieutenant',
-    'Captain',
-    'Major',
-    'Lieutenant Colonel',
-    'Colonel',
-    'Brigadier General',
-    'Major General',
-    'Lieutenant General',
-    'General',
-    'General of the Air Force'
+const RANKS = [
+    "Citizen",
+    "Airman Basic",
+    "Airman",
+    "Airman First Class",
+    "Senior Airman",
+    "Staff Sergeant",
+    "Technical Sergeant",
+    "Master Sergeant",
+    "First Sergeant",
+    "Senior Master Sergeant",
+    "Senior First Sergeant",
+    "Chief Master Sergeant",
+    "Chief First Sergeant",
+    "Command Chief Master Sergeant",
+    "Senior Enlisted Leader",
+    "Chief Senior Enlisted Leader",
+    "Chief Master Sergeant of the Air Force",
+    "Second Lieutenant",
+    "First Lieutenant",
+    "Captain",
+    "Major",
+    "Lieutenant Colonel",
+    "Colonel",
+    "Brigadier General",
+    "Major General",
+    "Lieutenant General",
+    "General",
+    "General of the Air Force",
 ];
 
 const roleSchema = new mongoose.Schema({
     id: String,
-    name: String
+    name: String,
 });
 
 const userSchema = new mongoose.Schema({
     discordId: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+    },
+    robloxId: {
+        type: String,
+        default: null, // New field for Roblox ID
     },
     username: {
         type: String,
-        required: true
+        required: true,
     },
-    roles: [roleSchema],  
+    roles: [roleSchema],
     highestRole: {
         type: String,
-        default: 'Citizen'
+        default: "Citizen",
     },
     xp: {
         type: Number,
-        default: 0
+        default: 0,
     },
     password: {
         type: String,
-        default: null
+        default: null,
     },
     isRecruiter: {
         type: Boolean,
-        default: false
+        default: false,
     },
     isInstructor: {
         type: Boolean,
-        default: false
+        default: false,
     },
     isSenior: {
         type: Boolean,
-        default: false
+        default: false,
     },
     isOfficer: {
         type: Boolean,
-        default: false
+        default: false,
     },
     lastUpdated: {
         type: Date,
-        default: Date.now
-    }
+        default: Date.now,
+    },
 });
 
 // Function to check if user has any of the specified roles
-userSchema.methods.hasAnyRole = function(roleList) {
-    return this.roles.some(role => roleList.includes(role));
+userSchema.methods.hasAnyRole = function (roleList) {
+    return this.roles.some((role) => roleList.includes(role));
 };
 
 // Function to determine highest role
-userSchema.methods.determineHighestRole = function() {
+userSchema.methods.determineHighestRole = function () {
     const userRoles = this.roles;
     let highestRankIndex = 0;
-    
-    userRoles.forEach(role => {
-        const rankIndex = ARMY_RANKS.indexOf(role);
+
+    userRoles.forEach((role) => {
+        const rankIndex = RANKS.indexOf(role);
         if (rankIndex > highestRankIndex) {
             highestRankIndex = rankIndex;
         }
@@ -102,23 +106,55 @@ userSchema.methods.determineHighestRole = function() {
 };
 
 // Function to update user flags based on roles
-userSchema.methods.updateFlags = function() {
-    const recruiterRoles = ['Specialist', 'Corporal'];
+userSchema.methods.updateFlags = function () {
+    const recruiterRoles = ["Senior Airman", "Staff Sergeant"];
     const instructorRoles = [
-        'Sergeant', 'Staff Sergeant', 'Sergeant First Class', 'Master Sergeant',
-        'First Sergeant', 'Sergeant Major', 'Command Sergeant Major', 
-        'Sergeant Major of the Army', 'Second Lieutenant', 'First Lieutenant',
-        'Captain', 'Major', 'Lieutenant Colonel', 'Colonel', 'Brigadier General',
-        'Major General', 'Lieutenant General', 'General', 'General of the Army'
+        "Staff Sergeant",
+        "Technical Sergeant",
+        "Master Sergeant",
+        "First Sergeant",
+        "Senior Master Sergeant",
+        "Senior First Sergeant",
+        "Chief Master Sergeant",
+        "Chief First Sergeant",
+        "Command Chief Master Sergeant",
+        "Senior Enlisted Leader",
+        "Chief Senior Enlisted Leader",
+        "Chief Master Sergeant of the Air Force",
+        "Second Lieutenant",
+        "First Lieutenant",
+        "Captain",
+        "Major",
+        "Lieutenant Colonel",
+        "Colonel",
+        "Brigadier General",
+        "Major General",
+        "Lieutenant General",
+        "General",
+        "General of the Air Force",
     ];
     const seniorRoles = [
-        'Master Sergeant', 'First Sergeant', 'Sergeant Major', 
-        'Command Sergeant Major', 'Sergeant Major of the Army'
+        "Senior Master Sergeant",
+        "Senior First Sergeant",
+        "Chief Master Sergeant",
+        "Chief First Sergeant",
+        "Command Chief Master Sergeant",
+        "Senior Enlisted Leader",
+        "Chief Senior Enlisted Leader",
+        "Chief Master Sergeant of the Air Force",
     ];
     const officerRoles = [
-        'Second Lieutenant', 'First Lieutenant', 'Captain', 'Major',
-        'Lieutenant Colonel', 'Colonel', 'Brigadier General', 'Major General',
-        'Lieutenant General', 'General', 'General of the Army'
+        "Second Lieutenant",
+        "First Lieutenant",
+        "Captain",
+        "Major",
+        "Lieutenant Colonel",
+        "Colonel",
+        "Brigadier General",
+        "Major General",
+        "Lieutenant General",
+        "General",
+        "General of the Air Force",
     ];
 
     this.isRecruiter = this.hasAnyRole(recruiterRoles);
@@ -128,5 +164,5 @@ userSchema.methods.updateFlags = function() {
     this.highestRole = this.determineHighestRole();
 };
 
-const User = mongoose.model('User', userSchema);
-module.exports = { User, ARMY_RANKS };
+const User = mongoose.model("User", userSchema);
+module.exports = { User, RANKS };

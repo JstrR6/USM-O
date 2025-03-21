@@ -4,6 +4,7 @@ const { User } = require('./models/user');
 const { Promotion } = require('./models/promotion');
 const { Demotion } = require('./models/demotion');  
 const express = require('express');
+const axios = require("axios");
 const router = express.Router();
 
 // Define rank hierarchy (from lowest to highest)
@@ -179,7 +180,93 @@ function determineHighestRole(roles) {
     return highestRank;
 }
 
-// Function to determine role flags
+mongoose.connect("mongodb://localhost:27017/roblox-discord", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+});
+
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.DirectMessages,
+    ],
+});
+
+client.once("ready", () => {
+    console.log(`Bot is online as ${client.user.tag}`);
+});
+
+client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isCommand()) return;
+
+    if (interaction.commandName === "link") {
+        try {
+            // DM the user asking for their Roblox username
+            await interaction.user.send(
+                "Hello! Please reply with your **Roblox username** to link it with your Discord."
+            );
+
+            const filter = (m) => m.author.id === interaction.user.id;
+            const collected = await interaction.user.dmChannel.awaitMessages({
+                filter,
+                max: 1,
+                time: 30000,
+                errors: ["time"],
+            });
+
+            const robloxUsername = collected.first().content;
+
+            // Fetch Roblox ID
+            const response = await axios.post(
+                "https://users.roblox.com/v1/usernames/users",
+                {
+                    usernames: [robloxUsername],
+                    excludeBannedUsers: false,
+                }
+            );
+
+            if (response.data.data.length === 0) {
+                return interaction.user.send("Roblox username not found.");
+            }
+
+            const robloxId = response.data.data[0].id;
+
+            // Save to database
+            let user = await User.findOne({ discordId: interaction.user.id });
+
+            if (user) {
+                user.robloxId = robloxId;
+            } else {
+                user = new User({
+                    discordId: interaction.user.id,
+                    username: interaction.user.username,
+                    robloxId: robloxId,
+                });
+            }
+            await user.save();
+
+            // Confirm linking
+            interaction.user.send(
+                `✅ Successfully linked your Roblox username **${robloxUsername}** (ID: ${robloxId}) to your Discord!`
+            );
+
+            // Send confirmation in the Discord server
+            interaction.reply({
+                content: "Check your DMs! 📩",
+                ephemeral: true,
+            });
+        } catch (error) {
+            console.error(error);
+            interaction.reply({
+                content: "⚠️ There was an error processing your request.",
+                ephemeral: true,
+            });
+        }
+    }
+});
+
 // Function to determine role flags
 function determineRoleFlags(roles) {
     // First, get the actual highest role from all roles, including officer ranks

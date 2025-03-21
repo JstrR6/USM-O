@@ -27,7 +27,7 @@ const divisionSchema = new mongoose.Schema({
                 'Non-Commission Officer In Charge',
                 'Squadron Sergeant',
                 'Squadron Leader',
-                'Soldier'
+                'Airman'
             ],
             required: true
         }
