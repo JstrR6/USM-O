@@ -1621,7 +1621,27 @@ async function processAction(action) {
     }
 }
 
-// Add Roblox Rank API endpoint
+// Route to get a user's rank and Discord ID using their Roblox ID
+router.get('/getUserByRobloxId/:robloxId', async (req, res) => {
+    try {
+        const robloxId = req.params.robloxId;
+        const user = await User.findOne({ robloxId });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json({
+            discordId: user.discordId,
+            robloxId: user.robloxId,
+            rank: user.highestRole,
+            xp: user.xp
+        });
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 
 module.exports = router;
