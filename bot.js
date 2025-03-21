@@ -181,11 +181,10 @@ const client = new Client({
     ],
 });
 
-client.once("ready", () => {
+client.once("ready", async () => {
     console.log(`Bot is online as ${client.user.tag}`);
-});
 
-
+    // Register slash commands
     const commands = [
         new SlashCommandBuilder()
             .setName('link')
@@ -193,13 +192,24 @@ client.once("ready", () => {
     ].map(command => command.toJSON());
 
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
-    
+
     try {
         console.log('🔄 Registering slash commands...');
-        await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
+        await rest.put(
+            Routes.applicationCommands(process.env.CLIENT_ID),
+            { body: commands }
+        );
         console.log('✅ Slash commands registered!');
     } catch (error) {
         console.error('❌ Error registering slash commands:', error);
+    }
+
+    // Continue with sync
+    try {
+        await syncAllUsers();
+        startAutoSync();
+    } catch (error) {
+        console.error('Error during initial sync:', error);
     }
 });
 
