@@ -181,22 +181,23 @@ const client = new Client({
     ],
 });
 
-client.once("ready", async () => {
-    console.log(`Bot is online as ${client.user.tag}`);
+client.once(Events.ClientReady, async () => {
+    console.log(`Bot logged in as ${client.user.tag}`);
 
     // Register slash commands
     const commands = [
         new SlashCommandBuilder()
             .setName('link')
             .setDescription('Link your Roblox account to your Discord account')
-    ].map(command => command.toJSON());
+            .toJSON()
+    ];
 
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
 
     try {
         console.log('🔄 Registering slash commands...');
         await rest.put(
-            Routes.applicationCommands(process.env.CLIENT_ID),
+            Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
             { body: commands }
         );
         console.log('✅ Slash commands registered!');
@@ -204,7 +205,6 @@ client.once("ready", async () => {
         console.error('❌ Error registering slash commands:', error);
     }
 
-    // Continue with sync
     try {
         await syncAllUsers();
         startAutoSync();
@@ -213,7 +213,6 @@ client.once("ready", async () => {
     }
 });
 
-// ✅ Handle `/link` Command
 client.on("interactionCreate", async (interaction) => {
     if (!interaction.isCommand()) return;
 
@@ -224,7 +223,6 @@ client.on("interactionCreate", async (interaction) => {
                 ephemeral: true
             });
 
-            // DM the user asking for their Roblox username
             const dmChannel = await interaction.user.createDM();
             await dmChannel.send("👋 Please reply with your **Roblox username** to link it to your Discord account.");
 
@@ -237,7 +235,6 @@ client.on("interactionCreate", async (interaction) => {
 
             const robloxUsername = collected.first().content;
 
-            // Get Roblox ID via username
             const response = await axios.post("https://users.roblox.com/v1/usernames/users", {
                 usernames: [robloxUsername],
                 excludeBannedUsers: false
@@ -249,7 +246,6 @@ client.on("interactionCreate", async (interaction) => {
 
             const robloxId = response.data.data[0].id;
 
-            // Save to MongoDB
             let user = await User.findOne({ discordId: interaction.user.id });
             if (user) {
                 user.robloxId = robloxId;
