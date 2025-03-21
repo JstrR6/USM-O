@@ -7,6 +7,7 @@ const express = require('express');
 const axios = require("axios");
 const router = express.Router();
 const { SlashCommandBuilder } = require('discord.js');
+const { REST, Routes, SlashCommandBuilder } = require('discord.js');
 
 // Define rank hierarchy (from lowest to highest)
 const RANK_ORDER = [
