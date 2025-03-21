@@ -1625,17 +1625,17 @@ async function processAction(action) {
 router.get('/api/get-rank-by-roblox/:robloxId', async (req, res) => {
     try {
         const robloxId = req.params.robloxId;
+        console.log(`[API] Fetching rank for Roblox ID: ${robloxId}`);
 
-        const roVerResponse = await axios.get(`https://verify.eryn.io/api/roblox/${robloxId}`);
+        // Use RoVer Proxy API
+        const roVerResponse = await axios.get(`https://api.rover.link/v1/roblox-to-discord/${robloxId}`);
         const discordId = roVerResponse.data?.discordId;
-        const robloxUsername = roVerResponse.data?.robloxUsername;
 
         if (!discordId) {
-            return res.status(404).json({ error: 'Discord ID not found via RoVer' });
+            return res.status(404).json({ error: 'User not verified via RoVer' });
         }
 
         const user = await User.findOne({ discordId });
-
         if (!user) {
             return res.status(404).json({ error: 'User not found in database' });
         }
@@ -1643,12 +1643,11 @@ router.get('/api/get-rank-by-roblox/:robloxId', async (req, res) => {
         return res.json({
             discordId,
             robloxId,
-            robloxUsername,
             highestRole: user.highestRole
         });
     } catch (error) {
         console.error('Error fetching Roblox rank:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ error: 'Internal server error' });
     }
 });
 
