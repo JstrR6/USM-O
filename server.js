@@ -10,8 +10,7 @@ const { User } = require('./models/user');
 const routes = require('./routes');
 
 const app = express();
-app.use(express.json());
-app.use('/api', rankRoutes); // <-- mounts /api/ route
+
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
