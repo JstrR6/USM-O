@@ -1,0 +1,3159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> | Military Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .folder {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .folder:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .folder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1.5rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+        .filter-btn.active {
+            background-color: rgb(37, 99, 235);
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <div class="bg-gray-800 text-white w-64 py-6 flex flex-col">
+            <div class="px-6 py-4">
+                <h1 class="text-2xl font-semibold">Military Portal</h1>
+            </div>
+            <!-- Navigation -->
+            <nav class="flex-1 px-4 mt-6">
+                <a href="/dashboard" class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/dashboard' ? 'bg-gray-700' : '' %>">
+                    <i class="fas fa-home w-5 h-5 mr-3"></i>
+                    Dashboard
+                </a>
+                <a href="/forms" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/forms' ? 'bg-gray-700' : '' %>">
+                    <i class="fas fa-file-alt w-5 h-5 mr-3"></i>
+                    Forms
+                </a>
+                <a href="/profile" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/profile' ? 'bg-gray-700' : '' %>">
+                    <i class="fas fa-user w-5 h-5 mr-3"></i>
+                    Profile
+                </a>
+                <a href="/members" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/members' ? 'bg-gray-700' : '' %>">
+                    <i class="fas fa-users w-5 h-5 mr-3"></i>
+                    Members
+                </a>
+            </nav>
+            <!-- User Info -->
+            <div class="px-6 py-4 border-t border-gray-700">
+                <div class="flex items-center">
+                    <div class="ml-3">
+                        <p class="text-sm font-medium"><%= user.username %></p>
+                        <p class="text-xs text-gray-400"><%= user.highestRole %></p>
+                    </div>
+                </div>
+                <a href="/logout" class="mt-4 block px-4 py-2 text-center text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg">
+                    Logout
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1">
+            <!-- Top Navigation -->
+            <header class="bg-white shadow-sm">
+                <div class="px-6 py-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Forms</h2>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="p-6">
+                <div class="folder-grid">
+                    <!-- Officer Folder - Visible to Officers -->
+                    <% if (user.isOfficer) { %>
+                    <div class="folder bg-white rounded-lg p-4 text-center cursor-pointer" onclick="toggleForms('officer-forms')">
+                        <div class="mb-2 text-blue-600">
+                            <i class="fas fa-folder text-5xl"></i>
+                        </div>
+                        <h3 class="font-semibold">Officer Forms</h3>
+                    </div>
+                    <% } %>
+
+                    <!-- Senior NCO Folder - Visible to Senior NCOs and Officers -->
+                    <% if (user.isSenior || user.isOfficer) { %>
+                    <div class="folder bg-white rounded-lg p-4 text-center cursor-pointer" onclick="toggleForms('senior-forms')">
+                        <div class="mb-2 text-green-600">
+                            <i class="fas fa-folder text-5xl"></i>
+                        </div>
+                        <h3 class="font-semibold">Senior NCO Forms</h3>
+                    </div>
+                    <% } %>
+
+                    <!-- Instructor Folder - Visible to Instructors, Senior NCOs, and Officers -->
+                    <% if (user.isInstructor || user.isSenior || user.isOfficer) { %>
+                    <div class="folder bg-white rounded-lg p-4 text-center cursor-pointer" onclick="toggleForms('instructor-forms')">
+                        <div class="mb-2 text-yellow-600">
+                            <i class="fas fa-folder text-5xl"></i>
+                        </div>
+                        <h3 class="font-semibold">Instructor Forms</h3>
+                    </div>
+                    <% } %>
+
+                    <!-- Recruiter Folder - Visible to Recruiters and above -->
+                    <% if (user.isRecruiter || user.isInstructor || user.isSenior || user.isOfficer) { %>
+                    <div class="folder bg-white rounded-lg p-4 text-center cursor-pointer" onclick="toggleForms('recruiter-forms')">
+                        <div class="mb-2 text-purple-600">
+                            <i class="fas fa-folder text-5xl"></i>
+                        </div>
+                        <h3 class="font-semibold">Recruiter Forms</h3>
+                    </div>
+                    <% } %>
+
+                    <div class="folder bg-white rounded-lg p-4 text-center cursor-pointer" onclick="toggleForms('afi-forms')">
+                        <div class="mb-2 text-gray-600">
+                            <i class="fas fa-book text-5xl"></i>
+                        </div>
+                        <h3 class="font-semibold">AFIs</h3>
+                    </div>
+                </div>
+
+                <!-- Forms Sections (Hidden by default) -->
+                <div id="officer-forms" class="hidden mt-6">
+                    <div class="bg-white rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">Officer Forms</h3>
+                        <div class="form-grid">
+                            <!-- Pending Promotions -->
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                 onclick="openPendingPromotions()">
+                                <i class="fas fa-medal text-2xl text-blue-600 mb-2"></i>
+                                <p class="text-sm">Pending Promotions</p>
+                            </div>
+                            <!-- Rank Logs -->
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openRankLogs()">
+                                <i class="fas fa-history text-2xl text-blue-600 mb-2"></i>
+                                <p class="text-sm">Rank Logs</p>
+                            </div>
+                            <!-- Demotion Form -->
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openDemotionForm()">
+                                <i class="fas fa-level-down-alt text-2xl text-red-600 mb-2"></i>
+                                <p class="text-sm">Demotion Form</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openDisciplinaryLogs()">
+                                <i class="fas fa-clipboard-list text-2xl text-blue-600 mb-2"></i>
+                                <p class="text-sm">Disciplinary Logs</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openTrainingLogs()">
+                                <i class="fas fa-history text-2xl text-blue-600 mb-2"></i>
+                                <p class="text-sm">Training Logs</p>
+                            </div>
+                            <!-- Division Management Button -->
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openDivisionModal()">
+                                <i class="fas fa-sitemap text-2xl text-blue-600 mb-2"></i>
+                                <p class="text-sm">Division Management</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openRegulationManagement()">
+                                <i class="fas fa-gavel text-2xl text-blue-600 mb-2"></i>
+                                <p class="text-sm">Regulation Management</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Senior NCO Forms Section -->
+                <div id="senior-forms" class="hidden mt-6">
+                    <div class="bg-white rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">Senior NCO Forms</h3>
+                        <div class="form-grid">
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openPromotionForm()">
+                                <i class="fas fa-medal text-2xl text-green-600 mb-2"></i>
+                                <p class="text-sm">Promotion Request</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openTrainingApproval()">
+                                <i class="fas fa-check-double text-2xl text-green-600 mb-2"></i>
+                                <p class="text-sm">Training Approval</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openPendingPlacements()">
+                                <i class="fas fa-user-check text-2xl text-green-600 mb-2"></i>
+                                <p class="text-sm">Pending Placements</p>
+                            </div>
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openDisciplinaryForm()">
+                                <i class="fas fa-gavel text-2xl text-red-600 mb-2"></i>
+                                <p class="text-sm">Disciplinary Actions</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="instructor-forms" class="hidden mt-6">
+                    <div class="bg-white rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">Instructor Forms</h3>
+                        <div class="form-grid">
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                 onclick="openTrainingForm()">
+                                <i class="fas fa-graduation-cap text-2xl text-yellow-600 mb-2"></i>
+                                <p class="text-sm">Training Form</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="recruiter-forms" class="hidden mt-6">
+                    <div class="bg-white rounded-lg p-6">
+                        <h3 class="text-lg font-semibold mb-4">Recruiter Forms</h3>
+                        <div class="form-grid">
+                            <div class="bg-gray-50 rounded-lg p-4 text-center hover:bg-gray-100 cursor-pointer" 
+                                onclick="openRecruitmentForm()">
+                                <i class="fas fa-user-plus text-2xl text-purple-600 mb-2"></i>
+                                <p class="text-sm">Recruitment Form</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Senior NCO Promotion Form -->
+                <div id="promotionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+                    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                        <div class="mt-3">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Promotion Request</h3>
+                            
+                            <!-- Step 1: Username Input -->
+                            <div id="step1" class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Enter Username</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="usernameInput" 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    <button onclick="checkUser()" 
+                                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                
+                            <!-- Step 2: Promotion Details -->
+                            <div id="step2" class="hidden">
+                                <div class="mb-4">
+                                    <p class="text-sm font-medium text-gray-700">Promoting: <span id="selectedUser" class="font-bold"></span></p>
+                                    <p class="text-sm text-gray-600">Current Rank: <span id="currentRank" class="font-medium"></span></p>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Promote To</label>
+                                    <select id="promotionRank" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                    </select>
+                                </div>
+                
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Reason for Promotion</label>
+                                    <textarea id="promotionReason" rows="3" 
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                                </div>
+                
+                                <div class="mb-4" id="officerApprovalNote" class="hidden">
+                                    <p class="text-sm text-red-600">* This promotion will require Officer approval</p>
+                                </div>
+                
+                                <div class="flex justify-end gap-2">
+                                    <button onclick="closePromotionModal()" 
+                                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                        Cancel
+                                    </button>
+                                    <button onclick="submitPromotion()" 
+                                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                                        Submit Promotion
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Promotions Modal -->
+                <div id="pendingPromotionsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+                    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold text-gray-900">Pending Promotions</h3>
+                            <button onclick="closePendingPromotions()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div id="pendingPromotionsList" class="space-y-4">
+                            <!-- Pending promotions will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rank Logs Modal -->
+                <div id="rankLogsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+                    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold text-gray-900">Rank Logs</h3>
+                            <button onclick="closeRankLogs()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="mb-4 flex justify-between items-center">
+                            <div class="flex gap-2">
+                                <button onclick="filterLogs('all')" 
+                                        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 filter-btn active">
+                                    All
+                                </button>
+                                <button onclick="filterLogs('promotions')" 
+                                        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 filter-btn">
+                                    Promotions
+                                </button>
+                                <button onclick="filterLogs('demotions')" 
+                                        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 filter-btn">
+                                    Demotions
+                                </button>
+                            </div>
+                            <input type="text" id="logSearch" placeholder="Search logs..." 
+                                class="w-64 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                onkeyup="filterRankLogs()">
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">From Rank</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">To Rank</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rankLogsBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Logs will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="logDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+                    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Rank Change Details</h3>
+                            <button onclick="closeLogDetails()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="logDetailsContent" class="space-y-4">
+                            <!-- Details will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reject Promotion Modal -->
+                <div id="rejectModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+                    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Reject Promotion</h3>
+                        <textarea id="rejectReason" rows="3" placeholder="Enter reason for rejection..."
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-4"></textarea>
+                        <div class="flex justify-end gap-2">
+                            <button onclick="closeRejectModal()" 
+                                    class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                            <button onclick="submitRejection()" 
+                                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Submit</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Demotion Modal -->
+                <div id="demotionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+                    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                        <div class="mt-3">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Demote User</h3>
+                            
+                            <!-- Step 1: Username Input -->
+                            <div id="demotionStep1" class="mb-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Enter Username</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="demotionUsernameInput" 
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                    <button onclick="checkUserForDemotion()" 
+                                            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Step 2: Demotion Details -->
+                            <div id="demotionStep2" class="hidden">
+                                <div class="mb-4">
+                                    <p class="text-sm font-medium text-gray-700">Demoting: <span id="demotionSelectedUser" class="font-bold"></span></p>
+                                    <p class="text-sm text-gray-600">Current Rank: <span id="demotionCurrentRank" class="font-medium"></span></p>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Demote To</label>
+                                    <select id="demotionRank" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500">
+                                    </select>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Reason for Demotion</label>
+                                    <textarea id="demotionReason" rows="3" 
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+                                            placeholder="Please provide a detailed reason for the demotion..."></textarea>
+                                </div>
+
+                                <div class="flex justify-end gap-2">
+                                    <button onclick="closeDemotionModal()" 
+                                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                        Cancel
+                                    </button>
+                                    <button onclick="submitDemotion()" 
+                                            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                                        Submit Demotion
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Modal Container -->
+                <div id="trainingModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50"></div>
+
+                <!-- Training Approval Modal -->
+                <div id="trainingApprovalModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+                    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold text-gray-900">Training Approvals</h3>
+                            <button onclick="closeTrainingApprovalModal()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="pendingTrainingsList" class="space-y-4">
+                            <!-- Pending trainings will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Logs Modal -->
+                <div id="trainingLogsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+                    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-semibold text-gray-900">Training Logs</h3>
+                            <button onclick="closeTrainingLogsModal()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="mb-4 flex gap-2">
+                            <button onclick="loadTrainingLogs('all')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                All Trainings
+                            </button>
+                            <button onclick="loadTrainingLogs('bumped')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                Bumped Trainings
+                            </button>
+                            <button onclick="loadTrainingLogs('approved')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                Approved
+                            </button>
+                            <button onclick="loadTrainingLogs('rejected')" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                Rejected
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Instructor</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trainees</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">XP</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="trainingLogsBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Training logs will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Details Modal -->
+                <div id="trainingDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+                    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Training Details</h3>
+                            <button onclick="closeTrainingDetailsModal()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="trainingDetailsContent" class="space-y-4">
+                            <!-- Details will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reject Training Modal -->
+                <div id="rejectTrainingModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+                    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Reject Training</h3>
+                        <textarea id="rejectReason" rows="3" placeholder="Enter reason for rejection..."
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 mb-4"></textarea>
+                        <div class="flex justify-end gap-2">
+                            <button onclick="closeRejectTrainingModal()" 
+                                    class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                            <button onclick="submitTrainingRejection()" 
+                                    class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Submit</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Training Details Modal -->
+                <div id="trainingDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+                    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">Training Details</h3>
+                            <button onclick="closeTrainingDetailsModal()" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div id="trainingDetailsContent" class="space-y-4">
+                            <!-- Details will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Division Modal -->
+<div id="divisionModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-gray-900">Manage Divisions</h3>
+            <button onclick="closeDivisionModal()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Create Division -->
+        <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+            <h4 class="text-lg font-semibold mb-2">Create Division</h4>
+            <div class="flex gap-4">
+                <input id="divisionName" type="text" placeholder="Division Name"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                <select id="divisionParentDivision"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <option value="">No Parent (Top Level)</option>
+                </select>
+                <button onclick="createDivision()"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                    Create
+                </button>
+            </div>
+        </div>
+
+        <!-- Add Personnel -->
+        <div class="mb-6 bg-gray-50 p-4 rounded-lg">
+            <h4 class="text-lg font-semibold mb-2">Add Personnel</h4>
+            <div class="flex gap-4">
+                <select id="personnelSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <option value="">Select User</option>
+                </select>
+                <select id="positionSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <option value="">Select Position</option>
+                    <option value="Commander">Commander</option>
+                    <option value="Deputy Commander">Deputy Commander</option>
+                    <option value="Senior Enlisted Leader">Senior Enlisted Leader</option>
+                    <option value="Section Chief">Section Chief</option>
+                    <option value="Non-Commission Officer In Charge">NCOIC</option>
+                    <option value="Squadron Sergeant">Squadron Sergeant</option>
+                    <option value="Squadron Leader">Squadron Leader</option>
+                    <option value="Airman">Airman</option>
+                </select>
+                <select id="targetDivisionSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <option value="">Select Division</option>
+                </select>
+                <button onclick="assignPersonnel()"
+                        class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                    Add
+                </button>
+            </div>
+        </div>
+
+        <!-- Division List -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="text-lg font-semibold mb-4">Current Divisions</h4>
+            <div id="divisionList" class="space-y-4">
+                <!-- Divisions will be populated here -->
+            </div>
+        </div>
+
+        <div class="mt-8">
+            <h4 class="text-lg font-semibold mb-4">Bumped Placements</h4>
+            <div id="bumpedPlacementsList" class="space-y-4">
+                <!-- Bumped placements populated here -->
+            </div>
+        </div>
+
+        <div id="newDivisionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Manual Division Placement</h3>
+                    <button onclick="closeNewDivisionModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Select New Division</label>
+                        <select id="newDivisionSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            <option value="">Select Division</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button onclick="closeNewDivisionModal()" 
+                                class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                            Cancel
+                        </button>
+                        <button onclick="confirmNewDivision()" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            Confirm Placement
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="recruitmentModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Recruitment Form</h3>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Recruit Username</label>
+                    <input type="text" id="recruitUsername" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Recruit Discord</label>
+                    <input type="text" id="recruitDiscord" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Recruit Rank</label>
+                    <select id="recruitRank" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="">Select Rank</option>
+                        <!-- Add your rank options here -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Target Division</label>
+                    <select id="recruitDivision" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="">Select Division</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Division Position</label>
+                    <select id="recruitPosition" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="">Select Position</option>
+                        <option value="Airman">Airman</option>
+                        <option value="Squadron Leader">Squadron Leader</option>
+                        <option value="Squadron Sergeant">Squadron Sergeant</option>
+                        <option value="Non-Commission Officer In Charge">NCOIC</option>
+                        <option value="Section Chief">Section Chief</option>
+                        <option value="Senior Enlisted Leader">Senior Enlisted Leader</option>
+                        <option value="Deputy Commander">Deputy Commander</option>
+                        <option value="Commander">Commander</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date of Recruitment</label>
+                    <input type="date" id="recruitmentDate" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+
+                <div class="flex justify-end gap-2 mt-4">
+                    <button onclick="closeRecruitmentModal()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                        Cancel
+                    </button>
+                    <button onclick="submitRecruitment()" 
+                            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">
+                        Sign & Submit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="pendingPlacementsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-gray-900">Pending Placements</h3>
+            <button onclick="closePendingPlacements()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div id="pendingPlacementsList" class="space-y-4">
+            <!-- Pending placements populated here -->
+        </div>
+    </div>
+</div>
+
+<div id="afi-forms" class="hidden mt-6">
+    <div class="bg-white rounded-lg p-6">
+        <h3 class="text-lg font-semibold mb-4">Army Formal Instructions</h3>
+        <div class="mb-4">
+            <input type="text" id="afiSearch" 
+                   placeholder="Search AFIs..." 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md">
+        </div>
+        <div id="afiList" class="space-y-4">
+            <!-- AFIs will be populated here -->
+        </div>
+    </div>
+</div>
+
+<div id="regulationManagementModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-gray-900">Regulation Management</h3>
+            <button onclick="closeRegulationManagement()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-4 border-b">
+            <div class="flex space-x-4">
+                <button onclick="switchRegulationTab('add')" 
+                        class="py-2 px-4 border-b-2 regulation-tab" data-tab="add">
+                    Add Regulation
+                </button>
+                <button onclick="switchRegulationTab('remove')" 
+                        class="py-2 px-4 border-b-2 regulation-tab" data-tab="remove">
+                    Remove Regulation
+                </button>
+                <button onclick="switchRegulationTab('logs')" 
+                        class="py-2 px-4 border-b-2 regulation-tab" data-tab="logs">
+                    Regulation Logs
+                </button>
+            </div>
+        </div>
+
+        <!-- Add Regulation Tab -->
+        <div id="addRegulationTab" class="regulation-content">
+            <div class="mb-4 bg-gray-50 p-4 rounded-lg">
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Formatting Guide</h4>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p><code># Header 1</code> - Large Header</p>
+                        <p><code>## Header 2</code> - Medium Header</p>
+                        <p><code>### Header 3</code> - Small Header</p>
+                        <p><code>**bold text**</code> - <strong>bold text</strong></p>
+                        <p><code>*italic text*</code> - <em>italic text</em></p>
+                    </div>
+                    <div>
+                        <p><code>- item</code> - Bullet point</p>
+                        <p><code>1. item</code> - Numbered list</p>
+                        <p><code>---</code> - Horizontal line</p>
+                        <p>Double Enter - New paragraph</p>
+                        <p>Single Enter with two spaces - Line break</p>
+                    </div>
+                </div>
+            </div>
+            <form id="addRegulationForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Title</label>
+                    <input type="text" id="regulationTitle" 
+                           class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Category</label>
+                    <input type="text" id="regulationCategory" 
+                           class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea id="regulationDescription" rows="2" 
+                            class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Content</label>
+                    <div class="relative">
+                        <textarea id="regulationContent" rows="15" 
+                                class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md font-mono"
+                                placeholder="Use Markdown formatting for content..."></textarea>
+                        <button type="button" 
+                                onclick="previewRegulation()"
+                                class="absolute right-2 top-2 px-3 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200">
+                            Preview
+                        </button>
+                    </div>
+                </div>
+                <div id="previewArea" class="hidden mt-4 p-4 border rounded-md bg-gray-50">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Preview</h4>
+                    <div id="previewContent" class="prose max-w-none"></div>
+                </div>
+                <div class="flex justify-end">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Add Regulation
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Remove Regulation Tab -->
+        <div id="removeRegulationTab" class="regulation-content hidden">
+            <div class="space-y-4">
+                <input type="text" placeholder="Search regulations..." 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md"
+                       onkeyup="filterRegulations(this.value)">
+                <div id="regulationsList" class="space-y-2">
+                    <!-- Regulations will be listed here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Tab -->
+        <div id="regulationLogsTab" class="regulation-content hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Officer</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="regulationLogsBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Logs will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Regulation Details Modal -->
+<div id="regulationDetailsModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="regulationDetailsTitle" class="text-xl font-semibold text-gray-900"></h3>
+            <button onclick="closeRegulationDetails()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="regulationDetailsContent" class="prose max-w-none">
+            <!-- Regulation content will be populated here -->
+        </div>
+    </div>
+</div>
+
+<!-- Disciplinary Action Modal -->
+<div id="disciplinaryModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Issue Disciplinary Action</h3>
+                <button onclick="closeDisciplinaryModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Step 1: Username Input -->
+            <div id="disciplinaryStep1" class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Enter Username</label>
+                <div class="flex gap-2">
+                    <input type="text" id="disciplinaryUsername" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    <button onclick="checkUserForDisciplinary()" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Next
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Step 2: Action Details -->
+            <div id="disciplinaryStep2" class="hidden">
+                <div class="mb-4">
+                    <p class="text-sm font-medium text-gray-700">Taking Action Against: <span id="selectedDisciplinaryUser" class="font-bold"></span></p>
+                    <p class="text-sm text-gray-600">Current Rank: <span id="disciplinaryUserRank" class="font-medium"></span></p>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Grade Action</label>
+                    <select id="disciplinaryGrade" onchange="handleGradeChange()" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                        <option value="">Select Grade</option>
+                        <option value="1">Grade 1 - Warning</option>
+                        <option value="2">Grade 2 - Violation (1 XP Deduction)</option>
+                        <option value="3">Grade 3 - Violation II (Custom XP Deduction)</option>
+                        <option value="4">Grade 4 - Demotion</option>
+                    </select>
+                </div>
+
+                <div id="xpDeductionInput" class="mb-4 hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">XP Deduction Amount</label>
+                    <input type="number" min="1" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                           onchange="checkXpDeduction(this.value)">
+                    <p id="xpApprovalNote" class="text-sm text-red-600 mt-1 hidden">
+                        * This XP deduction will require Officer approval
+                    </p>
+                </div>
+
+                <div id="demotionRankInput" class="mb-4 hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Demote To</label>
+                    <select id="demotionRankSelect" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </select>
+                    <p class="text-sm text-red-600 mt-1">* Demotion will require Officer approval</p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Reason for Action</label>
+                    <textarea id="disciplinaryReason" rows="3" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            placeholder="Provide detailed reason for this disciplinary action..."></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button onclick="closeDisciplinaryModal()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                        Cancel
+                    </button>
+                    <button onclick="submitDisciplinaryAction()" 
+                            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                        Submit Action
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Disciplinary Logs Modal -->
+<div id="disciplinaryLogsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-3/4 max-w-4xl shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-gray-900">Disciplinary Logs</h3>
+            <button onclick="closeDisciplinaryLogs()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Pending Actions Section (Officers Only) -->
+        <% if (user.isOfficer) { %>
+        <div class="mb-6">
+            <h4 class="text-lg font-semibold text-gray-900 mb-4">Pending Actions</h4>
+            <div id="pendingDisciplinaryActions" class="space-y-4">
+                <!-- Pending actions will be populated here -->
+            </div>
+        </div>
+        <% } %>
+
+        <!-- Action History -->
+        <div class="mb-4 flex justify-between items-center">
+            <h4 class="text-lg font-semibold text-gray-900">Action History</h4>
+            <input type="text" placeholder="Search logs..." 
+                   class="w-64 px-3 py-2 border border-gray-300 rounded-md"
+                   onkeyup="filterDisciplinaryLogs(this.value)">
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
+                    </tr>
+                </thead>
+                <tbody id="disciplinaryLogsBody" class="bg-white divide-y divide-gray-200">
+                    <!-- Logs will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Disciplinary Details Modal -->
+<div id="disciplinaryDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="disciplinaryDetailsTitle" class="text-lg font-medium text-gray-900">Disciplinary Action Details</h3>
+            <button onclick="closeDisciplinaryDetails()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="disciplinaryDetailsContent" class="space-y-4">
+            <!-- Details will be populated here -->
+        </div>
+    </div>
+</div>
+
+                <script>
+                    const RANK_ORDER = [
+                    'Citizen',
+                    'Airman Basic',
+                    'Airman',
+                    'Airman First Class',
+                    'Senior Airman',
+                    'Staff Sergeant',
+                    'Technical Sergeant',
+                    'Master Sergeant',
+                    'First Sergeant',
+                    'Senior Master Sergeant',
+                    'Senior First Sergeant',
+                    'Chief Master Sergeant',
+                    'Chief First Sergeant',
+                    'Command Chief Master Sergeant',
+                    'Senior Enlisted Leader',
+                    'Chief Senior Enlisted Leader',
+                    'Chief Master Sergeant of the Air Force',
+                    'Second Lieutenant',
+                    'First Lieutenant',
+                    'Captain',
+                    'Major',
+                    'Lieutenant Colonel',
+                    'Colonel',
+                    'Brigadier General',
+                    'Major General',
+                    'Lieutenant General',
+                    'General',
+                    'General of the Air Force'
+                ];
+
+                let selectedUserId = null;
+                let currentUserRank = '<%= user.highestRole %>';
+                let currentFilter = 'all';
+                const DIVISION_API_BASE = '/api/divisions';
+                let currentRecruitmentId = null;
+
+                function openPromotionForm() {
+                    document.getElementById('promotionModal').classList.remove('hidden');
+                    document.getElementById('step1').classList.remove('hidden');
+                    document.getElementById('step2').classList.add('hidden');
+                    document.getElementById('usernameInput').value = '';
+                }
+
+                function closePromotionModal() {
+                    document.getElementById('promotionModal').classList.add('hidden');
+                }
+
+                function checkUser() {
+                    const username = document.getElementById('usernameInput').value;
+                    
+                    // Make API call to check user
+                    fetch(`/api/users/check?username=${username}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.user) {
+                                selectedUserId = data.user._id;
+                                showPromotionDetails(data.user);
+                            } else {
+                                alert('User not found');
+                            }
+                        });
+                }
+
+                function showPromotionDetails(user) {
+                    console.log('Showing promotion details for:', user);
+                    document.getElementById('step1').classList.add('hidden');
+                    document.getElementById('step2').classList.remove('hidden');
+                    
+                    document.getElementById('selectedUser').textContent = user.username;
+                    document.getElementById('currentRank').textContent = user.highestRole;
+                    
+                    // Populate rank dropdown
+                    const selectElement = document.getElementById('promotionRank');
+                    selectElement.innerHTML = '';
+                    
+                    console.log('Current user rank:', currentUserRank);
+                    console.log('Target user current rank:', user.highestRole);
+                    
+                    const currentRankIndex = RANK_ORDER.indexOf(user.highestRole);
+                    const maxRankIndex = RANK_ORDER.indexOf(currentUserRank);
+
+                    console.log('Current rank index:', currentRankIndex);
+                    console.log('Max rank index:', maxRankIndex);
+
+                    // Add default option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Select Rank';
+                    defaultOption.selected = true;
+                    defaultOption.disabled = true;
+                    selectElement.appendChild(defaultOption);
+                    
+                    // Add rank options
+                    for (let i = currentRankIndex + 1; i <= maxRankIndex; i++) {
+                        const option = document.createElement('option');
+                        option.value = RANK_ORDER[i];
+                        option.textContent = RANK_ORDER[i];
+                        selectElement.appendChild(option);
+                        console.log('Added rank option:', RANK_ORDER[i]);
+                    }
+
+                    // Update officer approval note visibility
+                    selectElement.addEventListener('change', function() {
+                        const selectedRank = this.value;
+                        const needsOfficerApproval = ['Senior Master Sergeant', 'Senior First Sergeant', 'Chief Master Sergeant', 'Chief First Sergeant', 'Command Chief Master Sergeant', 'Senior Enlisted Leader', 
+                            'Chief Senior Enlisted Leader', 'Chief Master Sergeant of the Air Force', 'Second Lieutenant', 'First Lieutenant', 'Captain', 'Major', 'Lieutenant Colonel', 'Colonel', 'Brigadier General', 'Major General', 
+                            'Lieutenant General', 'General', 'General of the Air Force'].includes(selectedRank);
+                        
+                        const officerNote = document.getElementById('officerApprovalNote');
+                        if (needsOfficerApproval) {
+                            officerNote.classList.remove('hidden');
+                        } else {
+                            officerNote.classList.add('hidden');
+                        }
+                    });
+                }
+
+                function submitPromotion() {
+                    const promotionRank = document.getElementById('promotionRank').value;
+                    const reason = document.getElementById('promotionReason').value;
+
+                    if (!promotionRank) {
+                        alert('Please select a rank');
+                        return;
+                    }
+
+                    if (!reason) {
+                        alert('Please provide a reason for promotion');
+                        return;
+                    }
+
+                    const needsOfficerApproval = ['Senior Master Sergeant', 'Senior First Sergeant', 'Chief Master Sergeant', 'Chief First Sergeant', 'Command Chief Master Sergeant', 'Senior Enlisted Leader', 
+                            'Chief Senior Enlisted Leader', 'Chief Master Sergeant of the Air Force', 'Second Lieutenant', 'First Lieutenant', 'Captain', 'Major', 'Lieutenant Colonel', 'Colonel', 'Brigadier General', 'Major General', 
+                            'Lieutenant General', 'General', 'General of the Air Force'].includes(promotionRank);
+
+                    const promotionData = {
+                        userId: selectedUserId,
+                        promotionRank: promotionRank,
+                        reason: reason,
+                        needsOfficerApproval: needsOfficerApproval
+                    };
+
+                    fetch('/api/promotions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(promotionData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(`Promotion request submitted successfully${needsOfficerApproval ? ' and pending officer approval' : ''}`);
+                            closePromotionModal();
+                        } else {
+                            alert('Error submitting promotion request');
+                        }
+                    });
+                }
+                    function toggleForms(formId) {
+                        // Hide all form sections first
+                        document.querySelectorAll('[id$="-forms"]').forEach(section => {
+                            section.classList.add('hidden');
+                        });
+                        // Show the selected section
+                        document.getElementById(formId).classList.remove('hidden');
+                    }
+
+                    
+                    let currentPromotionId = null;
+
+                    function openPendingPromotions() {
+                        document.getElementById('pendingPromotionsModal').classList.remove('hidden');
+                        loadPendingPromotions();
+                    }
+
+                    function closePendingPromotions() {
+                        document.getElementById('pendingPromotionsModal').classList.add('hidden');
+                    }
+
+                    function openRankLogs() {
+                        document.getElementById('rankLogsModal').classList.remove('hidden');
+                        loadRankLogs();
+                    }
+
+                    function closeRankLogs() {
+                        document.getElementById('rankLogsModal').classList.add('hidden');
+                    }
+
+                    function loadPendingPromotions() {
+                        fetch('/api/promotions/pending')
+                            .then(response => response.json())
+                            .then(data => {
+                                const container = document.getElementById('pendingPromotionsList');
+                                container.innerHTML = '';
+
+                                data.promotions.forEach(promotion => {
+                                    container.innerHTML += `
+                                        <div class="bg-gray-50 p-4 rounded-lg">
+                                            <div class="flex justify-between items-start">
+                                                <div>
+                                                    <p class="font-semibold">${promotion.targetUser.username}</p>
+                                                    <p class="text-sm text-gray-600">Current Rank: ${promotion.currentRank}</p>
+                                                    <p class="text-sm text-gray-600">Proposed Rank: ${promotion.promotionRank}</p>
+                                                    <p class="text-sm text-gray-600">Requested by: ${promotion.promotedBy.username}</p>
+                                                    <p class="mt-2">Reason: ${promotion.reason}</p>
+                                                </div>
+                                                <div class="space-x-2">
+                                                    <button onclick="approvePromotion('${promotion._id}')" 
+                                                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                                                        Approve
+                                                    </button>
+                                                    <button onclick="openRejectModal('${promotion._id}')" 
+                                                            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+
+                                if (data.promotions.length === 0) {
+                                    container.innerHTML = '<p class="text-center text-gray-500">No pending promotions</p>';
+                                }
+                            });
+                    }
+
+                    function filterLogs(type) {
+                        currentFilter = type;
+                        
+                        // Update button styles
+                        document.querySelectorAll('.filter-btn').forEach(btn => {
+                            btn.classList.remove('active', 'bg-blue-600', 'text-white');
+                            btn.classList.add('bg-gray-200', 'text-gray-800');
+                        });
+                        event.target.classList.remove('bg-gray-200', 'text-gray-800');
+                        event.target.classList.add('active', 'bg-blue-600', 'text-white');
+                        
+                        loadRankLogs();
+                    }
+
+                    async function loadRankLogs() {
+                        try {
+                            const [promotions, demotions] = await Promise.all([
+                                fetch('/api/promotions/logs').then(res => res.json()),
+                                fetch('/api/demotions/logs').then(res => res.json())
+                            ]);
+
+                            let combinedLogs = [];
+                            
+                            if (currentFilter === 'all' || currentFilter === 'promotions') {
+                                combinedLogs.push(...promotions.promotions.map(p => ({...p, type: 'promotion'})));
+                            }
+                            
+                            if (currentFilter === 'all' || currentFilter === 'demotions') {
+                                combinedLogs.push(...demotions.demotions.map(d => ({...d, type: 'demotion'})));
+                            }
+
+                            // Sort by date
+                            combinedLogs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                            const tbody = document.getElementById('rankLogsBody');
+                            tbody.innerHTML = '';
+
+                            combinedLogs.forEach(log => {
+                                const date = new Date(log.createdAt).toLocaleDateString();
+                                const statusClass = {
+                                    'approved': 'text-green-600',
+                                    'rejected': 'text-red-600',
+                                    'pending': 'text-yellow-600'
+                                }[log.status];
+
+                                const typeClass = log.type === 'promotion' ? 'text-blue-600' : 'text-red-600';
+                                const typeIcon = log.type === 'promotion' ? 'fa-arrow-up' : 'fa-arrow-down';
+
+                                tbody.innerHTML += `
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap">${date}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="${typeClass}">
+                                                <i class="fas ${typeIcon} mr-2"></i>
+                                                ${log.type.charAt(0).toUpperCase() + log.type.slice(1)}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">${log.targetUser.username}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">${log.type === 'promotion' ? log.currentRank : log.previousRank}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">${log.type === 'promotion' ? log.promotionRank : log.demotionRank}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="${statusClass} font-medium">${log.status || 'completed'}</span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <button onclick="showLogDetails('${log._id}', '${log.type}')" 
+                                                    class="text-blue-600 hover:text-blue-800">
+                                                View Details
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+                        } catch (error) {
+                            console.error('Error loading rank logs:', error);
+                        }
+                    }
+
+                    function filterRankLogs() {
+                        const input = document.getElementById('logSearch').value.toLowerCase();
+                        const rows = document.getElementById('rankLogsBody').getElementsByTagName('tr');
+
+                        for (let row of rows) {
+                            const text = row.textContent.toLowerCase();
+                            row.style.display = text.includes(input) ? '' : 'none';
+                        }
+                    }
+
+                    async function showLogDetails(logId, type) {
+                        try {
+                            const response = await fetch(`/api/${type}s/${logId}`);
+                            const data = await response.json();
+                            const log = data[type];
+
+                            const detailsContent = document.getElementById('logDetailsContent');
+                            detailsContent.innerHTML = `
+                                <div class="space-y-3">
+                                    <div>
+                                        <p class="text-sm text-gray-500">Date</p>
+                                        <p class="font-medium">${new Date(log.createdAt).toLocaleString()}</p>
+                                    </div>
+                                    
+                                    <div>
+                                        <p class="text-sm text-gray-500">User</p>
+                                        <p class="font-medium">${log.targetUser.username}</p>
+                                    </div>
+
+                                    <div>
+                                        <p class="text-sm text-gray-500">Type</p>
+                                        <p class="font-medium ${type === 'promotion' ? 'text-blue-600' : 'text-red-600'}">
+                                            <i class="fas ${type === 'promotion' ? 'fa-arrow-up' : 'fa-arrow-down'} mr-2"></i>
+                                            ${type.charAt(0).toUpperCase() + type.slice(1)}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <p class="text-sm text-gray-500">From Rank</p>
+                                        <p class="font-medium">${type === 'promotion' ? log.currentRank : log.previousRank}</p>
+                                    </div>
+
+                                    <div>
+                                        <p class="text-sm text-gray-500">To Rank</p>
+                                        <p class="font-medium">${type === 'promotion' ? log.promotionRank : log.demotionRank}</p>
+                                    </div>
+
+                                    <div>
+                                        <p class="text-sm text-gray-500">Status</p>
+                                        <p class="font-medium ${getStatusClass(log.status)}">${log.status || 'completed'}</p>
+                                    </div>
+
+                                    <div>
+                                        <p class="text-sm text-gray-500">Reason</p>
+                                        <p class="font-medium">${log.reason}</p>
+                                    </div>
+
+                                    <div>
+                                        <p class="text-sm text-gray-500">${type === 'promotion' ? 'Promoted' : 'Demoted'} By</p>
+                                        <p class="font-medium">${type === 'promotion' ? log.promotedBy?.username : log.demotedBy?.username}</p>
+                                    </div>
+
+                                    ${log.status === 'rejected' ? `
+                                        <div>
+                                            <p class="text-sm text-gray-500">Rejection Reason</p>
+                                            <p class="font-medium text-red-600">${log.officerApproval?.rejectReason || 'None provided'}</p>
+                                        </div>
+                                    ` : ''}
+
+                                    ${log.officerApproval ? `
+                                        <div>
+                                            <p class="text-sm text-gray-500">Officer Approval</p>
+                                            <p class="font-medium">By ${log.officerApproval.officer?.username || 'Unknown'}</p>
+                                            <p class="text-sm">${new Date(log.officerApproval.date).toLocaleString()}</p>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+
+                            document.getElementById('logDetailsModal').classList.remove('hidden');
+                        } catch (error) {
+                            console.error('Error loading log details:', error);
+                        }
+                    }
+
+                    function closeLogDetails() {
+                        document.getElementById('logDetailsModal').classList.add('hidden');
+                    }
+
+                    function getStatusClass(status) {
+                        return {
+                            'approved': 'text-green-600',
+                            'rejected': 'text-red-600',
+                            'pending': 'text-yellow-600',
+                            'completed': 'text-green-600'
+                        }[status] || 'text-gray-600';
+                    }
+
+                    function openRejectModal(promotionId) {
+                        currentPromotionId = promotionId;
+                        document.getElementById('rejectModal').classList.remove('hidden');
+                    }
+
+                    function closeRejectModal() {
+                        document.getElementById('rejectModal').classList.add('hidden');
+                        document.getElementById('rejectReason').value = '';
+                        currentPromotionId = null;
+                    }
+
+                    function approvePromotion(promotionId) {
+                        fetch(`/api/promotions/${promotionId}/approve`, {
+                            method: 'POST'
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                loadPendingPromotions();
+                            } else {
+                                alert('Error approving promotion');
+                            }
+                        });
+                    }
+
+                    function submitRejection() {
+                        const reason = document.getElementById('rejectReason').value;
+                        if (!reason) {
+                            alert('Please enter a reason for rejection');
+                            return;
+                        }
+
+                        fetch(`/api/promotions/${currentPromotionId}/reject`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ reason })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                closeRejectModal();
+                                loadPendingPromotions();
+                            } else {
+                                alert('Error rejecting promotion');
+                            }
+                        });
+                    }
+
+                    function openDemotionForm() {
+                        document.getElementById('demotionModal').classList.remove('hidden');
+                        document.getElementById('demotionStep1').classList.remove('hidden');
+                        document.getElementById('demotionStep2').classList.add('hidden');
+                        document.getElementById('demotionUsernameInput').value = '';
+                    }
+
+                    function closeDemotionModal() {
+                        document.getElementById('demotionModal').classList.add('hidden');
+                    }
+
+                    function checkUserForDemotion() {
+                        const username = document.getElementById('demotionUsernameInput').value;
+                        
+                        fetch(`/api/users/check?username=${username}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.user) {
+                                    selectedUserId = data.user._id;
+                                    showDemotionDetails(data.user);
+                                } else {
+                                    alert('User not found');
+                                }
+                            });
+                    }
+
+                    function showDemotionDetails(user) {
+                        document.getElementById('demotionStep1').classList.add('hidden');
+                        document.getElementById('demotionStep2').classList.remove('hidden');
+                        
+                        document.getElementById('demotionSelectedUser').textContent = user.username;
+                        document.getElementById('demotionCurrentRank').textContent = user.highestRole;
+                        
+                        // Populate rank dropdown
+                        const selectElement = document.getElementById('demotionRank');
+                        selectElement.innerHTML = '';
+                        
+                        const currentRankIndex = RANK_ORDER.indexOf(user.highestRole);
+                        
+                        // Add ranks below current rank
+                        for (let i = currentRankIndex - 1; i >= 0; i--) {
+                            const option = document.createElement('option');
+                            option.value = RANK_ORDER[i];
+                            option.textContent = RANK_ORDER[i];
+                            selectElement.appendChild(option);
+                        }
+                    }
+
+                    function submitDemotion() {
+                        const demotionRank = document.getElementById('demotionRank').value;
+                        const reason = document.getElementById('demotionReason').value;
+
+                        if (!demotionRank) {
+                            alert('Please select a rank');
+                            return;
+                        }
+
+                        if (!reason) {
+                            alert('Please provide a reason for demotion');
+                            return;
+                        }
+
+                        const demotionData = {
+                            userId: selectedUserId,
+                            demotionRank: demotionRank,
+                            reason: reason
+                        };
+
+                        fetch('/api/demotions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(demotionData)
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('Demotion processed successfully');
+                                closeDemotionModal();
+                            } else {
+                                alert('Error processing demotion');
+                            }
+                        });
+                    }
+
+                    // Training Form Functions
+function openTrainingForm() {
+    const modal = document.getElementById('trainingModal');
+    modal.innerHTML = `
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Training Form</h3>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Trainee Usernames (comma separated)</label>
+                    <textarea id="traineeUsernames" rows="2" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="username1, username2, ..."></textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Training Type</label>
+                    <select id="trainingType" onchange="updateXPOptions()" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Select Type</option>
+                        <option value="Basic Training">Basic Training</option>
+                        <option value="Training">Training</option>
+                        <option value="Event">Event</option>
+                        <option value="Raid">Raid</option>
+                    </select>
+                </div>
+
+                <div id="xpSection" class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">XP Amount</label>
+                    <div id="xpInput"></div>
+                    <p id="approvalNote" class="text-sm text-red-600 mt-1 hidden">* This XP amount will require approval</p>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button onclick="closeTrainingModal()" 
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                        Cancel
+                    </button>
+                    <button onclick="submitTraining()" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Sign & Submit
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    modal.classList.remove('hidden');
+}
+
+function updateXPOptions() {
+    const type = document.getElementById('trainingType').value;
+    const xpInput = document.getElementById('xpInput');
+    const approvalNote = document.getElementById('approvalNote');
+
+    switch(type) {
+        case 'Basic Training':
+            xpInput.innerHTML = `
+                <input type="number" value="1" disabled
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100">
+            `;
+            approvalNote.classList.add('hidden');
+            break;
+        case 'Training':
+            xpInput.innerHTML = `
+                <select class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    ${[1,2,3,4,5].map(num => `<option value="${num}">${num} XP</option>`).join('')}
+                </select>
+            `;
+            approvalNote.classList.add('hidden');
+            break;
+        case 'Event':
+        case 'Raid':
+            xpInput.innerHTML = `
+                <input type="number" min="1" 
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                       onchange="checkApprovalNeeded(this.value)">
+            `;
+            break;
+        default:
+            xpInput.innerHTML = '';
+            approvalNote.classList.add('hidden');
+    }
+}
+
+function checkApprovalNeeded(xp) {
+    const approvalNote = document.getElementById('approvalNote');
+    if (xp >= 10) {
+        approvalNote.classList.remove('hidden');
+    } else {
+        approvalNote.classList.add('hidden');
+    }
+}
+
+async function submitTraining() {
+    const usernames = document.getElementById('traineeUsernames').value.split(',').map(u => u.trim());
+    const type = document.getElementById('trainingType').value;
+    const xpElement = document.getElementById('xpInput').firstElementChild;
+    const xpAmount = xpElement.tagName === 'SELECT' ? 
+        parseInt(xpElement.value) : parseInt(xpElement.value);
+
+    if (!usernames[0] || !type || !xpAmount) {
+        alert('Please fill in all fields');
+        return;
+    }
+
+    const trainingData = {
+        usernames,
+        type,
+        xpAmount
+    };
+
+    try {
+        const response = await fetch('/api/trainings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(trainingData)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('Training submitted successfully');
+            closeTrainingModal();
+        } else {
+            alert(data.error || 'Error submitting training');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error submitting training');
+    }
+}
+
+// Approval Functions
+function openTrainingApproval() {
+    document.getElementById('trainingApprovalModal').classList.remove('hidden');
+    loadPendingTrainings();
+}
+
+async function loadPendingTrainings() {
+    try {
+        const response = await fetch('/api/trainings/pending');
+        const data = await response.json();
+        console.log('Pending trainings data:', data); // Debug log
+        
+        const container = document.getElementById('pendingTrainingsList');
+        
+        if (!data.trainings || data.trainings.length === 0) {
+            container.innerHTML = '<p class="text-center text-gray-500">No pending trainings</p>';
+            return;
+        }
+
+        container.innerHTML = data.trainings.map(training => `
+            <div class="bg-white p-4 rounded-lg shadow mb-4">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-semibold">${training.type}</p>
+                        <p class="text-sm text-gray-600">Instructor: ${training.instructor.username}</p>
+                        <p class="text-sm text-gray-600">XP Amount: ${training.xpAmount}</p>
+                        <p class="text-sm text-gray-600">Trainees: ${training.trainees.map(t => t.username).join(', ')}</p>
+                        ${training.status === 'bumped_back' ? 
+                            `<p class="text-sm ${getStatusClass(training.status).class}">* ${getStatusClass(training.status).label}</p>` : ''}
+                    </div>
+                    <div class="space-y-2">
+                        <button onclick="handleTrainingAction('${training._id}', 'approve')" 
+                                class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            Approve
+                        </button>
+                        ${training.status !== 'bumped_back' ? `
+                            <button onclick="handleTrainingAction('${training._id}', 'bump_up')"
+                                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                Bump Up
+                            </button>
+                        ` : ''}
+                        <button onclick="openRejectTrainingModal('${training._id}')"
+                                class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                            Reject
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading pending trainings:', error);
+    }
+}
+
+// Training Logs Functions
+function openTrainingLogs() {
+    document.getElementById('trainingLogsModal').classList.remove('hidden');
+    loadTrainingLogs('all');
+}
+
+async function showTrainingDetails(trainingId) {
+    try {
+        const response = await fetch(`/api/trainings/${trainingId}`);
+        const data = await response.json();
+        const training = data.training;
+        const user = data.user;
+
+        const detailsContent = document.getElementById('trainingDetailsContent');
+        detailsContent.innerHTML = `
+            <div class="space-y-4">
+                <!-- ... -->
+                <div>
+                    <p class="text-sm text-gray-500">Status</p>
+                    <p class="font-medium ${getStatusClass(training.status).class}">${getStatusClass(training.status).label}</p>
+                </div>
+                <!-- ... -->
+                ${user.isOfficer && training.status === 'bumped_up' ? `
+                    <div class="space-y-2">
+                        <button onclick="handleTrainingAction('${training._id}', 'approve')"
+                                class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            Approve
+                        </button>
+                        <button onclick="handleTrainingAction('${training._id}', 'bump_back')"
+                                class="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">
+                            Bump Down
+                        </button>
+                        <button onclick="openRejectTrainingModal('${training._id}')"
+                                class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                            Reject
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+
+        document.getElementById('trainingDetailsModal').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error loading training details:', error);
+        alert('Error loading training details');
+    }
+}
+
+async function loadTrainingLogs(filter = 'all') {
+    try {
+        const response = await fetch(`/api/trainings/logs?filter=${filter}`);
+        const data = await response.json();
+        const tbody = document.getElementById('trainingLogsBody');
+
+        tbody.innerHTML = data.trainings.map(training => `
+            <tr>
+                <td class="px-6 py-4 whitespace-nowrap">${new Date(training.createdAt).toLocaleDateString()}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${training.type}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${training.instructor.username}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${training.trainees.map(t => t.username).join(', ')}</td>
+                <td class="px-6 py-4 whitespace-nowrap">${training.xpAmount}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="${getStatusClass(training.status).class}">${getStatusClass(training.status).label}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <button onclick="showTrainingDetails('${training._id}')"
+                            class="text-blue-600 hover:text-blue-800">
+                        View Details
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading training logs:', error);
+    }
+}
+
+// Utility Functions
+function getStatusClass(status) {
+    const statusMap = {
+        'pending': { label: 'Pending', class: 'text-yellow-600' },
+        'approved': { label: 'Approved', class: 'text-green-600' },
+        'rejected': { label: 'Rejected', class: 'text-red-600' },
+        'bumped_up': { label: 'Bumped Up', class: 'text-blue-600' },
+        'bumped_back': { label: 'Bumped Back', class: 'text-orange-600' }
+    };
+    return statusMap[status] || { label: 'Unknown', class: 'text-gray-600' };
+}
+
+async function handleTrainingAction(trainingId, action) {
+    try {
+        const response = await fetch(`/api/trainings/${trainingId}/${action}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            loadPendingTrainings();
+        } else {
+            alert(data.error || 'Error processing action');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error processing action');
+    }
+}
+
+// Close Modal Functions
+function closeTrainingModal() {
+    document.getElementById('trainingModal').classList.add('hidden');
+}
+
+function closeTrainingApprovalModal() {
+    document.getElementById('trainingApprovalModal').classList.add('hidden');
+}
+
+function closeTrainingLogsModal() {
+    document.getElementById('trainingLogsModal').classList.add('hidden');
+}
+
+function closeTrainingDetailsModal() {
+    document.getElementById('trainingDetailsModal').classList.add('hidden');
+}
+
+function closeRejectTrainingModal() {
+    document.getElementById('rejectTrainingModal').classList.add('hidden');
+}
+
+// Division management functions
+async function loadDivisions() {
+    try {
+        // Fetch both divisions and users data
+        const [divisionsResponse, usersResponse] = await Promise.all([
+            fetch('/api/divisions'),
+            fetch('/api/users')
+        ]);
+
+        const divisionsData = await divisionsResponse.json();
+        const usersData = await usersResponse.json();
+
+        // Populate the users dropdown
+        const personnelSelect = document.getElementById('personnelSelect');
+        personnelSelect.innerHTML = '<option value="">Select User</option>';
+        if (usersData.users && Array.isArray(usersData.users)) {
+            usersData.users.forEach(user => {
+                personnelSelect.innerHTML += `
+                    <option value="${user._id}">${user.username}</option>
+                `;
+            });
+        }
+
+        // Populate division dropdowns
+        const parentSelect = document.getElementById('divisionParentDivision');
+        const targetSelect = document.getElementById('targetDivisionSelect');
+        parentSelect.innerHTML = '<option value="">No Parent (Top Level)</option>';
+        targetSelect.innerHTML = '<option value="">Select Division</option>';
+        
+        if (divisionsData.divisions && Array.isArray(divisionsData.divisions)) {
+            divisionsData.divisions.forEach(division => {
+                const option = `
+                    <option value="${division._id}">${division.name}</option>
+                `;
+                parentSelect.innerHTML += option;
+                targetSelect.innerHTML += option;
+            });
+
+            // Render division list
+            renderDivisions(divisionsData.divisions);
+        } else {
+            // If no divisions, clear the list
+            document.getElementById('divisionList').innerHTML = '<p class="text-gray-500">No divisions found</p>';
+        }
+
+    } catch (error) {
+        console.error('Error loading divisions:', error);
+        document.getElementById('divisionList').innerHTML = '<p class="text-red-500">Error loading divisions</p>';
+    }
+}
+
+function renderDivisions(divisions) {
+    const divisionList = document.getElementById('divisionList');
+    divisionList.innerHTML = '';
+
+    // First render top-level divisions
+    const topLevelDivisions = divisions.filter(d => !d.parentDivision);
+    topLevelDivisions.forEach(division => {
+        renderDivisionWithChildren(division, divisions);
+    });
+}
+
+function renderDivisionWithChildren(division, allDivisions, level = 0) {
+    const divisionList = document.getElementById('divisionList');
+    
+    // Create division card
+    const divisionCard = document.createElement('div');
+    divisionCard.className = `bg-white rounded-lg shadow p-4 ${level > 0 ? 'ml-8' : ''}`;
+    
+    // Division header
+    divisionCard.innerHTML = `
+        <div class="flex justify-between items-center mb-3">
+            <h5 class="font-bold text-lg">${division.name}</h5>
+            <button onclick="removeDivision('${division._id}')" 
+                    class="text-red-600 hover:text-red-800">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <div class="space-y-2">
+            ${division.personnel.map(p => `
+                <div class="flex justify-between items-center bg-gray-50 p-2 rounded">
+                    <span>${p.user.username}</span>
+                    <div class="flex items-center">
+                        <span class="text-gray-600 mr-2">${p.position}</span>
+                        <button onclick="removePersonnel('${division._id}', '${p.user._id}')"
+                                class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    divisionList.appendChild(divisionCard);
+
+    // Render child divisions
+    const childDivisions = allDivisions.filter(d => 
+        d.parentDivision && d.parentDivision._id === division._id
+    );
+    
+    childDivisions.forEach(child => {
+        renderDivisionWithChildren(child, allDivisions, level + 1);
+    });
+}
+
+async function createDivision() {
+    const name = document.getElementById('divisionName').value;
+    const parentDivisionId = document.getElementById('divisionParentDivision').value;
+
+    if (!name) {
+        alert('Please enter a division name');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/cdivision', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name,
+                parentDivisionId: parentDivisionId || null
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            document.getElementById('divisionName').value = '';
+            loadDivisions();
+        } else {
+            alert(data.error || 'Error creating division');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error creating division');
+    }
+}
+
+async function assignPersonnel() {
+    const userId = document.getElementById('personnelSelect').value;
+    const position = document.getElementById('positionSelect').value;
+    const divisionId = document.getElementById('targetDivisionSelect').value;
+
+    if (!userId || !position || !divisionId) {
+        alert('Please select user, position, and division');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/divisions/${divisionId}/personnel`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, position })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            document.getElementById('personnelSelect').value = '';
+            document.getElementById('positionSelect').value = '';
+            document.getElementById('targetDivisionSelect').value = '';
+            loadDivisions();
+        } else {
+            alert(data.error || 'Error assigning personnel');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error assigning personnel');
+    }
+}
+
+async function removePersonnel(divisionId, userId) {
+    if (!confirm('Are you sure you want to remove this person from the division?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/divisions/${divisionId}/personnel/${userId}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            loadDivisions();
+        } else {
+            alert(data.error || 'Error removing personnel');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error removing personnel');
+    }
+}
+
+async function removeDivision(divisionId) {
+    if (!confirm('Are you sure you want to remove this division? This will also remove all personnel assignments.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/divisions/${divisionId}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            loadDivisions();
+        } else {
+            alert(data.error || 'Error removing division');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error removing division');
+    }
+}
+
+function openDivisionModal() {
+    document.getElementById('divisionModal').classList.remove('hidden');
+    // Load both divisions and rejected placements
+    Promise.all([
+        loadDivisions(),
+        loadBumpedPlacements()
+    ]).catch(error => {
+        console.error('Error loading division modal data:', error);
+    });
+}
+
+function closeDivisionModal() {
+    document.getElementById('divisionModal').classList.add('hidden');
+}
+
+// Recruitment Form Functions
+async function openRecruitmentForm() {
+    const modal = document.getElementById('recruitmentModal');
+    modal.classList.remove('hidden');
+    
+    // Populate ranks dropdown
+    const rankSelect = document.getElementById('recruitRank');
+    rankSelect.innerHTML = '<option value="">Select Rank</option>';
+    RANK_ORDER.forEach(rank => {
+        rankSelect.innerHTML += `
+            <option value="${rank}">${rank}</option>
+        `;
+    });
+    
+    // Load divisions for dropdown
+    try {
+        const response = await fetch('/api/divisions');
+        const data = await response.json();
+        
+        const divisionSelect = document.getElementById('recruitDivision');
+        divisionSelect.innerHTML = '<option value="">Select Division</option>';
+        data.divisions.forEach(division => {
+            divisionSelect.innerHTML += `
+                <option value="${division._id}">${division.name}</option>
+            `;
+        });
+    } catch (error) {
+        console.error('Error loading divisions:', error);
+    }
+}
+
+function closeRecruitmentModal() {
+    document.getElementById('recruitmentModal').classList.add('hidden');
+    // Clear form fields
+    document.getElementById('recruitUsername').value = '';
+    document.getElementById('recruitDiscord').value = '';
+    document.getElementById('recruitRank').value = '';
+    document.getElementById('recruitDivision').value = '';
+    document.getElementById('recruitPosition').value = '';
+    document.getElementById('recruitmentDate').value = '';
+}
+
+async function submitRecruitment() {
+    const formData = {
+        recruitUsername: document.getElementById('recruitUsername').value,
+        recruitDiscord: document.getElementById('recruitDiscord').value,
+        recruitRank: document.getElementById('recruitRank').value,
+        targetDivision: document.getElementById('recruitDivision').value,
+        divisionPosition: document.getElementById('recruitPosition').value,
+        dateRecruited: document.getElementById('recruitmentDate').value
+    };
+
+    // Validate form data
+    for (const [key, value] of Object.entries(formData)) {
+        if (!value) {
+            alert(`Please fill in ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+            return;
+        }
+    }
+
+    try {
+        const response = await fetch('/api/recruitment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('Recruitment form submitted successfully');
+            closeRecruitmentModal();
+            // Clear form
+            document.getElementById('recruitUsername').value = '';
+            document.getElementById('recruitDiscord').value = '';
+            document.getElementById('recruitRank').value = '';
+            document.getElementById('recruitDivision').value = '';
+            document.getElementById('recruitPosition').value = '';
+            document.getElementById('recruitmentDate').value = '';
+        } else {
+            alert(data.error || 'Error submitting recruitment form');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error submitting recruitment form');
+    }
+}
+
+// SNCO Pending Placements Modal
+function openPendingPlacements() {
+    document.getElementById('pendingPlacementsModal').classList.remove('hidden');
+    loadPendingPlacements();
+}
+
+function closePendingPlacements() {
+    document.getElementById('pendingPlacementsModal').classList.add('hidden');
+}
+
+// Load pending placements for SNCO review
+function loadPendingPlacements() {
+    fetch('/api/recruitment/pending')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('pendingPlacementsList');
+            container.innerHTML = '';
+
+            if (!data.recruitments || data.recruitments.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500">No pending placements</p>';
+                return;
+            }
+
+            container.innerHTML = data.recruitments.map(recruitment => `
+                <div class="bg-white p-4 rounded-lg shadow mb-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-semibold">${recruitment.recruitUsername}</p>
+                            <p class="text-sm text-gray-600">Discord: ${recruitment.recruitDiscord}</p>
+                            <p class="text-sm text-gray-600">Rank: ${recruitment.recruitRank}</p>
+                            <p class="text-sm text-gray-600">Proposed Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
+                            <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition}</p>
+                            <p class="text-sm text-gray-600">Recruiter: ${recruitment.recruiter.username}</p>
+                            ${recruitment.status === 'bumped_back' ? `
+                                <div class="mt-2 p-2 bg-orange-50 border border-orange-200 rounded">
+                                    <p class="text-sm text-orange-600">Bumped back from Officer review</p>
+                                    <p class="text-sm text-gray-600">Officer Notes: ${recruitment.reviewChain[recruitment.reviewChain.length - 1].notes || 'No notes provided'}</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="space-y-2">
+                            <button onclick="handlePlacementAction('${recruitment._id}', 'approve')"
+                                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                                ${recruitment.status === 'bumped_back' ? 'Approve Original' : 'Approve'}
+                            </button>
+                            ${recruitment.status !== 'bumped_back' ? `
+                                <button onclick="handlePlacementAction('${recruitment._id}', 'bump_up')"
+                                        class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                    Bump to Officer
+                                </button>
+                            ` : ''}
+                            <button onclick="handlePlacementAction('${recruitment._id}', 'reject')"
+                                    class="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(error => console.error('Error loading pending placements:', error));
+}
+
+// Load bumped placements for Officer review
+function loadBumpedPlacements() {
+    fetch('/api/recruitment/bumped')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('bumpedPlacementsList');
+            container.innerHTML = '';
+
+            if (!data.recruitments || data.recruitments.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500">No bumped placements</p>';
+                return;
+            }
+
+            container.innerHTML = data.recruitments.map(recruitment => `
+                <div class="bg-white p-4 rounded-lg shadow mb-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="font-semibold">${recruitment.recruitUsername}</p>
+                            <p class="text-sm text-gray-600">Discord: ${recruitment.recruitDiscord}</p>
+                            <p class="text-sm text-gray-600">Rank: ${recruitment.recruitRank}</p>
+                            <p class="text-sm text-gray-600">Proposed Division: ${recruitment.targetDivision?.name || 'N/A'}</p>
+                            <p class="text-sm text-gray-600">Position: ${recruitment.divisionPosition}</p>
+                            <p class="text-sm text-gray-600">Recruiter: ${recruitment.recruiter.username}</p>
+                            <div class="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                                <p class="text-sm text-blue-600">Bumped up by: ${
+                                    recruitment.reviewChain.find(r => r.action === 'bump_up')?.reviewer.username || 'SNCO'
+                                }</p>
+                                <p class="text-sm text-gray-600">Notes: ${
+                                    recruitment.reviewChain.find(r => r.action === 'bump_up')?.notes || 'No notes provided'
+                                }</p>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <button onclick="handlePlacementAction('${recruitment._id}', 'approve')"
+                                    class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                                Approve Original
+                            </button>
+                            <button onclick="openNewDivisionModal('${recruitment._id}')"
+                                    class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                                Manual Placement
+                            </button>
+                            <button onclick="handlePlacementAction('${recruitment._id}', 'bump_back')"
+                                    class="w-full px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">
+                                Bump Back to SNCO
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(error => console.error('Error loading bumped placements:', error));
+}
+
+async function handlePlacementAction(id, action) {
+    let notes = '';
+    if (action === 'reject' || action === 'bump_up' || action === 'bump_back') {
+        notes = prompt('Please provide notes for this action:');
+        if (!notes) return;
+    }
+
+    try {
+        const response = await fetch(`/api/recruitment/${id}/${action}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ notes })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            if (window.isOfficer) {
+                loadBumpedPlacements();
+            } else {
+                loadPendingPlacements();
+            }
+            alert(data.message || 'Action processed successfully');
+        } else {
+            alert(data.error || 'Error processing action');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error processing action');
+    }
+}
+
+function openNewDivisionModal(recruitmentId) {
+    currentRecruitmentId = recruitmentId;
+    const modal = document.getElementById('newDivisionModal');
+    modal.classList.remove('hidden');
+    
+    fetch('/api/divisions')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('newDivisionSelect');
+            select.innerHTML = '<option value="">Select Division</option>';
+            data.divisions.forEach(division => {
+                select.innerHTML += `
+                    <option value="${division._id}">${division.name}</option>
+                `;
+            });
+        })
+        .catch(error => console.error('Error loading divisions:', error));
+}
+
+function closeNewDivisionModal() {
+    document.getElementById('newDivisionModal').classList.add('hidden');
+    currentRecruitmentId = null;
+}
+
+async function confirmNewDivision() {
+    const newDivisionId = document.getElementById('newDivisionSelect').value;
+    if (!newDivisionId) {
+        alert('Please select a division');
+        return;
+    }
+
+    const notes = prompt('Please provide any notes about this placement:');
+    if (!notes) return;
+    
+    try {
+        const response = await fetch(`/api/recruitment/${currentRecruitmentId}/manual_place`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                newDivisionId,
+                notes
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            closeNewDivisionModal();
+            loadBumpedPlacements();
+            alert('Recruit successfully placed in new division');
+        } else {
+            alert(data.error || 'Error processing placement');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error processing placement');
+    }
+}
+
+function toggleForms(formId) {
+    // Hide all form sections first
+    document.querySelectorAll('[id$="-forms"]').forEach(section => {
+        section.classList.add('hidden');
+    });
+    
+    // Show the selected section
+    const selectedSection = document.getElementById(formId);
+    if (selectedSection) {
+        selectedSection.classList.remove('hidden');
+        
+        // If it's the AFI section, load the regulations
+        if (formId === 'afi-forms') {
+            loadRegulations();
+        }
+    }
+}
+
+// Regulation Management Functions
+function openRegulationManagement() {
+    document.getElementById('regulationManagementModal').classList.remove('hidden');
+    // Initialize with the first tab
+    switchRegulationTab('add');
+}
+
+function closeRegulationManagement() {
+    document.getElementById('regulationManagementModal').classList.add('hidden');
+}
+
+function switchRegulationTab(tab) {
+    // Get the tab content based on the tab name
+    let tabContentId = tab + 'RegulationTab';
+    const tabContent = document.getElementById(tabContentId);
+    
+    if (!tabContent) {
+        console.error(`Tab content for ${tabContentId} not found`);
+        return;
+    }
+
+    // Hide all content
+    document.querySelectorAll('.regulation-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+    
+    // Show selected content
+    tabContent.classList.remove('hidden');
+    
+    // Update tab styles
+    document.querySelectorAll('.regulation-tab').forEach(tabEl => {
+        if (tabEl.dataset.tab === tab) {
+            tabEl.classList.add('border-blue-600', 'text-blue-600');
+        } else {
+            tabEl.classList.remove('border-blue-600', 'text-blue-600');
+        }
+    });
+
+    // Load appropriate content
+    if (tab === 'logs') {
+        loadRegulationLogs();
+    } else if (tab === 'remove') {
+        loadActiveRegulations();
+    }
+}
+
+// Add Regulation
+async function submitRegulation(event) {
+    event.preventDefault();
+    
+    const regulationData = {
+        title: document.getElementById('regulationTitle').value,
+        category: document.getElementById('regulationCategory').value,
+        description: document.getElementById('regulationDescription').value,
+        content: document.getElementById('regulationContent').value
+    };
+
+    try {
+        const response = await fetch('/api/regulations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(regulationData)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('Regulation added successfully');
+            // Clear form
+            document.getElementById('addRegulationForm').reset();
+        } else {
+            alert(data.error || 'Error adding regulation');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error adding regulation');
+    }
+}
+
+// Load all regulations for the AFI view
+async function loadRegulations() {
+    try {
+        const response = await fetch('/api/regulations/active');
+        const data = await response.json();
+        
+        const afiList = document.getElementById('afiList');
+        afiList.innerHTML = data.regulations.map(reg => `
+            <div class="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+                 onclick="viewRegulationDetails('${reg._id}')">
+                <h4 class="font-semibold text-lg">${reg.title}</h4>
+                <p class="text-sm text-gray-600 mt-1">${reg.description}</p>
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-xs text-gray-500">Category: ${reg.category}</span>
+                    <span class="text-xs text-gray-500">Last updated: ${new Date(reg.lastModified || reg.dateAdded).toLocaleDateString()}</span>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading regulations:', error);
+    }
+}
+
+// Load Active Regulations for removal
+async function loadActiveRegulations() {
+    try {
+        const response = await fetch('/api/regulations/active');
+        const data = await response.json();
+        
+        const regulationsList = document.getElementById('regulationsList');
+        regulationsList.innerHTML = data.regulations.map(reg => `
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h4 class="font-semibold">${reg.title}</h4>
+                        <p class="text-sm text-gray-600">${reg.description}</p>
+                        <p class="text-xs text-gray-500">Category: ${reg.category}</p>
+                        <p class="text-xs text-gray-500">Added: ${new Date(reg.dateAdded).toLocaleDateString()}</p>
+                    </div>
+                    <div class="space-y-2">
+                        <button onclick="viewRegulationDetails('${reg._id}')"
+                                class="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            View
+                        </button>
+                        <button onclick="removeRegulation('${reg._id}')"
+                                class="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading regulations:', error);
+        regulationsList.innerHTML = '<p class="text-red-500">Error loading regulations</p>';
+    }
+}
+
+// Remove Regulation
+async function removeRegulation(id) {
+    const reason = prompt('Please provide a reason for removing this regulation:');
+    if (!reason) return;
+
+    try {
+        const response = await fetch(`/api/regulations/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('Regulation removed successfully');
+            loadActiveRegulations();
+        } else {
+            alert(data.error || 'Error removing regulation');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error removing regulation');
+    }
+}
+
+// Load Regulation Logs
+async function loadRegulationLogs() {
+    try {
+        const response = await fetch('/api/regulations/logs');
+        const data = await response.json();
+        
+        const logsBody = document.getElementById('regulationLogsBody');
+        logsBody.innerHTML = data.logs.map(log => {
+            const date = new Date(log.modifiedDate).toLocaleString();
+            const actionClass = {
+                'added': 'text-green-600',
+                'removed': 'text-red-600',
+                'modified': 'text-blue-600'
+            }[log.changeType];
+
+            return `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">${date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="${actionClass} font-medium">
+                            ${log.changeType.charAt(0).toUpperCase() + log.changeType.slice(1)}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">${log.title}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${log.modifiedBy.username}</td>
+                    <td class="px-6 py-4">
+                        <button onclick="viewLogDetails('${log._id}')"
+                                class="text-blue-600 hover:text-blue-800">
+                            View Details
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        if (data.logs.length === 0) {
+            logsBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                        No regulation logs found
+                    </td>
+                </tr>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading regulation logs:', error);
+    }
+}
+
+// View Regulation Details
+function previewRegulation() {
+    const content = document.getElementById('regulationContent').value;
+    const previewArea = document.getElementById('previewArea');
+    const previewContent = document.getElementById('previewContent');
+    
+    // Convert markdown to HTML
+    previewContent.innerHTML = marked.parse(content);
+    previewArea.classList.remove('hidden');
+}
+
+// Update the regulation display function
+async function viewRegulationDetails(id) {
+    try {
+        const response = await fetch(`/api/regulations/${id}`);
+        const data = await response.json();
+        
+        document.getElementById('regulationDetailsTitle').textContent = data.regulation.title;
+        document.getElementById('regulationDetailsContent').innerHTML = `
+            <div class="space-y-4">
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Category</h4>
+                    <p>${data.regulation.category}</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Description</h4>
+                    <p>${data.regulation.description}</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Content</h4>
+                    <div class="prose max-w-none">
+                        ${marked.parse(data.regulation.content)}
+                    </div>
+                </div>
+                <div class="text-sm text-gray-500">
+                    Last modified: ${new Date(data.regulation.lastModified || data.regulation.dateAdded).toLocaleString()}
+                    ${data.regulation.lastModifiedBy ? `by ${data.regulation.lastModifiedBy.username}` : ''}
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('regulationDetailsModal').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error loading regulation details:', error);
+        alert('Error loading regulation details');
+    }
+}
+
+// View Log Details
+async function viewLogDetails(logId) {
+    try {
+        const response = await fetch(`/api/regulations/logs/${logId}`);
+        const data = await response.json();
+        const log = data.log;
+        
+        document.getElementById('regulationDetailsTitle').textContent = 'Change Log Details';
+        document.getElementById('regulationDetailsContent').innerHTML = `
+            <div class="space-y-4">
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Action</h4>
+                    <p>${log.changeType.charAt(0).toUpperCase() + log.changeType.slice(1)}</p>
+                </div>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Reason</h4>
+                    <p>${log.reason || 'No reason provided'}</p>
+                </div>
+                ${log.previousContent ? `
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-500">Previous Content</h4>
+                        <div class="prose">${marked(log.previousContent)}</div>
+                    </div>
+                ` : ''}
+                ${log.newContent ? `
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-500">New Content</h4>
+                        <div class="prose">${marked(log.newContent)}</div>
+                    </div>
+                ` : ''}
+                <div class="text-sm text-gray-500">
+                    Modified on ${new Date(log.modifiedDate).toLocaleString()}
+                    by ${log.modifiedBy.username}
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('regulationDetailsModal').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error loading log details:', error);
+        alert('Error loading log details');
+    }
+}
+
+// Close Regulation Details Modal
+function closeRegulationDetails() {
+    document.getElementById('regulationDetailsModal').classList.add('hidden');
+}
+
+// Filter regulations in the AFI view
+function filterRegulations(searchTerm) {
+    const regulations = document.querySelectorAll('#afiList > div');
+    searchTerm = searchTerm.toLowerCase();
+    
+    regulations.forEach(reg => {
+        const text = reg.textContent.toLowerCase();
+        reg.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+}
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('addRegulationForm').addEventListener('submit', submitRegulation);
+    document.getElementById('afiSearch').addEventListener('keyup', (e) => filterRegulations(e.target.value));
+    
+    // Initial load of regulations if we're on the forms page
+    if (document.getElementById('afiList')) {
+        loadRegulations();
+    }
+});
+
+// Disciplinary Action Functions
+function openDisciplinaryForm() {
+    document.getElementById('disciplinaryModal').classList.remove('hidden');
+    document.getElementById('disciplinaryStep1').classList.remove('hidden');
+    document.getElementById('disciplinaryStep2').classList.add('hidden');
+    document.getElementById('disciplinaryUsername').value = '';
+}
+
+function closeDisciplinaryModal() {
+    document.getElementById('disciplinaryModal').classList.add('hidden');
+}
+
+async function checkUserForDisciplinary() {
+    const username = document.getElementById('disciplinaryUsername').value;
+    
+    try {
+        const response = await fetch(`/api/users/check?username=${username}`);
+        const data = await response.json();
+        
+        if (data.user) {
+            selectedUserId = data.user._id;
+            showDisciplinaryDetails(data.user);
+        } else {
+            alert('User not found');
+        }
+    } catch (error) {
+        console.error('Error checking user:', error);
+        alert('Error checking user');
+    }
+}
+
+function showDisciplinaryDetails(user) {
+    document.getElementById('disciplinaryStep1').classList.add('hidden');
+    document.getElementById('disciplinaryStep2').classList.remove('hidden');
+    
+    document.getElementById('selectedDisciplinaryUser').textContent = user.username;
+    document.getElementById('disciplinaryUserRank').textContent = user.highestRole;
+}
+
+function handleGradeChange() {
+    const grade = document.getElementById('disciplinaryGrade').value;
+    const xpDeductionInput = document.getElementById('xpDeductionInput');
+    const demotionRankInput = document.getElementById('demotionRankInput');
+    
+    // Hide both inputs initially
+    xpDeductionInput.classList.add('hidden');
+    demotionRankInput.classList.add('hidden');
+    
+    // Show appropriate input based on grade
+    if (grade === '3') {
+        xpDeductionInput.classList.remove('hidden');
+    } else if (grade === '4') {
+        demotionRankInput.classList.remove('hidden');
+        populateDemotionRanks();
+    }
+}
+
+function checkXpDeduction(value) {
+    const approvalNote = document.getElementById('xpApprovalNote');
+    if (parseInt(value) >= 10) {
+        approvalNote.classList.remove('hidden');
+    } else {
+        approvalNote.classList.add('hidden');
+    }
+}
+
+function populateDemotionRanks() {
+    const currentRank = document.getElementById('disciplinaryUserRank').textContent;
+    const selectElement = document.getElementById('demotionRankSelect');
+    selectElement.innerHTML = '';
+    
+    const currentRankIndex = RANK_ORDER.indexOf(currentRank);
+    
+    // Add ranks below current rank
+    for (let i = currentRankIndex - 1; i >= 0; i--) {
+        const option = document.createElement('option');
+        option.value = RANK_ORDER[i];
+        option.textContent = RANK_ORDER[i];
+        selectElement.appendChild(option);
+    }
+}
+
+async function submitDisciplinaryAction() {
+    const grade = document.getElementById('disciplinaryGrade').value;
+    const reason = document.getElementById('disciplinaryReason').value;
+    
+    if (!grade || !reason) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    let actionData = {
+        userId: selectedUserId,
+        grade: parseInt(grade),
+        reason: reason
+    };
+    
+    // Add grade-specific data
+    if (grade === '3') {
+        const xpDeduction = parseInt(document.getElementById('xpDeductionInput').querySelector('input').value);
+        if (!xpDeduction) {
+            alert('Please enter XP deduction amount');
+            return;
+        }
+        actionData.xpDeduction = xpDeduction;
+    } else if (grade === '4') {
+        const demotionRank = document.getElementById('demotionRankSelect').value;
+        if (!demotionRank) {
+            alert('Please select demotion rank');
+            return;
+        }
+        actionData.demotionRank = demotionRank;
+    }
+    
+    try {
+        const response = await fetch('/api/disciplinary', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(actionData)
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            alert('Disciplinary action submitted successfully' + 
+                  (data.needsApproval ? ' and pending officer approval' : ''));
+            closeDisciplinaryModal();
+        } else {
+            alert(data.error || 'Error submitting disciplinary action');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error submitting disciplinary action');
+    }
+}
+
+// Disciplinary Logs Functions
+function openDisciplinaryLogs() {
+    document.getElementById('disciplinaryLogsModal').classList.remove('hidden');
+    loadDisciplinaryLogs();
+    if (isOfficer) {
+        loadPendingDisciplinaryActions();
+    }
+}
+
+function closeDisciplinaryLogs() {
+    document.getElementById('disciplinaryLogsModal').classList.add('hidden');
+}
+
+async function loadDisciplinaryLogs() {
+    try {
+        const response = await fetch('/api/disciplinary/logs');
+        const data = await response.json();
+        
+        const tbody = document.getElementById('disciplinaryLogsBody');
+        tbody.innerHTML = data.actions.map(action => {
+            const date = new Date(action.dateIssued).toLocaleDateString();
+            const statusClass = {
+                'pending': 'text-yellow-600',
+                'approved': 'text-green-600',
+                'rejected': 'text-red-600',
+                'completed': 'text-blue-600'
+            }[action.status];
+            
+            let actionText = '';
+            switch(action.grade) {
+                case 1:
+                    actionText = 'Warning';
+                    break;
+                case 2:
+                    actionText = 'Violation (-1 XP)';
+                    break;
+                case 3:
+                    actionText = `Violation II (-${action.xpDeduction} XP)`;
+                    break;
+                case 4:
+                    actionText = `Demotion to ${action.demotionRank}`;
+                    break;
+            }
+
+            return `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">${date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${action.targetUser.username}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">Grade ${action.grade}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${actionText}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="${statusClass} font-medium">${action.status}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <button onclick="viewDisciplinaryDetails('${action._id}')"
+                                class="text-blue-600 hover:text-blue-800">
+                            View Details
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading disciplinary logs:', error);
+    }
+}
+
+async function loadPendingDisciplinaryActions() {
+    try {
+        const response = await fetch('/api/disciplinary/pending');
+        const data = await response.json();
+        
+        const container = document.getElementById('pendingDisciplinaryActions');
+        container.innerHTML = data.actions.map(action => `
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-semibold">${action.targetUser.username}</p>
+                        <p class="text-sm text-gray-600">Grade ${action.grade} - ${
+                            action.grade === 3 ? `XP Deduction: ${action.xpDeduction}` :
+                            action.grade === 4 ? `Demotion to ${action.demotionRank}` : ''
+                        }</p>
+                        <p class="text-sm text-gray-600">Issued by: ${action.issuedBy.username}</p>
+                        <p class="mt-2">Reason: ${action.reason}</p>
+                    </div>
+                    <div class="space-x-2">
+                        <button onclick="approveDisciplinaryAction('${action._id}')"
+                                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            Approve
+                        </button>
+                        <button onclick="rejectDisciplinaryAction('${action._id}')"
+                                class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                            Reject
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('') || '<p class="text-center text-gray-500">No pending actions</p>';
+    } catch (error) {
+        console.error('Error loading pending actions:', error);
+    }
+}
+
+async function approveDisciplinaryAction(id) {
+    try {
+        const response = await fetch(`/api/disciplinary/${id}/approve`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            loadPendingDisciplinaryActions();
+            loadDisciplinaryLogs();
+        } else {
+            alert(data.error || 'Error approving action');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error approving action');
+    }
+}
+
+async function rejectDisciplinaryAction(id) {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (!reason) return;
+
+    try {
+        const response = await fetch(`/api/disciplinary/${id}/reject`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            loadPendingDisciplinaryActions();
+            loadDisciplinaryLogs();
+        } else {
+            alert(data.error || 'Error rejecting action');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error rejecting action');
+    }
+}
+
+async function viewDisciplinaryDetails(id) {
+    try {
+        const response = await fetch(`/api/disciplinary/${id}`);
+        const data = await response.json();
+        const action = data.action;
+        
+        let detailsHtml = `
+            <div class="space-y-4">
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Date</h4>
+                    <p>${new Date(action.dateIssued).toLocaleString()}</p>
+                </div>
+                
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">User</h4>
+                    <p>${action.targetUser.username}</p>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Grade</h4>
+                    <p>Grade ${action.grade}</p>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Action</h4>
+                    <p>${
+                        action.grade === 1 ? 'Warning' :
+                        action.grade === 2 ? 'Violation (-1 XP)' :
+                        action.grade === 3 ? `Violation II (-${action.xpDeduction} XP)` :
+                        `Demotion to ${action.demotionRank}`
+                    }</p>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Reason</h4>
+                    <p>${action.reason}</p>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-medium text-gray-500">Status</h4>
+                    <p class="${
+                        action.status === 'pending' ? 'text-yellow-600' :
+                        action.status === 'approved' ? 'text-green-600' :
+                        action.status === 'rejected' ? 'text-red-600' :
+                        'text-blue-600'
+                    } font-medium">${action.status}</p>
+                </div>
+
+                ${action.officerApproval ? `
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-500">Officer Review</h4>
+                        <p>By ${action.officerApproval.officer.username}</p>
+                        <p class="text-sm">${new Date(action.officerApproval.date).toLocaleString()}</p>
+                        ${action.officerApproval.notes ? `
+                            <p class="text-sm mt-1">Notes: ${action.officerApproval.notes}</p>
+                        ` : ''}
+                    </div>
+                ` : ''}
+
+                ${action.status === 'pending' ? `
+                    <div class="flex justify-end space-x-2 mt-4">
+                        <button onclick="approveDisciplinaryAction('${action._id}')"
+                                class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                            Approve
+                        </button>
+                        <button onclick="rejectDisciplinaryAction('${action._id}')"
+                                class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                            Reject
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+        document.getElementById('disciplinaryDetailsTitle').textContent = 'Disciplinary Action Details';
+        document.getElementById('disciplinaryDetailsContent').innerHTML = detailsHtml;
+        document.getElementById('disciplinaryDetailsModal').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error loading action details:', error);
+        alert('Error loading action details');
+    }
+}
+
+function closeDisciplinaryDetails() {
+    document.getElementById('disciplinaryDetailsModal').classList.add('hidden');
+}
+
+function filterDisciplinaryLogs(searchTerm) {
+    const rows = document.querySelectorAll('#disciplinaryLogsBody tr');
+    searchTerm = searchTerm.toLowerCase();
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+}
+                </script>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
