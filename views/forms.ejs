@@ -800,7 +800,15 @@ async function loadForm150SncoQueue() {
 function openTrainingForm(formId) {
     console.log("Opening training form with ID:", formId);
     
-    // Fetch the selected form's details
+    // Show the modal first, then fetch data
+    const modal = document.getElementById('form150DetailModal');
+    modal.classList.remove('hidden');
+    
+    // Show loading indicator
+    const contentDiv = document.getElementById('form150DetailContent');
+    contentDiv.innerHTML = `<div class="p-4 text-center">Loading form data...</div>`;
+    
+    // Use the correct endpoint based on your routes
     fetch(`/api/training/${formId}`)
         .then(response => {
             if (!response.ok) {
@@ -809,14 +817,81 @@ function openTrainingForm(formId) {
             return response.json();
         })
         .then(form => {
-            document.getElementById('form150DetailModal').classList.remove('hidden');
-            populateForm150DetailModal(form);
+            // Format trainees display
+            let traineesDisplay = 'None';
+            if (form.trainees && form.trainees.length) {
+                if (typeof form.trainees[0] === 'object') {
+                    traineesDisplay = form.trainees.map(t => t.username).join(', ');
+                } else {
+                    traineesDisplay = form.trainees.join(', ');
+                }
+            }
+            
+            // Update modal content
+            contentDiv.innerHTML = `
+                <div class="space-y-4">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="font-bold text-lg mb-2">Training Details</h3>
+                        <p><strong>Event Name:</strong> ${form.eventName || 'Not specified'}</p>
+                        <p><strong>Start Time:</strong> ${new Date(form.startTime).toLocaleString()}</p>
+                        <p><strong>End Time:</strong> ${new Date(form.endTime).toLocaleString()}</p>
+                        <p><strong>Duration:</strong> ${Math.round((new Date(form.endTime) - new Date(form.startTime)) / (1000 * 60))} minutes</p>
+                        <p><strong>Trainees:</strong> ${traineesDisplay}</p>
+                        <p><strong>Grade:</strong> ${form.grade || 'Not graded'}</p>
+                        <p><strong>Outcome:</strong> ${form.outcome || 'Not specified'}</p>
+                        ${form.remedialTrainees?.length ? `<p><strong>Remedial Trainees:</strong> ${form.remedialTrainees.join(', ')}</p>` : ''}
+                        ${form.failedTrainees?.length ? `<p><strong>Failed Trainees:</strong> ${form.failedTrainees.join(', ')}</p>` : ''}
+                    </div>
+
+                    <form action="/api/training/snco-submit" method="POST" class="space-y-4 bg-white p-4 rounded-lg border">
+                        <input type="hidden" name="formId" value="${form._id}">
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Recommended XP</label>
+                            <input type="number" name="recommendedXP" class="w-full border rounded px-3 py-2" required min="0">
+                            <p class="text-xs text-gray-500 mt-1">Enter the recommended XP for all trainees</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-1">SNCO Remarks</label>
+                            <textarea name="remarks" class="w-full border rounded px-3 py-2" rows="4" 
+                                     placeholder="Enter your assessment of the training event..."></textarea>
+                        </div>
+
+                        <div class="text-right">
+                            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                Sign and Submit
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
         })
         .catch(err => {
             console.error('Failed to fetch training form:', err);
-            alert('Failed to fetch training form: ' + err.message);
+            contentDiv.innerHTML = `
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <h3 class="font-bold text-lg mb-2 text-red-600">Error Loading Form</h3>
+                    <p>There was a problem loading the training form data: ${err.message}</p>
+                    <button onclick="closeForm150DetailModal()" class="mt-4 px-3 py-1 bg-gray-500 text-white rounded">
+                        Close
+                    </button>
+                </div>
+            `;
         });
 }
+
+// Add this CSS to ensure the modal is visible when the 'hidden' class is removed
+document.addEventListener('DOMContentLoaded', function() {
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+        .modal:not(.hidden) {
+            display: flex !important;
+            z-index: 100 !important;
+        }
+    `;
+    document.head.appendChild(styleEl);
+});
 
 // Enhanced function to populate the detail modal
 function populateForm150DetailModal(form) {
