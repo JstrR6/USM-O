@@ -81,7 +81,7 @@ passport.deserializeUser(async (id, done) => {
 // Routes
 app.use('/', routes);
 
-app.use('/api/training', require('./routes/training'));
+app.use('/api/training', require('./models/training'));
 
 // Error handling
 app.use((err, req, res, next) => {
