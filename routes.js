@@ -1002,7 +1002,7 @@ router.post('/api/recruitment', async (req, res) => {
             remarks,
             hoursPerWeek,
             referredBy,
-            submittedBy: req.user._id // if using session-based user
+            submittedBy: req.user.fullName || req.user.username
         });
 
         await newRequest.save();
