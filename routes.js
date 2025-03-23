@@ -314,21 +314,34 @@ router.get('/api/members/:id/profile', isAuthenticated, async (req, res) => {
 
 router.get('/forms', isAuthenticated, async (req, res) => {
     try {
-        const divisions = await Division.find({}, 'name').lean();
-        const users = await User.find({});
-
-        res.render('forms', {
-            title: 'Forms',
-            user: req.user,
-            path: '/forms',
-            divisions,
-            users
-        });
+      const divisions = await Division.find({}, 'name').lean();
+      const users = await User.find({});
+  
+      const form122OfficerQueue = await DivisionRemoval.find({ status: 'Pending Officer Review' })
+        .populate('targetUser targetDivision sncoSignature')
+        .lean();
+  
+      const formattedOfficerQueue = form122OfficerQueue.map(form => ({
+        _id: form._id,
+        targetUsername: form.targetUser?.username || 'Unknown',
+        divisionName: form.targetDivision?.name || 'Unknown',
+        reason: form.reason || '',
+        sncoSignature: form.sncoSignature?.username || 'Unknown'
+      }));
+  
+      res.render('forms', {
+        title: 'Forms',
+        user: req.user,
+        path: '/forms',
+        divisions,
+        users,
+        form122OfficerQueue: formattedOfficerQueue // ✅ Pass it in
+      });
     } catch (err) {
-        console.error('Error loading forms:', err);
-        res.status(500).send('Error loading forms');
+      console.error('Error loading forms:', err);
+      res.status(500).send('Error loading forms');
     }
-});
+  });
 
 // API Routes for Promotions
 router.get('/api/users/check', isAuthenticated, async (req, res) => {
