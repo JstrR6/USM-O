@@ -120,7 +120,7 @@
                 document.getElementById('assignUserModal').classList.add('hidden');
             }
 
-            const allUsers = <%- JSON.stringify(users) %>;
+        const allUsers = <%- JSON.stringify(users) %>;
 
         function filterUsers() {
             const input = document.getElementById('userSearch').value.toLowerCase();
@@ -142,6 +142,15 @@
                 };
                 results.appendChild(div);
             });
+        }
+
+        function validateUserSelection() {
+            const userId = document.getElementById('selectedUserId').value;
+            if (!userId) {
+                alert('Please select a user from the suggestions.');
+                return false;
+            }
+            return true;
         }
     </script>
 </head>
@@ -357,14 +366,14 @@
             <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="closeAssignUserModal()">&times;</button>
             <h2 class="text-xl font-bold mb-4">Assign User to Division</h2>
     
-            <form action="/api/division/assign-user" method="POST" class="space-y-4">
+            <form action="/api/division/assign-user" method="POST" class="space-y-4" onsubmit="return validateUserSelection()">
                 <div>
                     <label class="block font-medium text-sm mb-1">Search User</label>
                     <input type="text" id="userSearch" oninput="filterUsers()" placeholder="Type to search..." class="w-full border border-gray-300 rounded px-3 py-2">
                     <div id="userSearchResults" class="mt-2 border border-gray-300 rounded bg-white max-h-40 overflow-y-auto"></div>
                     <input type="hidden" name="userId" id="selectedUserId">
                 </div>
-    
+            
                 <div>
                     <label class="block font-medium text-sm mb-1">Select Division</label>
                     <select name="divisionId" class="w-full border border-gray-300 rounded px-3 py-2">
@@ -373,12 +382,12 @@
                         <% }) %>
                     </select>
                 </div>
-    
+            
                 <div>
                     <label class="block font-medium text-sm mb-1">Role</label>
                     <input name="role" type="text" class="w-full border border-gray-300 rounded px-3 py-2">
                 </div>
-    
+            
                 <div class="text-right">
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Assign</button>
                 </div>

@@ -313,7 +313,7 @@ router.get('/api/members/:id/profile', isAuthenticated, async (req, res) => {
 
 router.get('/forms', isAuthenticated, async (req, res) => {
     try {
-        const divisions = await Division.find({});
+        const divisions = await Division.find({}, 'name').lean();
         const users = await User.find({});
 
         res.render('forms', {
