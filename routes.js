@@ -15,6 +15,7 @@ const { handlePromotion } = require('./bot')
 const RecruitmentRequest = require('./models/recruitmentrequest');
 const Division = require('./models/division');
 const DivisionRemoval = require('./models/divisionRemoval');
+const Training = require('../schemas/training');
 
 // Middleware to check authentication
 function isAuthenticated(req, res, next) {
@@ -312,11 +313,12 @@ router.get('/api/members/:id/profile', isAuthenticated, async (req, res) => {
     }
 });
 
-router.get('/forms', isAuthenticated, async (req, res) => {
+router.get('/forms', async (req, res) => {
     try {
       const divisions = await Division.find({}, 'name').lean();
-      const users = await User.find({});
+      const users = await User.find({}).lean();
   
+      // Form 122 Officer Queue
       const form122OfficerQueue = await DivisionRemoval.find({ status: 'Pending Officer Review' })
         .populate('targetUser targetDivision sncoSignature')
         .lean();
@@ -329,13 +331,25 @@ router.get('/forms', isAuthenticated, async (req, res) => {
         sncoSignature: form.sncoSignature?.username || 'Unknown'
       }));
   
+      // Form 150 SNCO Queue
+      const form150SncoQueue = await Training.find({ status: 'Pending SNCO Review' })
+        .populate('ncoSignature')
+        .lean();
+  
+      // Form 150 Officer Queue
+      const form150OfficerQueue = await Training.find({ status: 'Pending Officer Approval' })
+        .populate('ncoSignature sncoSignature')
+        .lean();
+  
       res.render('forms', {
         title: 'Forms',
         user: req.user,
         path: '/forms',
         divisions,
         users,
-        form122OfficerQueue: formattedOfficerQueue // ✅ Pass it in
+        form122OfficerQueue: formattedOfficerQueue,
+        form150SncoQueue,
+        form150OfficerQueue
       });
     } catch (err) {
       console.error('Error loading forms:', err);
@@ -642,217 +656,118 @@ router.get('/api/demotions/logs', isAuthenticated, async (req, res) => {
 });
 
 // Submit new training
-router.post('/api/trainings', isAuthenticated, async (req, res) => {
-    if (!req.user.isInstructor) {
-        return res.status(403).json({ error: 'Only instructors can submit trainings' });
-    }
-
+router.post('/api/training/submit', async (req, res) => {
     try {
-        const { usernames, type, xpAmount } = req.body;
-        
-        // Find all trainees
-        const trainees = await User.find({ username: { $in: usernames } });
-        if (trainees.length !== usernames.length) {
-            return res.status(400).json({ error: 'Some usernames not found' });
-        }
-
-        // For Basic Training, verify trainees are citizens
-        if (type === 'Basic Training') {
-            const nonCitizens = trainees.filter(t => t.highestRole !== 'Citizen');
-            if (nonCitizens.length > 0) {
-                return res.status(400).json({ 
-                    error: 'Basic Training is only for citizens' 
-                });
-            }
-        }
-
-        const needsApproval = xpAmount >= 10;
-        const training = new Training({
-            trainees: trainees.map(t => t._id),
-            instructor: req.user._id,
-            type,
-            xpAmount,
-            needsApproval,
-            status: needsApproval ? 'pending' : 'approved'
-        });
-
-        await training.save();
-
-        // If no approval needed, update XP immediately
-        if (!needsApproval) {
-            for (const trainee of trainees) {
-                trainee.xp += xpAmount;
-                await trainee.save();
-            }
-            training.processed = true;
-            await training.save();
-        }
-
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Training submission error:', error);
-        res.status(500).json({ error: 'Server error' });
+      const {
+        trainees,
+        startTime,
+        endTime,
+        eventName,
+        grade,
+        outcome,
+        remedialTrainees,
+        failedTrainees,
+      } = req.body;
+  
+      const traineeList = trainees.split(',').map(t => t.trim());
+  
+      const form = new Training({
+        trainees: traineeList,
+        startTime,
+        endTime,
+        eventName,
+        grade,
+        outcome,
+        remedialTrainees: remedialTrainees?.split(',').map(t => t.trim()) || [],
+        failedTrainees: failedTrainees?.split(',').map(t => t.trim()) || [],
+        ncoSignature: req.user._id,
+        status: 'Pending SNCO Review',
+      });
+  
+      await form.save();
+      res.redirect('/forms');
+    } catch (err) {
+      console.error('Error submitting training form:', err);
+      res.status(500).send('Error submitting training form.');
     }
-});
-
-// Get pending trainings
-router.get('/api/trainings/pending', isAuthenticated, async (req, res) => {
-    console.log('Checking user roles:', {
-        isSenior: req.user.isSenior,
-        isOfficer: req.user.isOfficer
-    });
-
-    if (!req.user.isSenior && !req.user.isOfficer) {
-        return res.status(403).json({ error: 'Not authorized' });
-    }
-
+  });
+  
+  // SNCO Review Route - GET pending
+  router.get('/api/training/pending-snco', async (req, res) => {
     try {
-        const query = { 
-            $or: [
-                { status: 'pending' },
-                { status: 'bumped_back' }
-            ]
-        };
-
-        console.log('Query being used:', query);
-
-        const trainings = await Training.find(query)
-            .populate('trainees instructor')
-            .sort({ createdAt: -1 });
-
-        console.log('Found trainings:', {
-            count: trainings.length,
-            trainings: trainings.map(t => ({
-                id: t._id,
-                status: t.status,
-                needsApproval: t.needsApproval,
-                type: t.type
-            }))
-        });
-
-        res.json({ 
-            trainings: trainings,
-            user: {
-                isSenior: req.user.isSenior,
-                isOfficer: req.user.isOfficer
-            }
-        });
-    } catch (error) {
-        console.error('Error fetching pending trainings:', error);
-        res.status(500).json({ error: 'Server error' });
+      const forms = await Training.find({ status: 'Pending SNCO Review' })
+        .populate('ncoSignature', 'username');
+      res.json(forms);
+    } catch (err) {
+      console.error('Error loading SNCO forms:', err);
+      res.status(500).send('Failed to load SNCO forms.');
     }
-});
-
-// Get training logs
-router.get('/api/trainings/logs', isAuthenticated, async (req, res) => {
+  });
+  
+  // SNCO Review - POST
+  router.post('/api/training/snco-submit', async (req, res) => {
     try {
-        let query = {};
-        switch (req.query.filter) {
-            case 'bumped':
-                query.status = { $in: ['bumped_up', 'bumped_back'] };
-                break;
-            case 'approved':
-                query.status = 'approved';
-                break;
-            case 'rejected':
-                query.status = 'rejected';
-                break;
-        }
-
-        const trainings = await Training.find(query)
-            .populate('trainees instructor')
-            .sort({ createdAt: -1 });
-
-        res.json({ trainings });
-    } catch (error) {
-        res.status(500).json({ error: 'Server error' });
+      const { formId, recommendedXP, remarks } = req.body;
+  
+      await Training.findByIdAndUpdate(formId, {
+        recommendedXP,
+        remarks,
+        sncoSignature: req.user._id,
+        status: 'Pending Officer Approval',
+      });
+  
+      res.redirect('/forms');
+    } catch (err) {
+      console.error('Error submitting SNCO review:', err);
+      res.status(500).send('Error submitting review.');
     }
-});
-
-// Training actions (approve, reject, bump)
-router.post('/api/trainings/:id/:action', isAuthenticated, async (req, res) => {
-    if (!req.user.isSenior && !req.user.isOfficer) {
-        return res.status(403).json({ error: 'Not authorized' });
-    }
-
+  });
+  
+  // Company Officer Review - GET pending
+  router.get('/api/training/pending-officer', async (req, res) => {
     try {
-        const training = await Training.findById(req.params.id)
-            .populate('trainees');
-        
-        if (!training) {
-            return res.status(404).json({ error: 'Training not found' });
-        }
-
-        switch (req.params.action) {
-            case 'approve':
-                training.status = 'approved';
-                // Update XP for all trainees
-                for (const trainee of training.trainees) {
-                    trainee.xp += training.xpAmount;
-                    await trainee.save();
-                }
-                training.processed = true;
-                break;
-
-            case 'reject':
-                training.status = 'rejected';
-                training.rejectReason = req.body.reason;
-                break;
-
-            case 'bump_up':
-                if (!req.user.isSenior) {
-                    return res.status(403).json({ error: 'Not authorized to bump up' });
-                }
-                training.status = 'bumped_up';
-                break;
-
-            case 'bump_back':
-                if (!req.user.isOfficer) {
-                    return res.status(403).json({ error: 'Not authorized to bump back' });
-                }
-                training.status = 'bumped_back';
-                break;
-
-            default:
-                return res.status(400).json({ error: 'Invalid action' });
-        }
-
-        training.approvalChain.push({
-            approver: req.user._id,
-            action: req.params.action,
-            reason: req.body.reason
-        });
-
-        await training.save();
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Training action error:', error);
-        res.status(500).json({ error: 'Server error' });
+      const forms = await Training.find({ status: 'Pending Officer Approval' })
+        .populate('ncoSignature sncoSignature', 'username');
+      res.json(forms);
+    } catch (err) {
+      console.error('Error loading officer forms:', err);
+      res.status(500).send('Failed to load officer forms.');
     }
-});
-
-// Get training details
-router.get('/api/trainings/:id', isAuthenticated, async (req, res) => {
+  });
+  
+  // Company Officer Final Approval - POST
+  router.post('/api/training/officer-submit', async (req, res) => {
     try {
-        const training = await Training.findById(req.params.id)
-            .populate('trainees instructor')
-            .populate('approvalChain.approver');
-
-        if (!training) {
-            return res.status(404).json({ error: 'Training not found' });
+      const { formId, xpAssignments } = req.body;
+  
+      const form = await Training.findById(formId);
+      if (!form) return res.status(404).send('Form not found');
+  
+      const parsedXP = {};
+      for (const username in xpAssignments) {
+        parsedXP[username] = parseInt(xpAssignments[username], 10);
+      }
+  
+      // Update each user's XP
+      for (const [username, xp] of Object.entries(parsedXP)) {
+        const user = await User.findOne({ username });
+        if (user) {
+          user.xp = (user.xp || 0) + xp;
+          await user.save();
         }
-
-        res.json({
-            training: training,
-            user: {
-                isSenior: req.user.isSenior,
-                isOfficer: req.user.isOfficer
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Server error' });
+      }
+  
+      form.status = 'Approved';
+      form.officerSignature = req.user._id;
+      form.finalXP = parsedXP;
+      await form.save();
+  
+      res.redirect('/forms');
+    } catch (err) {
+      console.error('Error finalizing officer approval:', err);
+      res.status(500).send('Error finalizing approval.');
     }
-});
+  });
 
 // Get all users
 router.get('/api/users', isAuthenticated, async (req, res) => {

@@ -222,6 +222,135 @@
         container.innerHTML = '<p class="text-red-600">Failed to load forms.</p>';
     }
 }
+
+function openTrainingForm150() {
+    document.getElementById('form150Modal').classList.remove('hidden');
+  }
+
+  function closeTrainingForm150() {
+    document.getElementById('form150Modal').classList.add('hidden');
+  }
+
+function toggleOutcomeTraineeFields() {
+    const outcome = document.getElementById('outcomeSelect').value;
+    document.getElementById('remedialTrainees').classList.toggle('hidden', outcome !== 'remedial');
+    document.getElementById('failedTrainees').classList.toggle('hidden', outcome !== 'failed');
+  }
+
+  function openForm150SncoModal() {
+  document.getElementById('form150SncoModal').classList.remove('hidden');
+  loadForm150SncoQueue();
+}
+
+function closeForm150SncoModal() {
+  document.getElementById('form150SncoModal').classList.add('hidden');
+}
+
+async function loadForm150SncoQueue() {
+  const container = document.getElementById('form150SncoQueueContainer');
+  container.innerHTML = '<p class="text-gray-600">Loading...</p>';
+
+  try {
+    const res = await fetch('/api/training/pending-snco');
+    const data = await res.json();
+
+    if (!data.length) {
+      container.innerHTML = '<p class="text-gray-600 italic">No training forms pending SNCO review.</p>';
+      return;
+    }
+
+    container.innerHTML = data.map(form => `
+      <div class="border rounded p-4 mb-4 bg-gray-50">
+        <p><strong>Event:</strong> ${form.eventName}</p>
+        <p><strong>Trainees:</strong> ${form.trainees.join(', ')}</p>
+        <p><strong>Time:</strong> ${new Date(form.startTime).toLocaleString()} - ${new Date(form.endTime).toLocaleString()}</p>
+        <p><strong>Grade:</strong> ${form.grade}</p>
+        <p><strong>Outcome:</strong> ${form.outcome}</p>
+        ${form.outcome === 'remedial' ? `<p><strong>Remedial Trainees:</strong> ${form.remedialTrainees.join(', ')}</p>` : ''}
+        ${form.outcome === 'failed' ? `<p><strong>Failed Trainees:</strong> ${form.failedTrainees.join(', ')}</p>` : ''}
+
+        <form action="/api/training/snco-submit" method="POST" class="space-y-3 mt-3">
+          <input type="hidden" name="formId" value="${form._id}">
+          
+          <label class="block text-sm font-medium">Recommended XP</label>
+          <input type="number" name="recommendedXP" class="w-full border rounded px-3 py-2" required>
+
+          <label class="block text-sm font-medium">Remarks</label>
+          <textarea name="remarks" class="w-full border rounded px-3 py-2" rows="3"></textarea>
+
+          <div class="text-right">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+              Sign and Send
+            </button>
+          </div>
+        </form>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Failed to load SNCO training forms:', err);
+    container.innerHTML = '<p class="text-red-600">Error loading forms.</p>';
+  }
+}
+
+function openForm150OfficerModal() {
+  document.getElementById('form150OfficerModal').classList.remove('hidden');
+  loadForm150OfficerQueue();
+}
+
+function closeForm150OfficerModal() {
+  document.getElementById('form150OfficerModal').classList.add('hidden');
+}
+
+async function loadForm150OfficerQueue() {
+  const container = document.getElementById('form150OfficerQueueContainer');
+  container.innerHTML = '<p class="text-gray-600">Loading...</p>';
+
+  try {
+    const res = await fetch('/api/training/pending-officer');
+    const data = await res.json();
+
+    if (!data.length) {
+      container.innerHTML = '<p class="text-gray-600 italic">No forms pending officer approval.</p>';
+      return;
+    }
+
+    container.innerHTML = data.map(form => `
+      <div class="border rounded p-4 mb-6 bg-gray-50">
+        <p><strong>Event:</strong> ${form.eventName}</p>
+        <p><strong>Trainees:</strong> ${form.trainees.join(', ')}</p>
+        <p><strong>Start:</strong> ${new Date(form.startTime).toLocaleString()}</p>
+        <p><strong>End:</strong> ${new Date(form.endTime).toLocaleString()}</p>
+        <p><strong>Grade:</strong> ${form.grade}</p>
+        <p><strong>Outcome:</strong> ${form.outcome}</p>
+        ${form.remedialTrainees?.length ? `<p><strong>Remedial:</strong> ${form.remedialTrainees.join(', ')}</p>` : ''}
+        ${form.failedTrainees?.length ? `<p><strong>Failed:</strong> ${form.failedTrainees.join(', ')}</p>` : ''}
+        <p><strong>SNCO Remarks:</strong> ${form.remarks || 'None'}</p>
+        <p><strong>Recommended XP:</strong> ${form.recommendedXP}</p>
+
+        <form action="/api/training/officer-submit" method="POST" class="space-y-4 mt-4">
+          <input type="hidden" name="formId" value="${form._id}">
+          
+          <label class="block text-sm font-medium">Assign XP to Trainees</label>
+          <div class="grid grid-cols-2 gap-4">
+            ${form.trainees.map(t => `
+              <div>
+                <label class="block text-xs font-medium">${t}</label>
+                <input type="number" name="xpAssignments[${t}]" class="w-full border rounded px-3 py-2" placeholder="XP">
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="text-right">
+            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Finalize and Approve</button>
+          </div>
+        </form>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Failed to load officer training forms:', err);
+    container.innerHTML = '<p class="text-red-600">Error loading forms.</p>';
+  }
+}
     </script>
 </head>
 <body class="bg-gray-100">
@@ -316,11 +445,23 @@
                         </div>
                     <% } %>
 
+                    <% if (folder.name === 'NCO') { %>
+                        <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openTrainingForm150()">
+                          <h3 class="text-lg font-semibold text-gray-800 mb-1">Form 150 – Training Report</h3>
+                          <p class="text-sm text-gray-600">Log training events and submit for SNCO review.</p>
+                        </div>
+                      <% } %>
+
                     <% if (folder.name === 'SNCO') { %>
                         <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="document.getElementById('form122Modal').classList.remove('hidden')">
                           <h3 class="text-lg font-semibold text-gray-800 mb-1">Form 122 – Division Removal</h3>
                           <p class="text-sm text-gray-600">Request removal of a member from a division.</p>
                         </div>
+
+                        <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openForm150SncoModal()">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-1">Form 150 SNCO Queue</h3>
+                            <p class="text-sm text-gray-600">Review pending training reports and recommend XP.</p>
+                          </div>
                       <% } %>
 
                       <% if (folder.name === 'Company Officers') { %>
@@ -328,6 +469,11 @@
                           <h3 class="text-lg font-semibold text-gray-800 mb-1">Form 122 Review Queue</h3>
                           <p class="text-sm text-gray-600">Process division removal forms submitted by SNCOs.</p>
                         </div>
+
+                        <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openForm150OfficerModal()">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-1">Form 150 Officer Queue</h3>
+                            <p class="text-sm text-gray-600">Review and finalize training reports.</p>
+                          </div>
                       <% } %>
 
                       <% if (folder.name === 'Field Officers') { %>
@@ -342,17 +488,13 @@
                             <h3 class="text-lg font-semibold text-gray-800 mb-1">Division Management</h3>
                             <p class="text-sm text-gray-600">Create and manage divisions in the command structure.</p>
                         </div>
-                    <% } %>
 
-                    <% if (folder.name === 'Headquarters') { %>
                         <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openDivisionBrowser()">
-                          <h3 class="text-lg font-semibold text-gray-800 mb-1">Division Browser</h3>
-                          <p class="text-sm text-gray-600">View the hierarchical structure of all divisions and assigned personnel.</p>
-                        </div>
-                    <% } %>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-1">Division Browser</h3>
+                            <p class="text-sm text-gray-600">View the hierarchical structure of all divisions and assigned personnel.</p>
+                          </div>
 
-                      <% if (folder.name === 'Company Officers') { %>
-                        <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openAssignUserModal()">
+                          <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openAssignUserModal()">
                             <h3 class="text-lg font-semibold text-gray-800 mb-1">Assign User to Division</h3>
                             <p class="text-sm text-gray-600">Assign a user to a specific division with a defined role.</p>
                         </div>
@@ -564,6 +706,95 @@
         </div>
       </div>
 
+      <!-- Training Form -->
+      <div id="form150Modal" class="modal hidden overflow-auto py-6">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative">
+          <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="document.getElementById('form150Modal').classList.add('hidden')">&times;</button>
+          <h2 class="text-xl font-bold mb-4">Form 150 – Training Report</h2>
+      
+          <form action="/api/training/submit" method="POST" class="space-y-4">
+            <!-- Trainees -->
+            <div>
+              <label class="block text-sm font-medium mb-1">Trainees (Usernames, separated by commas)</label>
+              <input type="text" name="trainees" class="w-full border rounded px-3 py-2" required placeholder="e.g. JohnDoe, JaneSmith">
+            </div>
+      
+            <!-- Training Event -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Start Time</label>
+                <input type="datetime-local" name="startTime" class="w-full border rounded px-3 py-2" required>
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">End Time</label>
+                <input type="datetime-local" name="endTime" class="w-full border rounded px-3 py-2" required>
+              </div>
+            </div>
+      
+            <!-- Event Name -->
+            <div>
+              <label class="block text-sm font-medium mb-1">Training Event</label>
+              <input type="text" name="eventName" class="w-full border rounded px-3 py-2" required>
+            </div>
+      
+            <!-- Grade -->
+            <div>
+              <label class="block text-sm font-medium mb-1">Overall Grade</label>
+              <div class="flex gap-4 mt-1">
+                <label><input type="radio" name="grade" value="Excellent" required> Excellent</label>
+                <label><input type="radio" name="grade" value="Satisfactory"> Satisfactory</label>
+                <label><input type="radio" name="grade" value="Needs Improvement"> Needs Improvement</label>
+              </div>
+            </div>
+      
+            <!-- Outcome -->
+            <div>
+              <label class="block text-sm font-medium mb-1">Training Outcome</label>
+              <select name="outcome" id="outcomeSelect" class="w-full border rounded px-3 py-2" required onchange="toggleOutcomeTraineeFields()">
+                <option value="">Select Outcome</option>
+                <option value="satisfactory">Training Satisfactory</option>
+                <option value="remedial">Remedial Training Advised</option>
+                <option value="failed">Training Failed</option>
+              </select>
+            </div>
+      
+            <!-- Conditional Fields -->
+            <div id="remedialTrainees" class="hidden">
+              <label class="block text-sm font-medium mb-1">Trainees Needing Remedial Training</label>
+              <input type="text" name="remedialTrainees" class="w-full border rounded px-3 py-2" placeholder="e.g. JaneSmith">
+            </div>
+      
+            <div id="failedTrainees" class="hidden">
+              <label class="block text-sm font-medium mb-1">Trainees Who Failed</label>
+              <input type="text" name="failedTrainees" class="w-full border rounded px-3 py-2" placeholder="e.g. JohnDoe">
+            </div>
+      
+            <!-- Submit -->
+            <div class="text-right">
+              <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Sign and Send</button>
+            </div>
+          </form>
+        </div>
+      </div>
 
+      <div id="form150SncoModal" class="modal hidden overflow-auto py-6">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6 relative">
+          <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="closeForm150SncoModal()">&times;</button>
+          <h2 class="text-xl font-bold mb-4">Form 150 – SNCO Review</h2>
+          <div id="form150SncoQueueContainer">
+            <p class="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="form150OfficerModal" class="modal hidden overflow-auto py-6">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-5xl p-6 relative">
+          <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="closeForm150OfficerModal()">&times;</button>
+          <h2 class="text-xl font-bold mb-4">Form 150 – Company Officer Approval</h2>
+          <div id="form150OfficerQueueContainer">
+            <p class="text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </div>
 </body>
 </html>
