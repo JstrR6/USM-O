@@ -13,6 +13,8 @@ const { Regulation } = require('./models/regulation');
 const { DisciplinaryAction } = require('./models/disciplinary');
 const { handlePromotion } = require('./bot')
 
+const RecruitmentRequest = require('./models/recruitmentrequest');
+
 // Middleware to check authentication
 function isAuthenticated(req, res, next) {
     if (req.isAuthenticated()) {
@@ -979,22 +981,24 @@ router.delete('/api/divisions/:id', isAuthenticated, async (req, res) => {
 
 // Submit recruitment
 router.post('/api/recruitment', isAuthenticated, async (req, res) => {
-    if (!req.user.isRecruiter && !req.user.isSenior && !req.user.isOfficer) {
-        return res.status(403).json({ error: 'Not authorized' });
-    }
-
     try {
-        const recruitment = new Recruitment({
-            ...req.body,
-            recruiter: req.user._id,
-            status: 'pending',
-            dateSubmitted: new Date()
-        });
-        await recruitment.save();
-        res.json({ success: true, recruitment });
-    } catch (error) {
-        console.error('Recruitment error:', error);
-        res.status(500).json({ error: 'Server error' });
+        const formData = {
+            name: req.body.name,
+            username: req.body.username,
+            discord: req.body.discord,
+            timezone: req.body.timezone,
+            goals: req.body.goals,
+            commitment: req.body.commitment,
+            remarks: req.body.remarks
+        };
+
+        const newRequest = new RecruitmentRequest(formData);
+        await newRequest.save();
+
+        res.redirect('/forms');
+    } catch (err) {
+        console.error('Recruitment error:', err);
+        res.status(500).send('An error occurred while submitting the recruitment request.');
     }
 });
 
