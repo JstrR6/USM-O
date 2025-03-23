@@ -847,7 +847,8 @@ router.get('/:id', async (req, res) => {
         }
       }
   
-      form.status = 'Approved';
+      // Use 'Completed' instead of 'Approved' to match the enum values in the schema
+      form.status = 'Completed'; 
       form.officerSignature = req.user._id;
       form.finalXP = parsedXP;
       await form.save();
