@@ -658,8 +658,8 @@ router.post('/api/training/submit', async (req, res) => {
         trainees,
         startTime,
         endTime,
-        eventName,
-        grade,
+        eventName, // This is the field name from the form
+        grade,     // This is the field name from the form
         outcome,
         remedialTrainees,
         failedTrainees,
@@ -683,12 +683,14 @@ router.post('/api/training/submit', async (req, res) => {
         return res.status(400).send('Invalid training outcome.');
       }
   
+      // Create form using the correct schema field names
       const form = new Training({
         trainees: traineeIds,
+        traineeNamesRaw: trainees, // Save the raw names for reference
         startTime,
         endTime,
-        eventName,
-        grade,
+        trainingEvent: eventName, // Use the correct schema field name
+        overallGrade: grade,      // Use the correct schema field name
         outcome,
         remedialTrainees: remedialIds,
         failedTrainees: failedIds,
@@ -723,22 +725,22 @@ router.post('/api/training/submit', async (req, res) => {
   // SNCO Review - POST
   router.post('/api/training/snco-submit', async (req, res) => {
     try {
-        const { formId, recommendedXP, remarks } = req.body;
-
-        // Update the training form with XP and remarks
-        await Training.findByIdAndUpdate(formId, {
-            recommendedXP,
-            remarks,
-            sncoSignature: req.user._id,
-            status: 'Pending Officer Approval',
-        });
-
-        res.redirect('/forms');  // Redirect after submission
+      const { formId, recommendedXP, remarks } = req.body;
+  
+      // Update the training form with XP and remarks - using the correct schema field names
+      await Training.findByIdAndUpdate(formId, {
+        sncoXPRecommendation: recommendedXP, // Use the correct schema field name
+        sncoRemarks: remarks,                // Use the correct schema field name
+        sncoSignature: req.user._id,
+        status: 'Pending Officer Approval',
+      });
+  
+      res.redirect('/forms');  // Redirect after submission
     } catch (err) {
-        console.error('Error submitting SNCO review:', err);
-        res.status(500).send('Error submitting review.');
+      console.error('Error submitting SNCO review:', err);
+      res.status(500).send('Error submitting review.');
     }
-});
+  });
 
 router.get('/training/:id', async (req, res) => {
     try {
