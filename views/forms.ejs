@@ -19,7 +19,31 @@
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 1.5rem;
         }
+        .folder-opened .folder-grid {
+            transform: scale(0.95);
+            margin-bottom: 2rem;
+        }
+        .folder-content {
+            background-color: #e5e7eb;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin-top: -1rem;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
+    <script>
+        function toggleFolder(folderName) {
+            const allContent = document.querySelectorAll('.folder-content');
+            allContent.forEach(el => el.classList.add('hidden'));
+
+            const target = document.getElementById('folder-' + folderName);
+            if (target) target.classList.remove('hidden');
+        }
+    </script>
 </head>
 <body class="bg-gray-100">
     <div class="min-h-screen flex">
@@ -66,32 +90,31 @@
                 "Second Lieutenant", "First Lieutenant", "Captain",
                 "Major", "Lieutenant Colonel", "Colonel",
                 "Brigadier General", "Major General", "Lieutenant General", "General", "General of the Air Force"
-            ];
+            ]; %>
 
-            const folderMap = [
-                { name: 'Headquarters', icon: 'fa-chess-king text-red-600', priority: 7, ranks: ['Brigadier General', 'Major General', 'Lieutenant General', 'General', 'General of the Air Force'] },
-                { name: 'Field Officers', icon: 'fa-chess-rook text-indigo-700', priority: 6, ranks: ['Major', 'Lieutenant Colonel', 'Colonel'] },
-                { name: 'Company Officers', icon: 'fa-chess-pawn text-indigo-500', priority: 5, ranks: ['Second Lieutenant', 'First Lieutenant', 'Captain'] },
-                { name: 'SNCO', icon: 'fa-user-tie text-purple-500', priority: 4, ranks: [
+            <% const folderMap = [
+                { name: 'Citizen', ranks: ['Citizen'], icon: 'fa-user', priority: 1 },
+                { name: 'Enlisted', ranks: ['Airman Basic', 'Airman', 'Airman First Class', 'Senior Airman'], icon: 'fa-users', priority: 2 },
+                { name: 'NCO', ranks: ['Staff Sergeant', 'Technical Sergeant', 'Master Sergeant', 'First Sergeant'], icon: 'fa-user-shield', priority: 3 },
+                { name: 'SNCO', ranks: [
                     'Senior Master Sergeant', 'Senior First Sergeant', 'Chief Master Sergeant',
                     'Chief First Sergeant', 'Command Chief Master Sergeant', 'Senior Enlisted Leader',
                     'Chief Senior Enlisted Leader', 'Chief Master Sergeant of the Air Force'
-                ] },
-                { name: 'NCO', icon: 'fa-user-shield text-yellow-500', priority: 3, ranks: ['Staff Sergeant', 'Technical Sergeant', 'Master Sergeant', 'First Sergeant'] },
-                { name: 'Enlisted', icon: 'fa-users text-green-500', priority: 2, ranks: ['Airman Basic', 'Airman', 'Airman First Class', 'Senior Airman'] },
-                { name: 'Citizen', icon: 'fa-user text-blue-500', priority: 1, ranks: ['Citizen'] },
-            ];
+                ], icon: 'fa-user-tie', priority: 4 },
+                { name: 'Company Officers', ranks: ['Second Lieutenant', 'First Lieutenant', 'Captain'], icon: 'fa-chess-pawn', priority: 5 },
+                { name: 'Field Officers', ranks: ['Major', 'Lieutenant Colonel', 'Colonel'], icon: 'fa-chess-rook', priority: 6 },
+                { name: 'Headquarters', ranks: ['Brigadier General', 'Major General', 'Lieutenant General', 'General', 'General of the Air Force'], icon: 'fa-chess-king', priority: 7 },
+            ]; %>
 
-            const userRank = user.highestRole;
+            <% const userRank = user.highestRole;
             const userRankIndex = RANKS.indexOf(userRank);
             const availableFolders = folderMap.filter(folder =>
                 folder.ranks.some(rank => RANKS.indexOf(rank) <= userRankIndex)
-            ).sort((a, b) => b.priority - a.priority);
-            %>
+            ).sort((a, b) => b.priority - a.priority); %>
 
-            <div class="folder-grid">
+            <div class="folder-grid folder-opened">
                 <% availableFolders.forEach(folder => { %>
-                    <div class="folder bg-white rounded-lg p-4 shadow flex justify-between items-center">
+                    <div class="folder bg-white rounded-lg p-4 shadow flex justify-between items-center cursor-pointer" onclick="toggleFolder('<%= folder.name %>')">
                         <div>
                             <i class="fas <%= folder.icon %> text-2xl mb-2"></i>
                             <p class="font-semibold mt-2"><%= folder.name %></p>
@@ -103,6 +126,13 @@
                     </div>
                 <% }) %>
             </div>
+
+            <% availableFolders.forEach(folder => { %>
+                <div id="folder-<%= folder.name %>" class="folder-content hidden">
+                    <h2 class="text-xl font-bold mb-4"><%= folder.name %> Forms</h2>
+                    <p class="text-gray-700">Insert <%= folder.name %> form components here.</p>
+                </div>
+            <% }) %>
         </div>
     </div>
 </body>
