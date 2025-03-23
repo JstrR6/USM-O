@@ -778,14 +778,14 @@ async function loadForm150SncoQueue() {
         container.innerHTML = data.map(form => `
             <div class="border rounded p-4 mb-4 bg-white shadow-lg cursor-pointer" 
                  onclick="openTrainingForm('${form._id}')">
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">${form.eventName || 'Unknown Event'}</h3>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">${form.trainingEvent || form.eventName || 'Unknown Event'}</h3>
                 <p><strong>Trainees:</strong> ${form.trainees && form.trainees.length ? 
                     (typeof form.trainees[0] === 'object' ? 
                         form.trainees.map(t => t.username).join(', ') : 
                         form.trainees.join(', ')
                     ) : 'Unknown'}</p>
                 <p><strong>Time:</strong> ${new Date(form.startTime).toLocaleString()} - ${new Date(form.endTime).toLocaleString()}</p>
-                <p><strong>Grade:</strong> ${form.grade || 'Unknown'}</p>
+                <p><strong>Grade:</strong> ${form.overallGrade || form.grade || 'Unknown'}</p>
                 <p><strong>Outcome:</strong> ${form.outcome || 'Unknown'}</p>
             </div>
         `).join('');
@@ -834,15 +834,15 @@ function openTrainingForm(formId) {
                 <div class="space-y-4">
                     <div class="bg-gray-50 p-4 rounded-lg">
                         <h3 class="font-bold text-lg mb-2">Training Details</h3>
-                        <p><strong>Event Name:</strong> ${form.eventName || 'Not specified'}</p>
+                        <p><strong>Event Name:</strong> ${form.trainingEvent || form.eventName || 'Not specified'}</p>
                         <p><strong>Start Time:</strong> ${new Date(form.startTime).toLocaleString()}</p>
                         <p><strong>End Time:</strong> ${new Date(form.endTime).toLocaleString()}</p>
                         <p><strong>Duration:</strong> ${Math.round((new Date(form.endTime) - new Date(form.startTime)) / (1000 * 60))} minutes</p>
                         <p><strong>Trainees:</strong> ${traineesDisplay}</p>
-                        <p><strong>Grade:</strong> ${form.grade || 'Not graded'}</p>
+                        <p><strong>Grade:</strong> ${form.overallGrade || form.grade || 'Not graded'}</p>
                         <p><strong>Outcome:</strong> ${form.outcome || 'Not specified'}</p>
-                        ${form.remedialTrainees?.length ? `<p><strong>Remedial Trainees:</strong> ${form.remedialTrainees.join(', ')}</p>` : ''}
-                        ${form.failedTrainees?.length ? `<p><strong>Failed Trainees:</strong> ${form.failedTrainees.join(', ')}</p>` : ''}
+                        ${form.remedialTrainees?.length ? `<p><strong>Remedial Trainees:</strong> ${typeof form.remedialTrainees[0] === 'object' ? form.remedialTrainees.map(t => t.username).join(', ') : form.remedialTrainees.join(', ')}</p>` : ''}
+                        ${form.failedTrainees?.length ? `<p><strong>Failed Trainees:</strong> ${typeof form.failedTrainees[0] === 'object' ? form.failedTrainees.map(t => t.username).join(', ') : form.failedTrainees.join(', ')}</p>` : ''}
                     </div>
 
                     <form action="/api/training/snco-submit" method="POST" class="space-y-4 bg-white p-4 rounded-lg border">
@@ -982,15 +982,15 @@ async function loadForm150OfficerQueue() {
       <div class="border rounded p-4 mb-6 bg-gray-50">
         <div class="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <p><strong>Event:</strong> ${form.eventName || 'Untitled Training'}</p>
-            <p><strong>Grade:</strong> ${form.grade || 'Not graded'}</p>
+            <p><strong>Event:</strong> ${form.trainingEvent || form.eventName || 'Untitled Training'}</p>
+            <p><strong>Grade:</strong> ${form.overallGrade || form.grade || 'Not graded'}</p>
             <p><strong>Outcome:</strong> ${form.outcome || 'Not specified'}</p>
             <p><strong>SNCO Signature:</strong> ${form.sncoSignature || 'None'}</p>
           </div>
           <div>
             <p><strong>Start:</strong> ${new Date(form.startTime).toLocaleString()}</p>
             <p><strong>End:</strong> ${new Date(form.endTime).toLocaleString()}</p>
-            <p><strong>Recommended XP:</strong> ${form.recommendedXP || 0}</p>
+            <p><strong>Recommended XP:</strong> ${form.recommendedXP || form.sncoXPRecommendation || 0}</p>
             <p><strong>NCO Signature:</strong> ${form.ncoSignature || 'None'}</p>
           </div>
         </div>
@@ -999,7 +999,7 @@ async function loadForm150OfficerQueue() {
           <p><strong>Trainees:</strong> ${Array.isArray(form.trainees) ? form.trainees.join(', ') : form.trainees || 'None'}</p>
           ${form.remedialTrainees?.length ? `<p><strong>Remedial:</strong> ${form.remedialTrainees.join(', ')}</p>` : ''}
           ${form.failedTrainees?.length ? `<p><strong>Failed:</strong> ${form.failedTrainees.join(', ')}</p>` : ''}
-          <p><strong>SNCO Remarks:</strong> ${form.remarks || 'None'}</p>
+          <p><strong>SNCO Remarks:</strong> ${form.remarks || form.sncoRemarks || 'None'}</p>
         </div>
 
         <form action="/api/training/officer-submit" method="POST" class="space-y-4 mt-4">
@@ -1012,7 +1012,7 @@ async function loadForm150OfficerQueue() {
                 <label class="block text-sm font-medium text-gray-700">${trainee}</label>
                 <div class="mt-1 flex items-center">
                   <input type="number" name="xpAssignments[${trainee}]" 
-                         value="${form.recommendedXP || 0}"
+                         value="${form.recommendedXP || form.sncoXPRecommendation || 0}"
                          class="w-full border rounded px-3 py-2" 
                          placeholder="XP">
                 </div>

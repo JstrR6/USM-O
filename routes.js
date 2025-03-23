@@ -705,13 +705,13 @@ router.post('/api/training/submit', async (req, res) => {
   });
   
   // SNCO Review Route - GET pending
-router.get('/api/training/pending-snco', async (req, res) => {
+  router.get('/api/training/pending-snco', async (req, res) => {
     try {
       // Fetch the forms pending SNCO review and populate necessary fields like trainees and event details
       const forms = await Training.find({ status: 'Pending SNCO Review' })
         .populate('trainees', 'username') // Populating trainees' usernames
-        .populate('ncoSignature', 'username') // Populating SNCO signature (e.g. username)
-        .select('eventName trainees startTime endTime grade outcome') // Selecting specific fields to return
+        .populate('ncoSignature', 'username') // Populating NCO signature (e.g. username)
+        .select('trainingEvent eventName overallGrade grade trainees startTime endTime outcome') // Include both possible field names
       
       res.json(forms);
     } catch (err) {
@@ -776,7 +776,7 @@ router.get('/:id', async (req, res) => {
   router.get('/api/training/pending-officer', async (req, res) => {
     try {
       const forms = await Training.find({ status: 'Pending Officer Approval' })
-        .populate('trainees', 'username') // Populate trainees with usernames
+        .populate('trainees', 'username')
         .populate('ncoSignature', 'username')
         .populate('sncoSignature', 'username')
         .populate('remedialTrainees', 'username')
@@ -803,16 +803,20 @@ router.get('/:id', async (req, res) => {
         
         return {
           _id: form._id,
-          eventName: form.eventName || 'Untitled Training',
+          trainingEvent: form.trainingEvent || 'Untitled Training',
+          eventName: form.trainingEvent || 'Untitled Training', // Include both for compatibility
           trainees: trainees,
           startTime: form.startTime,
           endTime: form.endTime,
-          grade: form.grade || 'Not graded',
+          overallGrade: form.overallGrade,
+          grade: form.overallGrade, // Include both for compatibility
           outcome: form.outcome || 'Not specified',
           remedialTrainees: remedialTrainees,
           failedTrainees: failedTrainees,
-          remarks: form.remarks || '',
-          recommendedXP: form.recommendedXP || 0,
+          remarks: form.sncoRemarks || '',
+          sncoRemarks: form.sncoRemarks || '',
+          recommendedXP: form.sncoXPRecommendation || 0,
+          sncoXPRecommendation: form.sncoXPRecommendation || 0,
           ncoSignature: typeof form.ncoSignature === 'object' ? form.ncoSignature.username : 'Unknown',
           sncoSignature: typeof form.sncoSignature === 'object' ? form.sncoSignature.username : 'Unknown'
         };
