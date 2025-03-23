@@ -766,69 +766,108 @@ async function loadForm150SncoQueue() {
     container.innerHTML = '<p class="text-gray-600">Loading...</p>';
 
     try {
-      const res = await fetch('/api/training/pending-snco');  // Fetch the training forms pending SNCO review
-      const data = await res.json();
+        const res = await fetch('/api/training/pending-snco');
+        const data = await res.json();
 
-      if (!data.length) {
-        container.innerHTML = '<p class="text-gray-600 italic">No training forms pending SNCO review.</p>';
-        return;
-      }
+        if (!data.length) {
+            container.innerHTML = '<p class="text-gray-600 italic">No training forms pending SNCO review.</p>';
+            return;
+        }
 
-      // Create the form cards for each form in the queue
-      container.innerHTML = data.map(form => `
-        <div class="border rounded p-4 mb-4 bg-white shadow-lg cursor-pointer" onclick="openTrainingForm(${form._id})">
-          <h3 class="text-lg font-semibold text-gray-800 mb-2">${form.eventName || 'Unknown Event'}</h3>
-          <p><strong>Trainees:</strong> ${form.trainees && form.trainees.length ? form.trainees.map(t => t.username).join(', ') : 'Unknown'}</p>
-          <p><strong>Time:</strong> ${new Date(form.startTime).toLocaleString()} - ${new Date(form.endTime).toLocaleString()}</p>
-          <p><strong>Grade:</strong> ${form.grade || 'Unknown'}</p>
-          <p><strong>Outcome:</strong> ${form.outcome || 'Unknown'}</p>
-        </div>
-      `).join('');
+        // Create cards with properly quoted formId in the onclick handler
+        container.innerHTML = data.map(form => `
+            <div class="border rounded p-4 mb-4 bg-white shadow-lg cursor-pointer" 
+                 onclick="openTrainingForm('${form._id}')">
+                <h3 class="text-lg font-semibold text-gray-800 mb-2">${form.eventName || 'Unknown Event'}</h3>
+                <p><strong>Trainees:</strong> ${form.trainees && form.trainees.length ? 
+                    (typeof form.trainees[0] === 'object' ? 
+                        form.trainees.map(t => t.username).join(', ') : 
+                        form.trainees.join(', ')
+                    ) : 'Unknown'}</p>
+                <p><strong>Time:</strong> ${new Date(form.startTime).toLocaleString()} - ${new Date(form.endTime).toLocaleString()}</p>
+                <p><strong>Grade:</strong> ${form.grade || 'Unknown'}</p>
+                <p><strong>Outcome:</strong> ${form.outcome || 'Unknown'}</p>
+            </div>
+        `).join('');
 
     } catch (err) {
-      console.error('Failed to load SNCO training forms:', err);
-      container.innerHTML = '<p class="text-red-600">Error loading forms.</p>';
+        console.error('Failed to load SNCO training forms:', err);
+        container.innerHTML = '<p class="text-red-600">Error loading forms. Details: ' + err.message + '</p>';
     }
 }
 
+// Fixed function to open the training form detail modal
 function openTrainingForm(formId) {
-    // Fetch the selected form's details and populate the new detailed review modal
+    console.log("Opening training form with ID:", formId);
+    
+    // Fetch the selected form's details
     fetch(`/api/training/${formId}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(form => {
             document.getElementById('form150DetailModal').classList.remove('hidden');
             populateForm150DetailModal(form);
         })
         .catch(err => {
             console.error('Failed to fetch training form:', err);
-            alert('Failed to fetch training form.');
+            alert('Failed to fetch training form: ' + err.message);
         });
 }
 
+// Enhanced function to populate the detail modal
 function populateForm150DetailModal(form) {
+    console.log("Populating form detail modal with data:", form);
+    
     const modalContainer = document.getElementById('form150DetailContent');
+    
+    // Format trainees display based on whether they're objects or strings
+    const traineesDisplay = form.trainees && form.trainees.length ? 
+        (typeof form.trainees[0] === 'object' ? 
+            form.trainees.map(t => t.username).join(', ') : 
+            form.trainees.join(', ')
+        ) : 'None';
+        
     modalContainer.innerHTML = `
-        <p><strong>Event Name:</strong> ${form.eventName}</p>
-        <p><strong>Start Time:</strong> ${new Date(form.startTime).toLocaleString()}</p>
-        <p><strong>End Time:</strong> ${new Date(form.endTime).toLocaleString()}</p>
-        <p><strong>Grade:</strong> ${form.grade}</p>
-        <p><strong>Outcome:</strong> ${form.outcome}</p>
-
-        <form action="/api/training/snco-submit" method="POST" class="space-y-3 mt-3">
-            <input type="hidden" name="formId" value="${form._id}">
-            
-            <label class="block text-sm font-medium">Recommended XP</label>
-            <input type="number" name="recommendedXP" class="w-full border rounded px-3 py-2" required>
-
-            <label class="block text-sm font-medium">Remarks</label>
-            <textarea name="remarks" class="w-full border rounded px-3 py-2" rows="3"></textarea>
-
-            <div class="text-right">
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    Submit and Sign
-                </button>
+        <div class="space-y-4">
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h3 class="font-bold text-lg mb-2">Training Details</h3>
+                <p><strong>Event Name:</strong> ${form.eventName || 'Not specified'}</p>
+                <p><strong>Start Time:</strong> ${new Date(form.startTime).toLocaleString()}</p>
+                <p><strong>End Time:</strong> ${new Date(form.endTime).toLocaleString()}</p>
+                <p><strong>Duration:</strong> ${Math.round((new Date(form.endTime) - new Date(form.startTime)) / (1000 * 60))} minutes</p>
+                <p><strong>Trainees:</strong> ${traineesDisplay}</p>
+                <p><strong>Grade:</strong> ${form.grade || 'Not graded'}</p>
+                <p><strong>Outcome:</strong> ${form.outcome || 'Not specified'}</p>
+                ${form.remedialTrainees?.length ? `<p><strong>Remedial Trainees:</strong> ${form.remedialTrainees.join(', ')}</p>` : ''}
+                ${form.failedTrainees?.length ? `<p><strong>Failed Trainees:</strong> ${form.failedTrainees.join(', ')}</p>` : ''}
             </div>
-        </form>
+
+            <form action="/api/training/snco-submit" method="POST" class="space-y-4 bg-white p-4 rounded-lg border">
+                <input type="hidden" name="formId" value="${form._id}">
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Recommended XP</label>
+                    <input type="number" name="recommendedXP" class="w-full border rounded px-3 py-2" required min="0">
+                    <p class="text-xs text-gray-500 mt-1">Enter the recommended XP for all trainees</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">SNCO Remarks</label>
+                    <textarea name="remarks" class="w-full border rounded px-3 py-2" rows="4" 
+                              placeholder="Enter your assessment of the training event..."></textarea>
+                </div>
+
+                <div class="text-right">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Sign and Submit
+                    </button>
+                </div>
+            </form>
+        </div>
     `;
 }
 
