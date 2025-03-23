@@ -6,36 +6,42 @@
     <title><%= title %> | Military Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .folder {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .folder:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .folder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1.5rem;
+        }
+    </style>
 </head>
 <body class="bg-gray-100">
     <div class="min-h-screen flex">
-
-            <!-- Sidebar -->
-
+        <!-- Sidebar -->
         <div class="bg-gray-800 text-white w-64 py-6 flex flex-col">
             <div class="px-6 py-4">
                 <h1 class="text-2xl font-semibold">Military Portal</h1>
             </div>
-            <!-- Navigation -->
             <nav class="flex-1 px-4 mt-6">
                 <a href="/dashboard" class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/dashboard' ? 'bg-gray-700' : '' %>">
-                    <i class="fas fa-home w-5 h-5 mr-3"></i>
-                    Dashboard
+                    <i class="fas fa-home w-5 h-5 mr-3"></i> Dashboard
                 </a>
                 <a href="/forms" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/forms' ? 'bg-gray-700' : '' %>">
-                    <i class="fas fa-file-alt w-5 h-5 mr-3"></i>
-                    Forms
+                    <i class="fas fa-file-alt w-5 h-5 mr-3"></i> Forms
                 </a>
                 <a href="/profile" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/profile' ? 'bg-gray-700' : '' %>">
-                    <i class="fas fa-user w-5 h-5 mr-3"></i>
-                    Profile
+                    <i class="fas fa-user w-5 h-5 mr-3"></i> Profile
                 </a>
                 <a href="/members" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/members' ? 'bg-gray-700' : '' %>">
-                    <i class="fas fa-users w-5 h-5 mr-3"></i>
-                    Members
+                    <i class="fas fa-users w-5 h-5 mr-3"></i> Members
                 </a>
             </nav>
-            <!-- User Info -->
             <div class="px-6 py-4 border-t border-gray-700">
                 <div class="flex items-center">
                     <div class="ml-3">
@@ -43,9 +49,7 @@
                         <p class="text-xs text-gray-400"><%= user.highestRole %></p>
                     </div>
                 </div>
-                <a href="/logout" class="mt-4 block px-4 py-2 text-center text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg">
-                    Logout
-                </a>
+                <a href="/logout" class="mt-4 block px-4 py-2 text-center text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg">Logout</a>
             </div>
         </div>
 
@@ -53,71 +57,40 @@
         <div class="flex-1 p-6">
             <h1 class="text-2xl font-bold mb-6">Forms</h1>
 
-            <div class="folder-grid">
-                <% const rank = user.highestRole; %>
-
-                <% if (rank === 'Citizen') { %>
-                    <div class="folder bg-white rounded-lg p-4 shadow cursor-pointer">
-                        <i class="fas fa-user text-blue-500 text-2xl mb-2"></i>
-                        <p class="font-semibold">Citizen</p>
-                    </div>
-                <% } %>
-
-                <% if ([
-                    'Airman Basic', 'Airman', 'Airman First Class', 'Senior Airman'
-                ].includes(rank)) { %>
-                    <div class="folder bg-white rounded-lg p-4 shadow cursor-pointer">
-                        <i class="fas fa-users text-green-500 text-2xl mb-2"></i>
-                        <p class="font-semibold">Enlisted</p>
-                    </div>
-                <% } %>
-
-                <% if ([
-                    'Staff Sergeant', 'Technical Sergeant', 'Master Sergeant', 'First Sergeant'
-                ].includes(rank)) { %>
-                    <div class="folder bg-white rounded-lg p-4 shadow cursor-pointer">
-                        <i class="fas fa-user-shield text-yellow-500 text-2xl mb-2"></i>
-                        <p class="font-semibold">NCO</p>
-                    </div>
-                <% } %>
-
-                <% if ([
+            <% const folderMap = [
+                { name: 'Headquarters', icon: 'fa-chess-king text-red-600', priority: 7, ranks: ['Brigadier General', 'Major General', 'Lieutenant General', 'General', 'General of the Air Force'] },
+                { name: 'Field Officers', icon: 'fa-chess-rook text-indigo-700', priority: 6, ranks: ['Major', 'Lieutenant Colonel', 'Colonel'] },
+                { name: 'Company Officers', icon: 'fa-chess-pawn text-indigo-500', priority: 5, ranks: ['Second Lieutenant', 'First Lieutenant', 'Captain'] },
+                { name: 'SNCO', icon: 'fa-user-tie text-purple-500', priority: 4, ranks: [
                     'Senior Master Sergeant', 'Senior First Sergeant', 'Chief Master Sergeant',
                     'Chief First Sergeant', 'Command Chief Master Sergeant', 'Senior Enlisted Leader',
                     'Chief Senior Enlisted Leader', 'Chief Master Sergeant of the Air Force'
-                ].includes(rank)) { %>
-                    <div class="folder bg-white rounded-lg p-4 shadow cursor-pointer">
-                        <i class="fas fa-user-tie text-purple-500 text-2xl mb-2"></i>
-                        <p class="font-semibold">SNCO</p>
-                    </div>
-                <% } %>
+                ] },
+                { name: 'NCO', icon: 'fa-user-shield text-yellow-500', priority: 3, ranks: ['Staff Sergeant', 'Technical Sergeant', 'Master Sergeant', 'First Sergeant'] },
+                { name: 'Enlisted', icon: 'fa-users text-green-500', priority: 2, ranks: ['Airman Basic', 'Airman', 'Airman First Class', 'Senior Airman'] },
+                { name: 'Citizen', icon: 'fa-user text-blue-500', priority: 1, ranks: ['Citizen'] },
+            ];
 
-                <% if ([
-                    'Second Lieutenant', 'First Lieutenant', 'Captain'
-                ].includes(rank)) { %>
-                    <div class="folder bg-white rounded-lg p-4 shadow cursor-pointer">
-                        <i class="fas fa-chess-pawn text-indigo-500 text-2xl mb-2"></i>
-                        <p class="font-semibold">Company Officers</p>
-                    </div>
-                <% } %>
+            const userRank = user.highestRole;
+            const userRankIndex = RANKS.indexOf(userRank);
+            const availableFolders = folderMap.filter(folder =>
+                folder.ranks.some(rank => RANKS.indexOf(rank) <= userRankIndex)
+            ).sort((a, b) => b.priority - a.priority);
+            %>
 
-                <% if ([
-                    'Major', 'Lieutenant Colonel', 'Colonel'
-                ].includes(rank)) { %>
-                    <div class="folder bg-white rounded-lg p-4 shadow cursor-pointer">
-                        <i class="fas fa-chess-rook text-indigo-700 text-2xl mb-2"></i>
-                        <p class="font-semibold">Field Officers</p>
+            <div class="folder-grid">
+                <% availableFolders.forEach(folder => { %>
+                    <div class="folder bg-white rounded-lg p-4 shadow flex justify-between items-center">
+                        <div>
+                            <i class="fas <%= folder.icon %> text-2xl mb-2"></i>
+                            <p class="font-semibold mt-2"><%= folder.name %></p>
+                        </div>
+                        <% const primaryRank = folder.ranks.find(r => RANKS.indexOf(r) <= userRankIndex && r !== 'Citizen' && r !== 'Airman Basic'); %>
+                        <% if (primaryRank) { %>
+                            <img src="/images/<%= primaryRank.replace(/ /g, '') %>.png" alt="<%= primaryRank %>" class="h-10 w-auto">
+                        <% } %>
                     </div>
-                <% } %>
-
-                <% if ([
-                    'Brigadier General', 'Major General', 'Lieutenant General', 'General', 'General of the Air Force'
-                ].includes(rank)) { %>
-                    <div class="folder bg-white rounded-lg p-4 shadow cursor-pointer">
-                        <i class="fas fa-chess-king text-red-600 text-2xl mb-2"></i>
-                        <p class="font-semibold">Headquarters</p>
-                    </div>
-                <% } %>
+                <% }) %>
             </div>
         </div>
     </div>
