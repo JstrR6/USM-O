@@ -1002,7 +1002,8 @@ router.post('/api/recruitment', async (req, res) => {
             remarks,
             hoursPerWeek,
             referredBy,
-            submittedBy: req.user.fullName || req.user.username
+            submittedBy: req.user._id,
+            submittedByName: req.user.fullName || req.user.username
         });
 
         await newRequest.save();

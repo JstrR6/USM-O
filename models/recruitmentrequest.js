@@ -10,7 +10,8 @@ const recruitmentRequestSchema = new mongoose.Schema({
     hoursPerWeek: { type: Number },
     referredBy: { type: String },
     dateSubmitted: { type: Date, default: Date.now },
-    submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    submittedByName: { type: String }
 });
 
 module.exports = mongoose.model('RecruitmentRequest', recruitmentRequestSchema);
