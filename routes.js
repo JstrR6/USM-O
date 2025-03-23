@@ -847,6 +847,44 @@ router.get('/api/users', isAuthenticated, async (req, res) => {
     }
 });
 
+router.post('/api/division/create', async (req, res) => {
+    try {
+        const {
+            name,
+            parentDivisionId, // optional
+            assignedUsers // optional array: [{ username, role }]
+        } = req.body;
+
+        const resolvedUsers = [];
+
+        if (Array.isArray(assignedUsers)) {
+            for (const entry of assignedUsers) {
+                const user = await User.findOne({ username: entry.username });
+                if (user) {
+                    resolvedUsers.push({
+                        userId: user._id,
+                        username: user.username,
+                        role: entry.role
+                    });
+                }
+            }
+        }
+
+        const newDivision = new Division({
+            name,
+            parentDivision: parentDivisionId || null,
+            assignedUsers: resolvedUsers
+        });
+
+        await newDivision.save();
+        res.status(201).json({ success: true, division: newDivision });
+    } catch (err) {
+        console.error('Division creation error:', err);
+        res.status(500).json({ success: false, message: 'Failed to create division.' });
+    }
+});
+
+
 // Get all divisions
 router.get('/api/divisions', isAuthenticated, async (req, res) => {
     try {
