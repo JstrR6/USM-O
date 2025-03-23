@@ -476,7 +476,7 @@ async function loadForm150OfficerQueue() {
 
             <div class="folder-grid folder-opened">
                 <% availableFolders.forEach(folder => { %>
-                    <div class="folder bg-white rounded-lg p-4 shadow flex justify-between items-center cursor-pointer" onclick="toggleFolder('<%= folder.name %>')">
+                    <div class="folder bg-white rounded-lg p-4 shadow flex justify-between items-center cursor-pointer" onclick="toggleFolder(&quot;<%= folder.name %>&quot;)">
                         <div>
                             <i class="fas <%= folder.icon %> text-2xl mb-2"></i>
                             <p class="font-semibold mt-2"><%= folder.name %></p>
