@@ -68,6 +68,44 @@
         function closeDivisionForm() {
             document.getElementById('divisionFormModal').classList.add('hidden');
         }
+
+        function openDivisionBrowser() {
+            document.getElementById('divisionBrowserModal').classList.remove('hidden');
+            loadDivisionTree();
+        }
+
+        function closeDivisionBrowser() {
+            document.getElementById('divisionBrowserModal').classList.add('hidden');
+        }
+
+        async function loadDivisionTree() {
+            const container = document.getElementById('divisionTreeContainer');
+            container.innerHTML = '<p class="text-gray-600">Loading...</p>';
+
+            try {
+                const res = await fetch('/api/division/tree');
+                const data = await res.json();
+                container.innerHTML = renderTree(data);
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<p class="text-red-600">Failed to load division tree.</p>';
+            }
+        }
+
+        function renderTree(node) {
+            if (!node) return '';
+            let html = `<div class="ml-4">
+                <details open>
+                <summary class="cursor-pointer font-semibold">${node.name}</summary>
+                <div class="ml-4 text-sm">
+                    ${node.assignedUsers?.length ? `<p class="text-gray-600 mb-1">Personnel:</p><ul class="list-disc list-inside mb-2">` +
+                    node.assignedUsers.map(u => `<li>${u.username} - ${u.role}</li>`).join('') + '</ul>' : ''}
+                    ${node.children?.map(child => renderTree(child)).join('') || ''}
+                </div>
+                </details>
+            </div>`;
+        return html;
+}
     </script>
 </head>
 <body class="bg-gray-100">
@@ -168,6 +206,13 @@
                             <p class="text-sm text-gray-600">Create and manage divisions in the command structure.</p>
                         </div>
                     <% } %>
+
+                    <% if (folder.name === 'Headquarters') { %>
+                        <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openDivisionBrowser()">
+                          <h3 class="text-lg font-semibold text-gray-800 mb-1">Division Browser</h3>
+                          <p class="text-sm text-gray-600">View the hierarchical structure of all divisions and assigned personnel.</p>
+                        </div>
+                      <% } %>
                 </div>
             <% }) %>
         </div>
@@ -237,29 +282,29 @@
                 </div>
                 <div>
                     <label class="block font-medium text-sm mb-1">Parent Division (Optional)</label>
-                    <select name="parent" class="w-full border border-gray-300 rounded px-3 py-2">
+                    <select name="parentDivisionId" class="w-full border border-gray-300 rounded px-3 py-2">
                         <option value="">None</option>
                         <% divisions.forEach(function(d) { %>
                             <option value="<%= d._id %>"><%= d.name %></option>
                         <% }) %>
                     </select>
                 </div>
-                <div>
-                    <label class="block font-medium text-sm mb-1">Assign User</label>
-                    <select name="assignedUser" class="w-full border border-gray-300 rounded px-3 py-2">
-                        <% users.forEach(function(u) { %>
-                            <option value="<%= u._id %>"><%= u.username %></option>
-                        <% }) %>
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-medium text-sm mb-1">User Role</label>
-                    <input name="userRole" type="text" class="w-full border border-gray-300 rounded px-3 py-2">
+                <div class="text-sm text-gray-500 italic">
+                    You can assign users to this division later from the personnel interface.
                 </div>
                 <div class="text-right">
                     <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Create Division</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Division Browser Modal -->
+    <div id="divisionBrowserModal" class="modal hidden overflow-auto py-6">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6 relative">
+        <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="closeDivisionBrowser()">&times;</button>
+        <h2 class="text-xl font-bold mb-4">Division Browser</h2>
+        <div id="divisionTreeContainer"></div>
         </div>
     </div>
 </body>
