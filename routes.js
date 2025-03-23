@@ -14,6 +14,7 @@ const { handlePromotion } = require('./bot')
 
 const RecruitmentRequest = require('./models/recruitmentrequest');
 const Division = require('./models/division');
+const DivisionRemoval = require('./models/divisionRemoval');
 
 // Middleware to check authentication
 function isAuthenticated(req, res, next) {
@@ -955,6 +956,99 @@ router.post('/api/division/assign-user', async (req, res) => {
         res.status(500).send('Failed to assign user');
     }
 });
+
+router.post('/api/division-removal/submit', async (req, res) => {
+    try {
+      const { targetUser, targetDivision, reason, context } = req.body;
+  
+      const newRemoval = new DivisionRemoval({
+        targetUser,
+        targetDivision,
+        reason,
+        context,
+        sncoSignature: req.user._id,
+      });
+  
+      await newRemoval.save();
+      res.redirect('/forms');
+    } catch (err) {
+      console.error('Error submitting Form 122:', err);
+      res.status(500).send('Error submitting Division Removal form.');
+    }
+});
+
+router.get('/forms/division-removal/officer-review', async (req, res) => {
+    try {
+      const forms = await DivisionRemoval.find({ status: 'Pending Officer Review' })
+        .populate('targetUser targetDivision sncoSignature');
+  
+      res.render('divisionRemovalOfficerReview', { title: 'Review Form 122s', user: req.user, forms });
+    } catch (err) {
+      console.error('Error loading officer review forms:', err);
+      res.status(500).send('Error loading forms.');
+    }
+});
+
+router.post('/api/division-removal/officer-submit', async (req, res) => {
+    try {
+      const { formId, officerComments } = req.body;
+  
+      await DivisionRemoval.findByIdAndUpdate(formId, {
+        officerComments,
+        officerSignature: req.user._id,
+        status: 'Pending Field Officer Decision',
+      });
+  
+      res.redirect('/forms');
+    } catch (err) {
+      console.error('Error submitting officer review:', err);
+      res.status(500).send('Error submitting review.');
+    }
+});
+
+router.get('/forms/division-removal/field-review', async (req, res) => {
+    try {
+      const forms = await DivisionRemoval.find({ status: 'Pending Field Officer Decision' })
+        .populate('targetUser targetDivision sncoSignature officerSignature');
+  
+      res.render('divisionRemovalFieldReview', { title: 'Finalize Form 122s', user: req.user, forms });
+    } catch (err) {
+      console.error('Error loading field review forms:', err);
+      res.status(500).send('Error loading forms.');
+    }
+});
+
+router.post('/api/division-removal/field-submit', async (req, res) => {
+    try {
+      const { formId, fieldDecision, fieldNotes } = req.body;
+      const form = await DivisionRemoval.findById(formId);
+  
+      if (!form) return res.status(404).send('Form not found');
+  
+      form.fieldDecision = fieldDecision;
+      form.fieldNotes = fieldNotes;
+      form.fieldSignature = req.user._id;
+      form.status = fieldDecision === 'Approved' ? 'Approved' : 'Blocked';
+  
+      // If approved, remove user from division
+      if (fieldDecision === 'Approved') {
+        const division = await Division.findById(form.targetDivision);
+        if (division) {
+          division.assignedUsers = division.assignedUsers.filter(
+            (entry) => entry.userId.toString() !== form.targetUser.toString()
+          );
+          await division.save();
+        }
+      }
+  
+      await form.save();
+      res.redirect('/forms');
+    } catch (err) {
+      console.error('Error submitting field officer decision:', err);
+      res.status(500).send('Error finalizing removal.');
+    }
+});
+  
 
 // Submit recruitment
 router.post('/api/recruitment', async (req, res) => {

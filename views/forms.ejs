@@ -152,6 +152,69 @@
             }
             return true;
         }
+
+        function openForm122SncoModal() {
+            document.getElementById('form122SncoModal').classList.remove('hidden');
+        }
+
+        function closeForm122SncoModal() {
+            document.getElementById('form122SncoModal').classList.add('hidden');
+        }
+
+        function openForm122OfficerQueue() {
+            document.getElementById('form122OfficerQueueModal').classList.remove('hidden');
+        }
+        function closeForm122OfficerQueue() {
+            document.getElementById('form122OfficerQueueModal').classList.add('hidden');
+        }
+
+        function openForm122FieldOfficerModal() {
+            document.getElementById('form122FieldOfficerModal').classList.remove('hidden');
+            loadForm122ReviewQueue();
+        }
+
+        function closeForm122FieldOfficerModal() {
+            document.getElementById('form122FieldOfficerModal').classList.add('hidden');
+        }
+
+        async function loadForm122ReviewQueue() {
+        const container = document.getElementById('fieldOfficerReviewContainer');
+        container.innerHTML = '<p class="text-gray-600">Loading...</p>';
+
+        try {
+            const res = await fetch('/api/form122/pending-final');
+            const data = await res.json();
+
+            if (!data.length) {
+            container.innerHTML = '<p class="text-gray-600 italic">No forms pending final review.</p>';
+            return;
+            }
+
+                container.innerHTML = data.map(form => `
+                <div class="border rounded p-4 mb-4 bg-gray-50">
+                    <p><strong>Target:</strong> ${form.targetUsername}</p>
+                    <p><strong>Submitted by:</strong> ${form.sncoName}</p>
+                    <p><strong>CO Action:</strong> ${form.coAction || 'N/A'}</p>
+                    <p><strong>Remarks:</strong> ${form.reason}</p>
+
+                    <form action="/api/form122/final-review" method="POST" class="mt-3 space-y-2">
+                    <input type="hidden" name="formId" value="${form._id}">
+                    <label class="block font-medium text-sm">Final Decision</label>
+                    <select name="decision" class="w-full border rounded px-3 py-2">
+                        <option value="approve">Approve Removal</option>
+                        <option value="block">Block Removal</option>
+                    </select>
+                    <label class="block font-medium text-sm">Final Remarks (optional)</label>
+                    <textarea name="finalRemarks" class="w-full border rounded px-3 py-2"></textarea>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Submit Final Decision</button>
+                    </form>
+                </div>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<p class="text-red-600">Failed to load forms.</p>';
+            }
+        }
     </script>
 </head>
 <body class="bg-gray-100">
@@ -245,6 +308,27 @@
                             <p class="text-sm text-gray-600">Submit a request to enlist into the Air Force.</p>
                         </div>
                     <% } %>
+
+                    <% if (folder.name === 'SNCO') { %>
+                        <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="document.getElementById('form122Modal').classList.remove('hidden')">
+                          <h3 class="text-lg font-semibold text-gray-800 mb-1">Form 122 – Division Removal</h3>
+                          <p class="text-sm text-gray-600">Request removal of a member from a division.</p>
+                        </div>
+                      <% } %>
+
+                      <% if (folder.name === 'Company Officers') { %>
+                        <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openForm122OfficerQueue()">
+                          <h3 class="text-lg font-semibold text-gray-800 mb-1">Form 122 Review Queue</h3>
+                          <p class="text-sm text-gray-600">Process division removal forms submitted by SNCOs.</p>
+                        </div>
+                      <% } %>
+
+                      <% if (folder.name === 'Field Officers') { %>
+                        <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openForm122FieldOfficerModal()">
+                          <h3 class="text-lg font-semibold text-gray-800 mb-1">Review Form 122 – Division Removal</h3>
+                          <p class="text-sm text-gray-600">Review and approve or block submitted division removal forms.</p>
+                        </div>
+                      <% } %>
 
                     <% if (folder.name === 'Headquarters') { %>
                         <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openDivisionForm()">
@@ -394,5 +478,84 @@
             </form>
         </div>
     </div>
+
+    <!-- Division Removal Modal -->
+<div id="form122Modal" class="modal hidden overflow-auto py-6">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6 relative">
+      <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="document.getElementById('form122Modal').classList.add('hidden')">&times;</button>
+      <h2 class="text-xl font-bold mb-4">Form 122 – Division Removal</h2>
+  
+      <form action="/api/form122/submit" method="POST" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium">Select User</label>
+          <select name="targetUser" class="w-full border border-gray-300 rounded px-3 py-2" required>
+            <% users.forEach(function(u) { %>
+              <option value="<%= u._id %>"><%= u.username %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Select Division</label>
+          <select name="targetDivision" class="w-full border border-gray-300 rounded px-3 py-2" required>
+            <% divisions.forEach(function(d) { %>
+              <option value="<%= d._id %>"><%= d.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Reason for Removal</label>
+          <textarea name="reason" rows="3" class="w-full border border-gray-300 rounded px-3 py-2" required></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Context / Background Info</label>
+          <textarea name="context" rows="4" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+        </div>
+        <div class="text-right">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Sign and Send</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="form122OfficerQueueModal" class="modal hidden overflow-auto py-6">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6 relative">
+      <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="closeForm122OfficerQueue()">&times;</button>
+      <h2 class="text-xl font-bold mb-4">Form 122 – Officer Review</h2>
+  
+      <% if (form122OfficerQueue && form122OfficerQueue.length > 0) { %>
+        <% form122OfficerQueue.forEach(form => { %>
+          <div class="border border-gray-300 rounded p-4 mb-4">
+            <p class="text-sm text-gray-800"><strong>Target:</strong> <%= form.targetUsername %></p>
+            <p class="text-sm text-gray-800"><strong>Division:</strong> <%= form.divisionName %></p>
+            <p class="text-sm text-gray-800"><strong>Reason:</strong> <%= form.reason %></p>
+            <p class="text-sm text-gray-500 mb-2"><strong>SNCO Signature:</strong> <%= form.sncoSignature %></p>
+  
+            <form action="/api/form122/officer-process" method="POST" class="space-y-3 mt-2">
+              <input type="hidden" name="formId" value="<%= form._id %>">
+              <label class="block text-sm font-medium">Officer Comments</label>
+              <textarea name="officerComments" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+              <label class="block text-sm font-medium">Officer Signature</label>
+              <input type="text" name="officerSignature" class="w-full border border-gray-300 rounded px-3 py-2" required>
+              <div class="text-right">
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Submit Review</button>
+              </div>
+            </form>
+          </div>
+        <% }) %>
+      <% } else { %>
+        <p class="text-gray-600">No pending Form 122 submissions to review.</p>
+      <% } %>
+    </div>
+  </div>
+
+  <div id="form122FieldOfficerModal" class="modal hidden overflow-auto py-6">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative">
+      <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="closeForm122FieldOfficerModal()">&times;</button>
+      <h2 class="text-xl font-bold mb-4">Form 122 Final Review – Field Officer</h2>
+      <div id="fieldOfficerReviewContainer"></div>
+    </div>
+  </div>
+
+  
 </body>
 </html>
