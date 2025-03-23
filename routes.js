@@ -14,7 +14,7 @@ const { handlePromotion } = require('./bot')
 const RecruitmentRequest = require('./models/recruitmentrequest');
 const Division = require('./models/division');
 const DivisionRemoval = require('./models/divisionRemoval');
-const Training = require('../models/training');
+const Training = require('./models/training');
 
 // Middleware to check authentication
 function isAuthenticated(req, res, next) {
