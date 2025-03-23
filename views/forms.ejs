@@ -786,40 +786,46 @@ async function loadForm150SncoQueue() {
 
   function openTrainingForm(formId) {
     // Fetch the selected form's details and populate the modal
-    const form = allForms.find(f => f._id === formId); // Assuming allForms is available with all training form data
-    if (form) {
-      document.getElementById('form150SncoModal').classList.remove('hidden');
-      populateForm150Modal(form);
-    }
-  }
+    fetch(`/api/training/${formId}`)
+        .then(response => response.json())
+        .then(form => {
+            document.getElementById('form150SncoModal').classList.remove('hidden');
+            populateForm150Modal(form);
+        })
+        .catch(err => {
+            console.error('Failed to fetch training form:', err);
+            alert('Failed to fetch training form.');
+        });
+}
 
-  function populateForm150Modal(form) {
+function populateForm150Modal(form) {
     // Populate the modal with the form details
-    document.getElementById('form150SncoModal').innerHTML = `
-      <button onclick="closeForm150SncoModal()">Close</button>
-      <h2 class="text-xl font-bold mb-4">${form.eventName}</h2>
-      <p><strong>Start Time:</strong> ${new Date(form.startTime).toLocaleString()}</p>
-      <p><strong>End Time:</strong> ${new Date(form.endTime).toLocaleString()}</p>
-      <p><strong>Grade:</strong> ${form.grade}</p>
-      <p><strong>Outcome:</strong> ${form.outcome}</p>
-      
-      <form action="/api/training/snco-submit" method="POST" class="space-y-3 mt-3">
-        <input type="hidden" name="formId" value="${form._id}">
-        
-        <label class="block text-sm font-medium">Recommended XP</label>
-        <input type="number" name="recommendedXP" class="w-full border rounded px-3 py-2" required>
+    const modalContainer = document.getElementById('form150SncoModal');
+    modalContainer.innerHTML = `
+        <button onclick="closeForm150SncoModal()" class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl">&times;</button>
+        <h2 class="text-xl font-bold mb-4">${form.eventName}</h2>
+        <p><strong>Start Time:</strong> ${new Date(form.startTime).toLocaleString()}</p>
+        <p><strong>End Time:</strong> ${new Date(form.endTime).toLocaleString()}</p>
+        <p><strong>Grade:</strong> ${form.grade}</p>
+        <p><strong>Outcome:</strong> ${form.outcome}</p>
 
-        <label class="block text-sm font-medium">Remarks</label>
-        <textarea name="remarks" class="w-full border rounded px-3 py-2" rows="3"></textarea>
+        <form action="/api/training/snco-submit" method="POST" class="space-y-3 mt-3">
+            <input type="hidden" name="formId" value="${form._id}">
 
-        <div class="text-right">
-          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-            Sign and Send
-          </button>
-        </div>
-      </form>
+            <label class="block text-sm font-medium">Recommended XP</label>
+            <input type="number" name="recommendedXP" class="w-full border rounded px-3 py-2" required>
+
+            <label class="block text-sm font-medium">Remarks</label>
+            <textarea name="remarks" class="w-full border rounded px-3 py-2" rows="3"></textarea>
+
+            <div class="text-right">
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Sign and Send
+                </button>
+            </div>
+        </form>
     `;
-  }
+}
 
   function closeForm150SncoModal() {
     document.getElementById('form150SncoModal').classList.add('hidden');
