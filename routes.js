@@ -872,32 +872,41 @@ router.get('/api/division/tree', async (req, res) => {
     try {
         const allDivisions = await Division.find({}).lean();
 
+        // Build lookup map
         const divisionMap = {};
         allDivisions.forEach(div => {
             div.children = [];
             divisionMap[div._id] = div;
         });
 
+        // Link children to their parents
         allDivisions.forEach(div => {
-            if (div.parent) {
-                const parent = divisionMap[div.parent.toString()];
-                if (parent) parent.children.push(div);
+            if (div.parentDivision) {
+                const parent = divisionMap[div.parentDivision.toString()];
+                if (parent) {
+                    parent.children.push(div);
+                }
             }
         });
 
+        // Build user ID list
         const allUserIds = [];
         allDivisions.forEach(div => {
-            (div.assignedUsers || []).forEach(au => {
-                if (au.userId) allUserIds.push(au.userId);
-            });
+            if (div.assignedUsers) {
+                div.assignedUsers.forEach(au => {
+                    if (au.userId) allUserIds.push(au.userId);
+                });
+            }
         });
 
+        // Map user IDs to usernames
         const users = await User.find({ _id: { $in: allUserIds } }, 'username').lean();
         const userMap = {};
         users.forEach(user => {
             userMap[user._id.toString()] = user.username;
         });
 
+        // Replace userId with username
         allDivisions.forEach(div => {
             div.assignedUsers = (div.assignedUsers || []).map(au => ({
                 username: userMap[au.userId?.toString()] || 'Unknown',
@@ -905,7 +914,9 @@ router.get('/api/division/tree', async (req, res) => {
             }));
         });
 
+        // Find root division
         const root = allDivisions.find(div => div.name === 'Headquarters Air Force');
+
         if (!root) {
             return res.status(404).json({ success: false, message: 'Headquarters Air Force not found.' });
         }
@@ -916,7 +927,6 @@ router.get('/api/division/tree', async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to load division tree.' });
     }
 });
-
 
 router.post('/api/division/assign-user', async (req, res) => {
     try {
