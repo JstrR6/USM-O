@@ -870,10 +870,8 @@ router.post('/api/division/create', async (req, res) => {
 
 router.get('/api/division/tree', async (req, res) => {
     try {
-        // Fetch all divisions
         const allDivisions = await Division.find({}).lean();
 
-        // Map by ID for quick lookup
         const divisionMap = {};
         allDivisions.forEach(div => {
             div.children = [];
@@ -881,15 +879,10 @@ router.get('/api/division/tree', async (req, res) => {
         });
 
         // Link children to parents
-        const rootDivisions = [];
         allDivisions.forEach(div => {
             if (div.parent) {
                 const parent = divisionMap[div.parent.toString()];
-                if (parent) {
-                    parent.children.push(div);
-                }
-            } else {
-                rootDivisions.push(div);
+                if (parent) parent.children.push(div);
             }
         });
 
@@ -898,27 +891,32 @@ router.get('/api/division/tree', async (req, res) => {
         allDivisions.forEach(div => {
             if (div.assignedUsers) {
                 div.assignedUsers.forEach(au => {
-                    allUserIds.push(au.userId);
+                    if (au.userId) allUserIds.push(au.userId);
                 });
             }
         });
 
-        const userMap = {};
         const users = await User.find({ _id: { $in: allUserIds } }, 'username').lean();
+        const userMap = {};
         users.forEach(user => {
             userMap[user._id.toString()] = user.username;
         });
 
-        // Replace userId with username
         allDivisions.forEach(div => {
             div.assignedUsers = (div.assignedUsers || []).map(au => ({
-                username: userMap[au.userId.toString()],
+                username: userMap[au.userId?.toString()] || 'Unknown',
                 role: au.role
             }));
         });
 
-        // Return only the tree (starts with Headquarters)
-        res.json({ success: true, tree: rootDivisions });
+        // Find "Headquarters Air Force" as the root
+        const root = allDivisions.find(div => div.name === 'Headquarters Air Force');
+
+        if (!root) {
+            return res.status(404).json({ success: false, message: 'Headquarters Air Force not found.' });
+        }
+
+        res.json(root);
     } catch (err) {
         console.error('Division tree error:', err);
         res.status(500).json({ success: false, message: 'Failed to load division tree.' });
@@ -926,6 +924,33 @@ router.get('/api/division/tree', async (req, res) => {
 });
 
 
+router.post('/api/division/assign-user', async (req, res) => {
+    try {
+        const { userId, divisionId, role } = req.body;
+
+        const user = await User.findById(userId);
+        const division = await Division.findById(divisionId);
+
+        if (!user || !division) {
+            return res.status(404).send('User or division not found');
+        }
+
+        // Prevent duplicates
+        const alreadyAssigned = division.assignedUsers.some(
+            (entry) => entry.userId.toString() === userId
+        );
+
+        if (!alreadyAssigned) {
+            division.assignedUsers.push({ userId, username: user.username, role });
+            await division.save();
+        }
+
+        res.redirect('/forms');
+    } catch (err) {
+        console.error('Error assigning user to division:', err);
+        res.status(500).send('Failed to assign user');
+    }
+});
 
 // Submit recruitment
 router.post('/api/recruitment', async (req, res) => {
