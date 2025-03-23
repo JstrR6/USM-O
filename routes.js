@@ -980,25 +980,36 @@ router.delete('/api/divisions/:id', isAuthenticated, async (req, res) => {
 });
 
 // Submit recruitment
-router.post('/api/recruitment', isAuthenticated, async (req, res) => {
+router.post('/api/recruitment', async (req, res) => {
     try {
-        const formData = {
-            name: req.body.name,
-            username: req.body.username,
-            discord: req.body.discord,
-            timezone: req.body.timezone,
-            goals: req.body.goals,
-            commitment: req.body.commitment,
-            remarks: req.body.remarks
-        };
+        const {
+            fullName,
+            username,
+            discordUsername,
+            timezone,
+            careerInterest,
+            remarks,
+            hoursPerWeek,
+            referredBy
+        } = req.body;
 
-        const newRequest = new RecruitmentRequest(formData);
+        const newRequest = new RecruitmentRequest({
+            fullName,
+            username,
+            discordUsername,
+            timezone,
+            careerInterest,
+            remarks,
+            hoursPerWeek,
+            referredBy,
+            submittedBy: req.user._id // if using session-based user
+        });
+
         await newRequest.save();
-
-        res.redirect('/forms');
+        res.redirect('/forms'); // Or wherever you want to redirect after submit
     } catch (err) {
         console.error('Recruitment error:', err);
-        res.status(500).send('An error occurred while submitting the recruitment request.');
+        res.status(400).send('Error submitting recruitment request');
     }
 });
 
