@@ -484,7 +484,17 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- New Modal for Detailed Review (Full Form) -->
+<div id="form150DetailModal" class="modal hidden overflow-auto py-6">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative">
+        <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="closeForm150DetailModal()">&times;</button>
+        <h2 class="text-xl font-bold mb-4">Form 150 – SNCO Detailed Review</h2>
+        
+        <!-- Dynamic Content will be added here -->
+        <div id="form150DetailContent"></div>
+    </div>
+</div>
 
       <div id="form150OfficerModal" class="modal hidden overflow-auto py-6">
         <div class="bg-white rounded-lg shadow-lg w-full max-w-5xl p-6 relative">
@@ -759,9 +769,6 @@ async function loadForm150SncoQueue() {
       const res = await fetch('/api/training/pending-snco');  // Fetch the training forms pending SNCO review
       const data = await res.json();
 
-      // Log data to check the structure
-      console.log(data);
-
       if (!data.length) {
         container.innerHTML = '<p class="text-gray-600 italic">No training forms pending SNCO review.</p>';
         return;
@@ -782,15 +789,15 @@ async function loadForm150SncoQueue() {
       console.error('Failed to load SNCO training forms:', err);
       container.innerHTML = '<p class="text-red-600">Error loading forms.</p>';
     }
-  }
+}
 
-  function openTrainingForm(formId) {
-    // Fetch the selected form's details and populate the modal
+function openTrainingForm(formId) {
+    // Fetch the selected form's details and populate the new detailed review modal
     fetch(`/api/training/${formId}`)
         .then(response => response.json())
         .then(form => {
-            document.getElementById('form150SncoModal').classList.remove('hidden');
-            populateForm150Modal(form);
+            document.getElementById('form150DetailModal').classList.remove('hidden');
+            populateForm150DetailModal(form);
         })
         .catch(err => {
             console.error('Failed to fetch training form:', err);
@@ -798,12 +805,10 @@ async function loadForm150SncoQueue() {
         });
 }
 
-function populateForm150Modal(form) {
-    // Populate the modal with the form details
-    const modalContainer = document.getElementById('form150SncoModal');
+function populateForm150DetailModal(form) {
+    const modalContainer = document.getElementById('form150DetailContent');
     modalContainer.innerHTML = `
-        <button onclick="closeForm150SncoModal()" class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl">&times;</button>
-        <h2 class="text-xl font-bold mb-4">${form.eventName}</h2>
+        <p><strong>Event Name:</strong> ${form.eventName}</p>
         <p><strong>Start Time:</strong> ${new Date(form.startTime).toLocaleString()}</p>
         <p><strong>End Time:</strong> ${new Date(form.endTime).toLocaleString()}</p>
         <p><strong>Grade:</strong> ${form.grade}</p>
@@ -811,7 +816,7 @@ function populateForm150Modal(form) {
 
         <form action="/api/training/snco-submit" method="POST" class="space-y-3 mt-3">
             <input type="hidden" name="formId" value="${form._id}">
-
+            
             <label class="block text-sm font-medium">Recommended XP</label>
             <input type="number" name="recommendedXP" class="w-full border rounded px-3 py-2" required>
 
@@ -820,11 +825,15 @@ function populateForm150Modal(form) {
 
             <div class="text-right">
                 <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    Sign and Send
+                    Submit and Sign
                 </button>
             </div>
         </form>
     `;
+}
+
+function closeForm150DetailModal() {
+    document.getElementById('form150DetailModal').classList.add('hidden');
 }
 
   function closeForm150SncoModal() {

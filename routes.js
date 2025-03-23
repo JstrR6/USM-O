@@ -723,21 +723,22 @@ router.get('/api/training/pending-snco', async (req, res) => {
   // SNCO Review - POST
   router.post('/api/training/snco-submit', async (req, res) => {
     try {
-      const { formId, recommendedXP, remarks } = req.body;
-  
-      await Training.findByIdAndUpdate(formId, {
-        recommendedXP,
-        remarks,
-        sncoSignature: req.user._id,
-        status: 'Pending Officer Approval',
-      });
-  
-      res.redirect('/forms');
+        const { formId, recommendedXP, remarks } = req.body;
+
+        // Update the training form with XP and remarks
+        await Training.findByIdAndUpdate(formId, {
+            recommendedXP,
+            remarks,
+            sncoSignature: req.user._id,
+            status: 'Pending Officer Approval',
+        });
+
+        res.redirect('/forms');  // Redirect after submission
     } catch (err) {
-      console.error('Error submitting SNCO review:', err);
-      res.status(500).send('Error submitting review.');
+        console.error('Error submitting SNCO review:', err);
+        res.status(500).send('Error submitting review.');
     }
-  });
+});
   
   // Company Officer Review - GET pending
   router.get('/api/training/pending-officer', async (req, res) => {
