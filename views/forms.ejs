@@ -44,368 +44,6 @@
             z-index: 50;
         }
     </style>
-    <script>
-        function toggleFolder(folderName) {
-            const allContent = document.querySelectorAll('.folder-content');
-            allContent.forEach(el => el.classList.add('hidden'));
-
-            const target = document.getElementById('folder-' + folderName);
-            if (target) target.classList.remove('hidden');
-        }
-
-        function openRecruitmentForm() {
-            document.getElementById('recruitmentFormModal').classList.remove('hidden');
-        }
-
-        function closeRecruitmentForm() {
-            document.getElementById('recruitmentFormModal').classList.add('hidden');
-        }
-
-        function openDivisionForm() {
-            document.getElementById('divisionFormModal').classList.remove('hidden');
-        }
-
-        function closeDivisionForm() {
-            document.getElementById('divisionFormModal').classList.add('hidden');
-        }
-
-        function openDivisionBrowser() {
-            document.getElementById('divisionBrowserModal').classList.remove('hidden');
-            loadDivisionTree();
-        }
-
-        function closeDivisionBrowser() {
-            document.getElementById('divisionBrowserModal').classList.add('hidden');
-        }
-
-        async function loadDivisionTree() {
-            const container = document.getElementById('divisionTreeContainer');
-            container.innerHTML = '<p class="text-gray-600">Loading...</p>';
-
-            try {
-                const res = await fetch('/api/division/tree');
-                const data = await res.json();
-                container.innerHTML = renderTree(data);
-            } catch (err) {
-                console.error(err);
-                container.innerHTML = '<p class="text-red-600">Failed to load division tree.</p>';
-            }
-        }
-
-        function renderTree(node) {
-            if (!node) return '';
-            let html = `<div class="ml-4">
-                <details open>
-                    <summary class="cursor-pointer font-semibold">${node.name}</summary>
-                    <div class="ml-4 text-sm">
-                        ${node.assignedUsers?.length ? `
-                            <details class="mb-2">
-                                <summary class="text-gray-600 cursor-pointer">Personnel</summary>
-                                <ul class="list-disc list-inside mt-1 ml-4">
-                                    ${node.assignedUsers.map(u => `<li>${u.username} - ${u.role}</li>`).join('')}
-                                </ul>
-                            </details>
-                        ` : ''}
-                        ${(node.children || []).map(child => renderTree(child)).join('')}
-                    </div>
-                </details>
-            </div>`;
-            return html;
-        }
-
-        function openAssignUserModal() {
-                document.getElementById('assignUserModal').classList.remove('hidden');
-            }
-            function closeAssignUserModal() {
-                document.getElementById('assignUserModal').classList.add('hidden');
-            }
-
-        const allUsers = <%- JSON.stringify(users) %>;
-
-        function filterUsers() {
-            const input = document.getElementById('userSearch').value.toLowerCase();
-            const results = document.getElementById('userSearchResults');
-            results.innerHTML = '';
-
-            if (!input) return;
-
-            const matches = allUsers.filter(u => u.username.toLowerCase().includes(input));
-
-            matches.forEach(user => {
-                const div = document.createElement('div');
-                div.textContent = user.username;
-                div.className = 'px-3 py-2 cursor-pointer hover:bg-gray-100';
-                div.onclick = () => {
-                    document.getElementById('userSearch').value = user.username;
-                    document.getElementById('selectedUserId').value = user._id;
-                    results.innerHTML = '';
-                };
-                results.appendChild(div);
-            });
-        }
-
-        function validateUserSelection() {
-            const userId = document.getElementById('selectedUserId').value;
-            if (!userId) {
-                alert('Please select a user from the suggestions.');
-                return false;
-            }
-            return true;
-        }
-
-        function openForm122SncoModal() {
-            document.getElementById('form122SncoModal').classList.remove('hidden');
-        }
-
-        function closeForm122SncoModal() {
-            document.getElementById('form122SncoModal').classList.add('hidden');
-        }
-
-        function openForm122OfficerQueue() {
-            document.getElementById('form122OfficerQueueModal').classList.remove('hidden');
-        }
-        function closeForm122OfficerQueue() {
-            document.getElementById('form122OfficerQueueModal').classList.add('hidden');
-        }
-
-        function openForm122FieldOfficerModal() {
-            document.getElementById('form122FieldOfficerModal').classList.remove('hidden');
-            loadForm122ReviewQueue();
-        }
-
-        function closeForm122FieldOfficerModal() {
-            document.getElementById('form122FieldOfficerModal').classList.add('hidden');
-        }
-
-        async function loadForm122ReviewQueue() {
-    const container = document.getElementById('fieldOfficerReviewContainer');
-    container.innerHTML = '<p class="text-gray-600">Loading...</p>';
-
-    try {
-        const res = await fetch('/api/division-removal/field-review');
-        const data = await res.json();
-
-        if (!data.length) {
-            container.innerHTML = '<p class="text-gray-600 italic">No forms pending final review.</p>';
-            return;
-        }
-
-        container.innerHTML = data.map(form => `
-            <div class="border rounded p-4 mb-4 bg-gray-50">
-                <p><strong>Target:</strong> ${form.targetUser?.username || 'Unknown'}</p>
-                <p><strong>Division:</strong> ${form.targetDivision?.name || 'Unknown'}</p>
-                <p><strong>SNCO:</strong> ${form.sncoSignature?.username || 'Unknown'}</p>
-                <p><strong>Reason:</strong> ${form.reason}</p>
-                <p><strong>Officer Comments:</strong> ${form.officerComments || 'N/A'}</p>
-
-                <form action="/api/division-removal/field-submit" method="POST" class="mt-3 space-y-2">
-                    <input type="hidden" name="formId" value="${form._id}">
-                    <label class="block font-medium text-sm">Final Decision</label>
-                    <select name="fieldDecision" class="w-full border rounded px-3 py-2">
-                        <option value="Approved">Approve Removal</option>
-                        <option value="Blocked">Block Removal</option>
-                    </select>
-
-                    <label class="block font-medium text-sm">Final Notes (optional)</label>
-                    <textarea name="fieldNotes" class="w-full border rounded px-3 py-2"></textarea>
-
-                    <div class="text-right">
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                            Submit Final Decision
-                        </button>
-                    </div>
-                </form>
-            </div>
-        `).join('');
-    } catch (err) {
-        console.error('Failed to load Form 122 review queue:', err);
-        container.innerHTML = '<p class="text-red-600">Failed to load forms.</p>';
-    }
-}
-
-function openTrainingForm150() {
-    document.getElementById('form150Modal').classList.remove('hidden');
-  }
-
-  function closeTrainingForm150() {
-    document.getElementById('form150Modal').classList.add('hidden');
-  }
-
-  const allUsers = <%- JSON.stringify(users) %>;
-let selectedTrainees = [];
-
-function filterTrainees() {
-  const input = document.getElementById('traineeSearch').value.toLowerCase();
-  const results = document.getElementById('traineeSearchResults');
-  results.innerHTML = '';
-
-  if (!input) return;
-
-  const matches = allUsers.filter(u => u.username.toLowerCase().includes(input) && !selectedTrainees.includes(u.username));
-
-  matches.forEach(user => {
-    const div = document.createElement('div');
-    div.textContent = user.username;
-    div.className = 'px-3 py-2 cursor-pointer hover:bg-gray-100';
-    div.onclick = () => addTrainee(user.username);
-    results.appendChild(div);
-  });
-}
-
-function addTrainee(username) {
-  selectedTrainees.push(username);
-  document.getElementById('selectedTrainees').value = selectedTrainees.join(',');
-
-  const tag = document.createElement('span');
-  tag.className = 'bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm flex items-center gap-2';
-  tag.textContent = username;
-  const remove = document.createElement('button');
-  remove.type = 'button';
-  remove.innerHTML = '&times;';
-  remove.className = 'text-red-500 hover:text-red-700';
-  remove.onclick = () => removeTrainee(username, tag);
-  tag.appendChild(remove);
-
-  document.getElementById('selectedTraineeTags').appendChild(tag);
-  document.getElementById('traineeSearch').value = '';
-  document.getElementById('traineeSearchResults').innerHTML = '';
-}
-
-function removeTrainee(username, tagElement) {
-  selectedTrainees = selectedTrainees.filter(u => u !== username);
-  document.getElementById('selectedTrainees').value = selectedTrainees.join(',');
-  tagElement.remove();
-}
-
-function validateTraineeSelection() {
-  if (selectedTrainees.length === 0) {
-    alert('Please add at least one trainee.');
-    return false;
-  }
-  return true;
-}
-
-function toggleOutcomeTraineeFields() {
-  const outcome = document.getElementById('outcomeSelect').value;
-  document.getElementById('remedialTrainees').classList.toggle('hidden', outcome !== 'Remedial');
-  document.getElementById('failedTrainees').classList.toggle('hidden', outcome !== 'Failed');
-}
-
-  function openForm150SncoModal() {
-  document.getElementById('form150SncoModal').classList.remove('hidden');
-  loadForm150SncoQueue();
-}
-
-function closeForm150SncoModal() {
-  document.getElementById('form150SncoModal').classList.add('hidden');
-}
-
-async function loadForm150SncoQueue() {
-  const container = document.getElementById('form150SncoQueueContainer');
-  container.innerHTML = '<p class="text-gray-600">Loading...</p>';
-
-  try {
-    const res = await fetch('/api/training/pending-snco');
-    const data = await res.json();
-
-    if (!data.length) {
-      container.innerHTML = '<p class="text-gray-600 italic">No training forms pending SNCO review.</p>';
-      return;
-    }
-
-    container.innerHTML = data.map(form => `
-      <div class="border rounded p-4 mb-4 bg-gray-50">
-        <p><strong>Event:</strong> ${form.eventName}</p>
-        <p><strong>Trainees:</strong> ${form.trainees.join(', ')}</p>
-        <p><strong>Time:</strong> ${new Date(form.startTime).toLocaleString()} - ${new Date(form.endTime).toLocaleString()}</p>
-        <p><strong>Grade:</strong> ${form.grade}</p>
-        <p><strong>Outcome:</strong> ${form.outcome}</p>
-        ${form.outcome === 'remedial' ? `<p><strong>Remedial Trainees:</strong> ${form.remedialTrainees.join(', ')}</p>` : ''}
-        ${form.outcome === 'failed' ? `<p><strong>Failed Trainees:</strong> ${form.failedTrainees.join(', ')}</p>` : ''}
-
-        <form action="/api/training/snco-submit" method="POST" class="space-y-3 mt-3">
-          <input type="hidden" name="formId" value="${form._id}">
-          
-          <label class="block text-sm font-medium">Recommended XP</label>
-          <input type="number" name="recommendedXP" class="w-full border rounded px-3 py-2" required>
-
-          <label class="block text-sm font-medium">Remarks</label>
-          <textarea name="remarks" class="w-full border rounded px-3 py-2" rows="3"></textarea>
-
-          <div class="text-right">
-            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              Sign and Send
-            </button>
-          </div>
-        </form>
-      </div>
-    `).join('');
-  } catch (err) {
-    console.error('Failed to load SNCO training forms:', err);
-    container.innerHTML = '<p class="text-red-600">Error loading forms.</p>';
-  }
-}
-
-function openForm150OfficerModal() {
-  document.getElementById('form150OfficerModal').classList.remove('hidden');
-  loadForm150OfficerQueue();
-}
-
-function closeForm150OfficerModal() {
-  document.getElementById('form150OfficerModal').classList.add('hidden');
-}
-
-async function loadForm150OfficerQueue() {
-  const container = document.getElementById('form150OfficerQueueContainer');
-  container.innerHTML = '<p class="text-gray-600">Loading...</p>';
-
-  try {
-    const res = await fetch('/api/training/pending-officer');
-    const data = await res.json();
-
-    if (!data.length) {
-      container.innerHTML = '<p class="text-gray-600 italic">No forms pending officer approval.</p>';
-      return;
-    }
-
-    container.innerHTML = data.map(form => `
-      <div class="border rounded p-4 mb-6 bg-gray-50">
-        <p><strong>Event:</strong> ${form.eventName}</p>
-        <p><strong>Trainees:</strong> ${form.trainees.join(', ')}</p>
-        <p><strong>Start:</strong> ${new Date(form.startTime).toLocaleString()}</p>
-        <p><strong>End:</strong> ${new Date(form.endTime).toLocaleString()}</p>
-        <p><strong>Grade:</strong> ${form.grade}</p>
-        <p><strong>Outcome:</strong> ${form.outcome}</p>
-        ${form.remedialTrainees?.length ? `<p><strong>Remedial:</strong> ${form.remedialTrainees.join(', ')}</p>` : ''}
-        ${form.failedTrainees?.length ? `<p><strong>Failed:</strong> ${form.failedTrainees.join(', ')}</p>` : ''}
-        <p><strong>SNCO Remarks:</strong> ${form.remarks || 'None'}</p>
-        <p><strong>Recommended XP:</strong> ${form.recommendedXP}</p>
-
-        <form action="/api/training/officer-submit" method="POST" class="space-y-4 mt-4">
-          <input type="hidden" name="formId" value="${form._id}">
-          
-          <label class="block text-sm font-medium">Assign XP to Trainees</label>
-          <div class="grid grid-cols-2 gap-4">
-            ${form.trainees.map(t => `
-              <div>
-                <label class="block text-xs font-medium">${t}</label>
-                <input type="number" name="xpAssignments[${t}]" class="w-full border rounded px-3 py-2" placeholder="XP">
-              </div>
-            `).join('')}
-          </div>
-
-          <div class="text-right">
-            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Finalize and Approve</button>
-          </div>
-        </form>
-      </div>
-    `).join('');
-  } catch (err) {
-    console.error('Failed to load officer training forms:', err);
-    container.innerHTML = '<p class="text-red-600">Error loading forms.</p>';
-  }
-}
-    </script>
 </head>
 <body class="bg-gray-100">
     <div class="min-h-screen flex">
@@ -854,5 +492,367 @@ async function loadForm150OfficerQueue() {
           </div>
         </div>
       </div>
+
+      <script>
+        function toggleFolder(folderName) {
+            const allContent = document.querySelectorAll('.folder-content');
+            allContent.forEach(el => el.classList.add('hidden'));
+
+            const target = document.getElementById('folder-' + folderName);
+            if (target) target.classList.remove('hidden');
+        }
+
+        function openRecruitmentForm() {
+            document.getElementById('recruitmentFormModal').classList.remove('hidden');
+        }
+
+        function closeRecruitmentForm() {
+            document.getElementById('recruitmentFormModal').classList.add('hidden');
+        }
+
+        function openDivisionForm() {
+            document.getElementById('divisionFormModal').classList.remove('hidden');
+        }
+
+        function closeDivisionForm() {
+            document.getElementById('divisionFormModal').classList.add('hidden');
+        }
+
+        function openDivisionBrowser() {
+            document.getElementById('divisionBrowserModal').classList.remove('hidden');
+            loadDivisionTree();
+        }
+
+        function closeDivisionBrowser() {
+            document.getElementById('divisionBrowserModal').classList.add('hidden');
+        }
+
+        async function loadDivisionTree() {
+            const container = document.getElementById('divisionTreeContainer');
+            container.innerHTML = '<p class="text-gray-600">Loading...</p>';
+
+            try {
+                const res = await fetch('/api/division/tree');
+                const data = await res.json();
+                container.innerHTML = renderTree(data);
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<p class="text-red-600">Failed to load division tree.</p>';
+            }
+        }
+
+        function renderTree(node) {
+            if (!node) return '';
+            let html = `<div class="ml-4">
+                <details open>
+                    <summary class="cursor-pointer font-semibold">${node.name}</summary>
+                    <div class="ml-4 text-sm">
+                        ${node.assignedUsers?.length ? `
+                            <details class="mb-2">
+                                <summary class="text-gray-600 cursor-pointer">Personnel</summary>
+                                <ul class="list-disc list-inside mt-1 ml-4">
+                                    ${node.assignedUsers.map(u => `<li>${u.username} - ${u.role}</li>`).join('')}
+                                </ul>
+                            </details>
+                        ` : ''}
+                        ${(node.children || []).map(child => renderTree(child)).join('')}
+                    </div>
+                </details>
+            </div>`;
+            return html;
+        }
+
+        function openAssignUserModal() {
+                document.getElementById('assignUserModal').classList.remove('hidden');
+            }
+            function closeAssignUserModal() {
+                document.getElementById('assignUserModal').classList.add('hidden');
+            }
+
+        const allUsers = <%- JSON.stringify(users) %>;
+
+        function filterUsers() {
+            const input = document.getElementById('userSearch').value.toLowerCase();
+            const results = document.getElementById('userSearchResults');
+            results.innerHTML = '';
+
+            if (!input) return;
+
+            const matches = allUsers.filter(u => u.username.toLowerCase().includes(input));
+
+            matches.forEach(user => {
+                const div = document.createElement('div');
+                div.textContent = user.username;
+                div.className = 'px-3 py-2 cursor-pointer hover:bg-gray-100';
+                div.onclick = () => {
+                    document.getElementById('userSearch').value = user.username;
+                    document.getElementById('selectedUserId').value = user._id;
+                    results.innerHTML = '';
+                };
+                results.appendChild(div);
+            });
+        }
+
+        function validateUserSelection() {
+            const userId = document.getElementById('selectedUserId').value;
+            if (!userId) {
+                alert('Please select a user from the suggestions.');
+                return false;
+            }
+            return true;
+        }
+
+        function openForm122SncoModal() {
+            document.getElementById('form122SncoModal').classList.remove('hidden');
+        }
+
+        function closeForm122SncoModal() {
+            document.getElementById('form122SncoModal').classList.add('hidden');
+        }
+
+        function openForm122OfficerQueue() {
+            document.getElementById('form122OfficerQueueModal').classList.remove('hidden');
+        }
+        function closeForm122OfficerQueue() {
+            document.getElementById('form122OfficerQueueModal').classList.add('hidden');
+        }
+
+        function openForm122FieldOfficerModal() {
+            document.getElementById('form122FieldOfficerModal').classList.remove('hidden');
+            loadForm122ReviewQueue();
+        }
+
+        function closeForm122FieldOfficerModal() {
+            document.getElementById('form122FieldOfficerModal').classList.add('hidden');
+        }
+
+        async function loadForm122ReviewQueue() {
+    const container = document.getElementById('fieldOfficerReviewContainer');
+    container.innerHTML = '<p class="text-gray-600">Loading...</p>';
+
+    try {
+        const res = await fetch('/api/division-removal/field-review');
+        const data = await res.json();
+
+        if (!data.length) {
+            container.innerHTML = '<p class="text-gray-600 italic">No forms pending final review.</p>';
+            return;
+        }
+
+        container.innerHTML = data.map(form => `
+            <div class="border rounded p-4 mb-4 bg-gray-50">
+                <p><strong>Target:</strong> ${form.targetUser?.username || 'Unknown'}</p>
+                <p><strong>Division:</strong> ${form.targetDivision?.name || 'Unknown'}</p>
+                <p><strong>SNCO:</strong> ${form.sncoSignature?.username || 'Unknown'}</p>
+                <p><strong>Reason:</strong> ${form.reason}</p>
+                <p><strong>Officer Comments:</strong> ${form.officerComments || 'N/A'}</p>
+
+                <form action="/api/division-removal/field-submit" method="POST" class="mt-3 space-y-2">
+                    <input type="hidden" name="formId" value="${form._id}">
+                    <label class="block font-medium text-sm">Final Decision</label>
+                    <select name="fieldDecision" class="w-full border rounded px-3 py-2">
+                        <option value="Approved">Approve Removal</option>
+                        <option value="Blocked">Block Removal</option>
+                    </select>
+
+                    <label class="block font-medium text-sm">Final Notes (optional)</label>
+                    <textarea name="fieldNotes" class="w-full border rounded px-3 py-2"></textarea>
+
+                    <div class="text-right">
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Submit Final Decision
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('Failed to load Form 122 review queue:', err);
+        container.innerHTML = '<p class="text-red-600">Failed to load forms.</p>';
+    }
+}
+
+function openTrainingForm150() {
+    document.getElementById('form150Modal').classList.remove('hidden');
+  }
+
+  function closeTrainingForm150() {
+    document.getElementById('form150Modal').classList.add('hidden');
+  }
+
+let selectedTrainees = [];
+
+function filterTrainees() {
+  const input = document.getElementById('traineeSearch').value.toLowerCase();
+  const results = document.getElementById('traineeSearchResults');
+  results.innerHTML = '';
+
+  if (!input) return;
+
+  const matches = allUsers.filter(u => u.username.toLowerCase().includes(input) && !selectedTrainees.includes(u.username));
+
+  matches.forEach(user => {
+    const div = document.createElement('div');
+    div.textContent = user.username;
+    div.className = 'px-3 py-2 cursor-pointer hover:bg-gray-100';
+    div.onclick = () => addTrainee(user.username);
+    results.appendChild(div);
+  });
+}
+
+function addTrainee(username) {
+  selectedTrainees.push(username);
+  document.getElementById('selectedTrainees').value = selectedTrainees.join(',');
+
+  const tag = document.createElement('span');
+  tag.className = 'bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm flex items-center gap-2';
+  tag.textContent = username;
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.innerHTML = '&times;';
+  remove.className = 'text-red-500 hover:text-red-700';
+  remove.onclick = () => removeTrainee(username, tag);
+  tag.appendChild(remove);
+
+  document.getElementById('selectedTraineeTags').appendChild(tag);
+  document.getElementById('traineeSearch').value = '';
+  document.getElementById('traineeSearchResults').innerHTML = '';
+}
+
+function removeTrainee(username, tagElement) {
+  selectedTrainees = selectedTrainees.filter(u => u !== username);
+  document.getElementById('selectedTrainees').value = selectedTrainees.join(',');
+  tagElement.remove();
+}
+
+function validateTraineeSelection() {
+  if (selectedTrainees.length === 0) {
+    alert('Please add at least one trainee.');
+    return false;
+  }
+  return true;
+}
+
+function toggleOutcomeTraineeFields() {
+  const outcome = document.getElementById('outcomeSelect').value;
+  document.getElementById('remedialTrainees').classList.toggle('hidden', outcome !== 'Remedial');
+  document.getElementById('failedTrainees').classList.toggle('hidden', outcome !== 'Failed');
+}
+
+  function openForm150SncoModal() {
+  document.getElementById('form150SncoModal').classList.remove('hidden');
+  loadForm150SncoQueue();
+}
+
+function closeForm150SncoModal() {
+  document.getElementById('form150SncoModal').classList.add('hidden');
+}
+
+async function loadForm150SncoQueue() {
+  const container = document.getElementById('form150SncoQueueContainer');
+  container.innerHTML = '<p class="text-gray-600">Loading...</p>';
+
+  try {
+    const res = await fetch('/api/training/pending-snco');
+    const data = await res.json();
+
+    if (!data.length) {
+      container.innerHTML = '<p class="text-gray-600 italic">No training forms pending SNCO review.</p>';
+      return;
+    }
+
+    container.innerHTML = data.map(form => `
+      <div class="border rounded p-4 mb-4 bg-gray-50">
+        <p><strong>Event:</strong> ${form.eventName}</p>
+        <p><strong>Trainees:</strong> ${form.trainees.join(', ')}</p>
+        <p><strong>Time:</strong> ${new Date(form.startTime).toLocaleString()} - ${new Date(form.endTime).toLocaleString()}</p>
+        <p><strong>Grade:</strong> ${form.grade}</p>
+        <p><strong>Outcome:</strong> ${form.outcome}</p>
+        ${form.outcome === 'remedial' ? `<p><strong>Remedial Trainees:</strong> ${form.remedialTrainees.join(', ')}</p>` : ''}
+        ${form.outcome === 'failed' ? `<p><strong>Failed Trainees:</strong> ${form.failedTrainees.join(', ')}</p>` : ''}
+
+        <form action="/api/training/snco-submit" method="POST" class="space-y-3 mt-3">
+          <input type="hidden" name="formId" value="${form._id}">
+          
+          <label class="block text-sm font-medium">Recommended XP</label>
+          <input type="number" name="recommendedXP" class="w-full border rounded px-3 py-2" required>
+
+          <label class="block text-sm font-medium">Remarks</label>
+          <textarea name="remarks" class="w-full border rounded px-3 py-2" rows="3"></textarea>
+
+          <div class="text-right">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+              Sign and Send
+            </button>
+          </div>
+        </form>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Failed to load SNCO training forms:', err);
+    container.innerHTML = '<p class="text-red-600">Error loading forms.</p>';
+  }
+}
+
+function openForm150OfficerModal() {
+  document.getElementById('form150OfficerModal').classList.remove('hidden');
+  loadForm150OfficerQueue();
+}
+
+function closeForm150OfficerModal() {
+  document.getElementById('form150OfficerModal').classList.add('hidden');
+}
+
+async function loadForm150OfficerQueue() {
+  const container = document.getElementById('form150OfficerQueueContainer');
+  container.innerHTML = '<p class="text-gray-600">Loading...</p>';
+
+  try {
+    const res = await fetch('/api/training/pending-officer');
+    const data = await res.json();
+
+    if (!data.length) {
+      container.innerHTML = '<p class="text-gray-600 italic">No forms pending officer approval.</p>';
+      return;
+    }
+
+    container.innerHTML = data.map(form => `
+      <div class="border rounded p-4 mb-6 bg-gray-50">
+        <p><strong>Event:</strong> ${form.eventName}</p>
+        <p><strong>Trainees:</strong> ${form.trainees.join(', ')}</p>
+        <p><strong>Start:</strong> ${new Date(form.startTime).toLocaleString()}</p>
+        <p><strong>End:</strong> ${new Date(form.endTime).toLocaleString()}</p>
+        <p><strong>Grade:</strong> ${form.grade}</p>
+        <p><strong>Outcome:</strong> ${form.outcome}</p>
+        ${form.remedialTrainees?.length ? `<p><strong>Remedial:</strong> ${form.remedialTrainees.join(', ')}</p>` : ''}
+        ${form.failedTrainees?.length ? `<p><strong>Failed:</strong> ${form.failedTrainees.join(', ')}</p>` : ''}
+        <p><strong>SNCO Remarks:</strong> ${form.remarks || 'None'}</p>
+        <p><strong>Recommended XP:</strong> ${form.recommendedXP}</p>
+
+        <form action="/api/training/officer-submit" method="POST" class="space-y-4 mt-4">
+          <input type="hidden" name="formId" value="${form._id}">
+          
+          <label class="block text-sm font-medium">Assign XP to Trainees</label>
+          <div class="grid grid-cols-2 gap-4">
+            ${form.trainees.map(t => `
+              <div>
+                <label class="block text-xs font-medium">${t}</label>
+                <input type="number" name="xpAssignments[${t}]" class="w-full border rounded px-3 py-2" placeholder="XP">
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="text-right">
+            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Finalize and Approve</button>
+          </div>
+        </form>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Failed to load officer training forms:', err);
+    container.innerHTML = '<p class="text-red-600">Error loading forms.</p>';
+  }
+}
+    </script>
 </body>
 </html>
