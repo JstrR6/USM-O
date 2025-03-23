@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> | Military Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        .folder {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .folder:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .folder-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1.5rem;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+        .filter-btn.active {
+            background-color: rgb(37, 99, 235);
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <div class="bg-gray-800 text-white w-64 py-6 flex flex-col">
+            <div class="px-6 py-4">
+                <h1 class="text-2xl font-semibold">Military Portal</h1>
+            </div>
+            <!-- Navigation -->
+            <nav class="flex-1 px-4 mt-6">
+                <a href="/dashboard" class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/dashboard' ? 'bg-gray-700' : '' %>">
+                    <i class="fas fa-home w-5 h-5 mr-3"></i>
+                    Dashboard
+                </a>
+                <a href="/forms" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/forms' ? 'bg-gray-700' : '' %>">
+                    <i class="fas fa-file-alt w-5 h-5 mr-3"></i>
+                    Forms
+                </a>
+                <a href="/profile" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/profile' ? 'bg-gray-700' : '' %>">
+                    <i class="fas fa-user w-5 h-5 mr-3"></i>
+                    Profile
+                </a>
+                <a href="/members" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/members' ? 'bg-gray-700' : '' %>">
+                    <i class="fas fa-users w-5 h-5 mr-3"></i>
+                    Members
+                </a>
+            </nav>
+
+            <!-- User Info -->
+            <div class="px-6 py-4 border-t border-gray-700">
+                <div class="flex items-center">
+                    <div class="ml-3">
+                        <p class="text-sm font-medium"><%= user.username %></p>
+                        <p class="text-xs text-gray-400"><%= user.highestRole %></p>
+                    </div>
+                </div>
+                <a href="/logout" class="mt-4 block px-4 py-2 text-center text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg">
+                    Logout
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 p-8">
+            <h1 class="text-3xl font-bold mb-6">Forms</h1>
+
+            <!-- 🧱 Place all your form sections here -->
+            <!-- You can split sections into their own includes later (e.g., `<%- include('partials/recruitment') %>` ) -->
+
+            <div id="form-sections">
+                <p class="text-gray-600">Start building out the forms here...</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
