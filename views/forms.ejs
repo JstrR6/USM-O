@@ -475,13 +475,16 @@
 
       <div id="form150SncoModal" class="modal hidden overflow-auto py-6">
         <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6 relative">
-          <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="closeForm150SncoModal()">&times;</button>
-          <h2 class="text-xl font-bold mb-4">Form 150 – SNCO Review</h2>
-          <div id="form150SncoQueueContainer">
-            <p class="text-gray-600">Loading...</p>
-          </div>
+            <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="closeForm150SncoModal()">&times;</button>
+            <h2 class="text-xl font-bold mb-4">Form 150 – SNCO Review</h2>
+            
+            <!-- Container for SNCO Review Cards -->
+            <div id="form150SncoQueueContainer" class="space-y-4">
+                <p class="text-gray-600">Loading...</p>
+            </div>
         </div>
-      </div>
+    </div>
+    
 
       <div id="form150OfficerModal" class="modal hidden overflow-auto py-6">
         <div class="bg-white rounded-lg shadow-lg w-full max-w-5xl p-6 relative">
@@ -749,50 +752,78 @@ function closeForm150SncoModal() {
 }
 
 async function loadForm150SncoQueue() {
-  const container = document.getElementById('form150SncoQueueContainer');
-  container.innerHTML = '<p class="text-gray-600">Loading...</p>';
+    const container = document.getElementById('form150SncoQueueContainer');
+    container.innerHTML = '<p class="text-gray-600">Loading...</p>';
 
-  try {
-    const res = await fetch('/api/training/pending-snco');
-    const data = await res.json();
+    try {
+      const res = await fetch('/api/training/pending-snco');  // Fetch the training forms pending SNCO review
+      const data = await res.json();
 
-    if (!data.length) {
-      container.innerHTML = '<p class="text-gray-600 italic">No training forms pending SNCO review.</p>';
-      return;
+      // Log data to check the structure
+      console.log(data);
+
+      if (!data.length) {
+        container.innerHTML = '<p class="text-gray-600 italic">No training forms pending SNCO review.</p>';
+        return;
+      }
+
+      // Create the form cards for each form in the queue
+      container.innerHTML = data.map(form => `
+        <div class="border rounded p-4 mb-4 bg-white shadow-lg cursor-pointer" onclick="openTrainingForm(${form._id})">
+          <h3 class="text-lg font-semibold text-gray-800 mb-2">${form.eventName || 'Unknown Event'}</h3>
+          <p><strong>Trainees:</strong> ${form.trainees && form.trainees.length ? form.trainees.map(t => t.username).join(', ') : 'Unknown'}</p>
+          <p><strong>Time:</strong> ${new Date(form.startTime).toLocaleString()} - ${new Date(form.endTime).toLocaleString()}</p>
+          <p><strong>Grade:</strong> ${form.grade || 'Unknown'}</p>
+          <p><strong>Outcome:</strong> ${form.outcome || 'Unknown'}</p>
+        </div>
+      `).join('');
+
+    } catch (err) {
+      console.error('Failed to load SNCO training forms:', err);
+      container.innerHTML = '<p class="text-red-600">Error loading forms.</p>';
     }
-
-    container.innerHTML = data.map(form => `
-      <div class="border rounded p-4 mb-4 bg-gray-50">
-        <p><strong>Event:</strong> ${form.eventName}</p>
-        <p><strong>Trainees:</strong> ${form.trainees.join(', ')}</p>
-        <p><strong>Time:</strong> ${new Date(form.startTime).toLocaleString()} - ${new Date(form.endTime).toLocaleString()}</p>
-        <p><strong>Grade:</strong> ${form.grade}</p>
-        <p><strong>Outcome:</strong> ${form.outcome}</p>
-        ${form.outcome === 'remedial' ? `<p><strong>Remedial Trainees:</strong> ${form.remedialTrainees.join(', ')}</p>` : ''}
-        ${form.outcome === 'failed' ? `<p><strong>Failed Trainees:</strong> ${form.failedTrainees.join(', ')}</p>` : ''}
-
-        <form action="/api/training/snco-submit" method="POST" class="space-y-3 mt-3">
-          <input type="hidden" name="formId" value="${form._id}">
-          
-          <label class="block text-sm font-medium">Recommended XP</label>
-          <input type="number" name="recommendedXP" class="w-full border rounded px-3 py-2" required>
-
-          <label class="block text-sm font-medium">Remarks</label>
-          <textarea name="remarks" class="w-full border rounded px-3 py-2" rows="3"></textarea>
-
-          <div class="text-right">
-            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              Sign and Send
-            </button>
-          </div>
-        </form>
-      </div>
-    `).join('');
-  } catch (err) {
-    console.error('Failed to load SNCO training forms:', err);
-    container.innerHTML = '<p class="text-red-600">Error loading forms.</p>';
   }
-}
+
+  function openTrainingForm(formId) {
+    // Fetch the selected form's details and populate the modal
+    const form = allForms.find(f => f._id === formId); // Assuming allForms is available with all training form data
+    if (form) {
+      document.getElementById('form150SncoModal').classList.remove('hidden');
+      populateForm150Modal(form);
+    }
+  }
+
+  function populateForm150Modal(form) {
+    // Populate the modal with the form details
+    document.getElementById('form150SncoModal').innerHTML = `
+      <button onclick="closeForm150SncoModal()">Close</button>
+      <h2 class="text-xl font-bold mb-4">${form.eventName}</h2>
+      <p><strong>Start Time:</strong> ${new Date(form.startTime).toLocaleString()}</p>
+      <p><strong>End Time:</strong> ${new Date(form.endTime).toLocaleString()}</p>
+      <p><strong>Grade:</strong> ${form.grade}</p>
+      <p><strong>Outcome:</strong> ${form.outcome}</p>
+      
+      <form action="/api/training/snco-submit" method="POST" class="space-y-3 mt-3">
+        <input type="hidden" name="formId" value="${form._id}">
+        
+        <label class="block text-sm font-medium">Recommended XP</label>
+        <input type="number" name="recommendedXP" class="w-full border rounded px-3 py-2" required>
+
+        <label class="block text-sm font-medium">Remarks</label>
+        <textarea name="remarks" class="w-full border rounded px-3 py-2" rows="3"></textarea>
+
+        <div class="text-right">
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            Sign and Send
+          </button>
+        </div>
+      </form>
+    `;
+  }
+
+  function closeForm150SncoModal() {
+    document.getElementById('form150SncoModal').classList.add('hidden');
+  }
 
 function openForm150OfficerModal() {
   document.getElementById('form150OfficerModal').classList.remove('hidden');

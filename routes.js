@@ -705,10 +705,14 @@ router.post('/api/training/submit', async (req, res) => {
   });
   
   // SNCO Review Route - GET pending
-  router.get('/api/training/pending-snco', async (req, res) => {
+router.get('/api/training/pending-snco', async (req, res) => {
     try {
+      // Fetch the forms pending SNCO review and populate necessary fields like trainees and event details
       const forms = await Training.find({ status: 'Pending SNCO Review' })
-        .populate('ncoSignature', 'username');
+        .populate('trainees', 'username') // Populating trainees' usernames
+        .populate('ncoSignature', 'username') // Populating SNCO signature (e.g. username)
+        .select('eventName trainees startTime endTime grade outcome') // Selecting specific fields to return
+      
       res.json(forms);
     } catch (err) {
       console.error('Error loading SNCO forms:', err);
