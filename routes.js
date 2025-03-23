@@ -317,7 +317,6 @@ router.get('/forms', async (req, res) => {
       const divisions = await Division.find({}, 'name').lean();
       const users = await User.find({}).lean();
   
-      // Form 122 Officer Queue
       const form122OfficerQueue = await DivisionRemoval.find({ status: 'Pending Officer Review' })
         .populate('targetUser targetDivision sncoSignature')
         .lean();
@@ -327,28 +326,26 @@ router.get('/forms', async (req, res) => {
         targetUsername: form.targetUser?.username || 'Unknown',
         divisionName: form.targetDivision?.name || 'Unknown',
         reason: form.reason || '',
-        sncoSignature: form.sncoSignature?.username || 'Unknown'
+        sncoSignature: form.sncoSignature?.username || 'Unknown',
       }));
   
-      // Form 150 SNCO Queue
       const form150SncoQueue = await Training.find({ status: 'Pending SNCO Review' })
         .populate('ncoSignature')
         .lean();
   
-      // Form 150 Officer Queue
       const form150OfficerQueue = await Training.find({ status: 'Pending Officer Approval' })
         .populate('ncoSignature sncoSignature')
         .lean();
   
       res.render('forms', {
         title: 'Forms',
-        user: req.user,
+        user: req.user || {}, // ← ensure user is always defined
         path: '/forms',
         divisions,
         users,
         form122OfficerQueue: formattedOfficerQueue,
         form150SncoQueue,
-        form150OfficerQueue
+        form150OfficerQueue,
       });
     } catch (err) {
       console.error('Error loading forms:', err);
@@ -668,18 +665,34 @@ router.post('/api/training/submit', async (req, res) => {
         failedTrainees,
       } = req.body;
   
-      const traineeList = trainees.split(',').map(t => t.trim());
+      // Convert usernames to user IDs
+      const findUserIds = async (nameStr) => {
+        if (!nameStr) return [];
+        const names = nameStr.split(',').map(t => t.trim()).filter(Boolean);
+        const users = await User.find({ username: { $in: names } });
+        return users.map(u => u._id);
+      };
+  
+      const traineeIds = await findUserIds(trainees);
+      const remedialIds = await findUserIds(remedialTrainees);
+      const failedIds = await findUserIds(failedTrainees);
+  
+      // Ensure valid outcome
+      const validOutcomes = ['Satisfactory', 'Remedial Training Advised', 'Training Failed'];
+      if (!validOutcomes.includes(outcome)) {
+        return res.status(400).send('Invalid training outcome.');
+      }
   
       const form = new Training({
-        trainees: traineeList,
+        trainees: traineeIds,
         startTime,
         endTime,
         eventName,
         grade,
         outcome,
-        remedialTrainees: remedialTrainees?.split(',').map(t => t.trim()) || [],
-        failedTrainees: failedTrainees?.split(',').map(t => t.trim()) || [],
-        ncoSignature: req.user._id,
+        remedialTrainees: remedialIds,
+        failedTrainees: failedIds,
+        ncoSignature: req.user?._id, // Optional chaining in case not present
         status: 'Pending SNCO Review',
       });
   

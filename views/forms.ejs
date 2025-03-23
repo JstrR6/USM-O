@@ -231,11 +231,44 @@ function openTrainingForm150() {
     document.getElementById('form150Modal').classList.add('hidden');
   }
 
-function toggleOutcomeTraineeFields() {
-    const outcome = document.getElementById('outcomeSelect').value;
-    document.getElementById('remedialTrainees').classList.toggle('hidden', outcome !== 'remedial');
-    document.getElementById('failedTrainees').classList.toggle('hidden', outcome !== 'failed');
+  function addTrainee(username) {
+  selectedTrainees.push(username);
+  document.getElementById('selectedTrainees').value = selectedTrainees.join(',');
+
+  const tag = document.createElement('span');
+  tag.className = 'bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm flex items-center gap-2';
+  tag.textContent = username;
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.innerHTML = '&times;';
+  remove.className = 'text-red-500 hover:text-red-700';
+  remove.onclick = () => removeTrainee(username, tag);
+  tag.appendChild(remove);
+
+  document.getElementById('selectedTraineeTags').appendChild(tag);
+  document.getElementById('userSearch').value = '';
+  document.getElementById('userSearchResults').innerHTML = '';
+}
+
+function removeTrainee(username, tagElement) {
+  selectedTrainees = selectedTrainees.filter(u => u !== username);
+  document.getElementById('selectedTrainees').value = selectedTrainees.join(',');
+  tagElement.remove();
+}
+
+function validateTraineeSelection() {
+  if (selectedTrainees.length === 0) {
+    alert('Please add at least one trainee.');
+    return false;
   }
+  return true;
+}
+
+function toggleOutcomeTraineeFields() {
+  const outcome = document.getElementById('outcomeSelect').value;
+  document.getElementById('remedialTrainees').classList.toggle('hidden', outcome !== 'Remedial');
+  document.getElementById('failedTrainees').classList.toggle('hidden', outcome !== 'Failed');
+}
 
   function openForm150SncoModal() {
   document.getElementById('form150SncoModal').classList.remove('hidden');
@@ -474,6 +507,11 @@ async function loadForm150OfficerQueue() {
                             <h3 class="text-lg font-semibold text-gray-800 mb-1">Form 150 Officer Queue</h3>
                             <p class="text-sm text-gray-600">Review and finalize training reports.</p>
                           </div>
+
+                          <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openAssignUserModal()">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-1">Assign User to Division</h3>
+                            <p class="text-sm text-gray-600">Assign a user to a specific division with a defined role.</p>
+                        </div>
                       <% } %>
 
                       <% if (folder.name === 'Field Officers') { %>
@@ -494,10 +532,6 @@ async function loadForm150OfficerQueue() {
                             <p class="text-sm text-gray-600">View the hierarchical structure of all divisions and assigned personnel.</p>
                           </div>
 
-                          <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openAssignUserModal()">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-1">Assign User to Division</h3>
-                            <p class="text-sm text-gray-600">Assign a user to a specific division with a defined role.</p>
-                        </div>
                     <% } %>
                 </div>
             <% }) %>
@@ -712,11 +746,14 @@ async function loadForm150OfficerQueue() {
           <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="document.getElementById('form150Modal').classList.add('hidden')">&times;</button>
           <h2 class="text-xl font-bold mb-4">Form 150 – Training Report</h2>
       
-          <form action="/api/training/submit" method="POST" class="space-y-4">
-            <!-- Trainees -->
+          <form action="/api/training/submit" method="POST" class="space-y-4" onsubmit="return validateTraineeSelection()">
+            <!-- Trainee Live Search -->
             <div>
-              <label class="block text-sm font-medium mb-1">Trainees (Usernames, separated by commas)</label>
-              <input type="text" name="trainees" class="w-full border rounded px-3 py-2" required placeholder="e.g. JohnDoe, JaneSmith">
+              <label class="block text-sm font-medium mb-1">Search Trainees</label>
+              <input type="text" id="userSearch" oninput="filterUsers()" placeholder="Type to search..." class="w-full border border-gray-300 rounded px-3 py-2">
+              <div id="userSearchResults" class="mt-2 border border-gray-300 rounded bg-white max-h-40 overflow-y-auto"></div>
+              <input type="hidden" name="trainees" id="selectedTrainees">
+              <div id="selectedTraineeTags" class="flex flex-wrap gap-2 mt-2"></div>
             </div>
       
             <!-- Training Event -->
@@ -752,9 +789,9 @@ async function loadForm150OfficerQueue() {
               <label class="block text-sm font-medium mb-1">Training Outcome</label>
               <select name="outcome" id="outcomeSelect" class="w-full border rounded px-3 py-2" required onchange="toggleOutcomeTraineeFields()">
                 <option value="">Select Outcome</option>
-                <option value="satisfactory">Training Satisfactory</option>
-                <option value="remedial">Remedial Training Advised</option>
-                <option value="failed">Training Failed</option>
+                <option value="Satisfactory">Training Satisfactory</option>
+                <option value="Remedial">Remedial Training Advised</option>
+                <option value="Failed">Training Failed</option>
               </select>
             </div>
       
