@@ -808,8 +808,8 @@ function openTrainingForm(formId) {
     const contentDiv = document.getElementById('form150DetailContent');
     contentDiv.innerHTML = `<div class="p-4 text-center">Loading form data...</div>`;
     
-    // Use the correct endpoint based on your routes
-    fetch(`/api/training/${formId}`)
+    // Use the new dedicated endpoint
+    fetch(`/training/${formId}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
@@ -817,6 +817,8 @@ function openTrainingForm(formId) {
             return response.json();
         })
         .then(form => {
+            console.log("Form data received:", form);
+            
             // Format trainees display
             let traineesDisplay = 'None';
             if (form.trainees && form.trainees.length) {

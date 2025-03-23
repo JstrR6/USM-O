@@ -740,6 +740,22 @@ router.get('/api/training/pending-snco', async (req, res) => {
     }
 });
 
+router.get('/training/:id', async (req, res) => {
+    try {
+        const form = await Training.findById(req.params.id)
+            .populate('trainees', 'username');
+
+        if (!form) {
+            return res.status(404).json({ error: 'Form not found' });
+        }
+
+        res.json(form);
+    } catch (err) {
+        console.error('Error fetching training form:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 router.get('/:id', async (req, res) => {
     try {
         const form = await Training.findById(req.params.id)
