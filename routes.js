@@ -6,7 +6,6 @@ const passport = require('passport');
 const { User } = require('./models/user');
 const { Promotion } = require('./models/promotion');
 const { Demotion } = require('./models/demotion');
-const { Training } = require('./models/training');
 const Recruitment = require('./models/recruitment');
 const { Regulation } = require('./models/regulation');
 const { DisciplinaryAction } = require('./models/disciplinary');
