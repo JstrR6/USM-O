@@ -1019,17 +1019,27 @@ router.post('/api/division-removal/officer-submit', async (req, res) => {
     }
 });
 
-router.get('/forms/division-removal/field-review', async (req, res) => {
+router.get('/api/division-removal/field-review', async (req, res) => {
     try {
       const forms = await DivisionRemoval.find({ status: 'Pending Field Officer Decision' })
         .populate('targetUser targetDivision sncoSignature officerSignature');
   
-      res.render('divisionRemovalFieldReview', { title: 'Finalize Form 122s', user: req.user, forms });
+      const sanitizedForms = forms.map(f => ({
+        _id: f._id,
+        targetUser: f.targetUser ? { username: f.targetUser.username } : null,
+        targetDivision: f.targetDivision ? { name: f.targetDivision.name } : null,
+        sncoSignature: f.sncoSignature ? { username: f.sncoSignature.username } : null,
+        officerSignature: f.officerSignature ? { username: f.officerSignature.username } : null,
+        reason: f.reason,
+        officerComments: f.officerComments || '',
+      }));
+  
+      res.json(sanitizedForms);
     } catch (err) {
-      console.error('Error loading field review forms:', err);
-      res.status(500).send('Error loading forms.');
+      console.error('Error fetching field review forms (JSON):', err);
+      res.status(500).json({ error: 'Failed to load forms.' });
     }
-});
+  });
 
 router.post('/api/division-removal/field-submit', async (req, res) => {
     try {
