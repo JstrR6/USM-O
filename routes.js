@@ -739,6 +739,22 @@ router.get('/api/training/pending-snco', async (req, res) => {
         res.status(500).send('Error submitting review.');
     }
 });
+
+router.get('/:id', async (req, res) => {
+    try {
+        const form = await Training.findById(req.params.id)
+            .populate('trainees', 'username'); // Only pulls usernames if trainees are ObjectIds
+
+        if (!form) {
+            return res.status(404).json({ error: 'Form not found' });
+        }
+
+        res.json(form);
+    } catch (err) {
+        console.error('Error fetching training form:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
   
   // Company Officer Review - GET pending
   router.get('/api/training/pending-officer', async (req, res) => {
