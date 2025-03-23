@@ -7,13 +7,13 @@ const { User } = require('./models/user');
 const { Promotion } = require('./models/promotion');
 const { Demotion } = require('./models/demotion');
 const { Training } = require('./models/training');
-const Division = require('./models/division');
 const Recruitment = require('./models/recruitment');
 const { Regulation } = require('./models/regulation');
 const { DisciplinaryAction } = require('./models/disciplinary');
 const { handlePromotion } = require('./bot')
 
 const RecruitmentRequest = require('./models/recruitmentrequest');
+const Division = require('./models/division');
 
 // Middleware to check authentication
 function isAuthenticated(req, res, next) {
@@ -313,14 +313,18 @@ router.get('/api/members/:id/profile', isAuthenticated, async (req, res) => {
 
 router.get('/forms', isAuthenticated, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).exec();
+        const divisions = await Division.find({});
+        const users = await User.find({});
+
         res.render('forms', {
             title: 'Forms',
-            user: user,
-            path: req.path
+            user: req.user,
+            path: '/forms',
+            divisions,
+            users
         });
-    } catch (error) {
-        console.error('Forms error:', error);
+    } catch (err) {
+        console.error('Error loading forms:', err);
         res.status(500).send('Error loading forms');
     }
 });
