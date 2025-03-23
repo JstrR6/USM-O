@@ -776,8 +776,49 @@ router.get('/:id', async (req, res) => {
   router.get('/api/training/pending-officer', async (req, res) => {
     try {
       const forms = await Training.find({ status: 'Pending Officer Approval' })
-        .populate('ncoSignature sncoSignature', 'username');
-      res.json(forms);
+        .populate('trainees', 'username') // Populate trainees with usernames
+        .populate('ncoSignature', 'username')
+        .populate('sncoSignature', 'username')
+        .populate('remedialTrainees', 'username')
+        .populate('failedTrainees', 'username');
+        
+      // Process the data to ensure it's in the correct format for the client
+      const processedForms = forms.map(form => {
+        // Convert trainee objects to username strings if needed
+        const trainees = form.trainees.map(trainee => 
+          typeof trainee === 'object' ? trainee.username : trainee
+        );
+        
+        // Convert remedial trainees if they exist
+        const remedialTrainees = form.remedialTrainees && form.remedialTrainees.length ? 
+          form.remedialTrainees.map(trainee => 
+            typeof trainee === 'object' ? trainee.username : trainee
+          ) : [];
+        
+        // Convert failed trainees if they exist
+        const failedTrainees = form.failedTrainees && form.failedTrainees.length ? 
+          form.failedTrainees.map(trainee => 
+            typeof trainee === 'object' ? trainee.username : trainee
+          ) : [];
+        
+        return {
+          _id: form._id,
+          eventName: form.eventName || 'Untitled Training',
+          trainees: trainees,
+          startTime: form.startTime,
+          endTime: form.endTime,
+          grade: form.grade || 'Not graded',
+          outcome: form.outcome || 'Not specified',
+          remedialTrainees: remedialTrainees,
+          failedTrainees: failedTrainees,
+          remarks: form.remarks || '',
+          recommendedXP: form.recommendedXP || 0,
+          ncoSignature: typeof form.ncoSignature === 'object' ? form.ncoSignature.username : 'Unknown',
+          sncoSignature: typeof form.sncoSignature === 'object' ? form.sncoSignature.username : 'Unknown'
+        };
+      });
+      
+      res.json(processedForms);
     } catch (err) {
       console.error('Error loading officer forms:', err);
       res.status(500).send('Failed to load officer forms.');

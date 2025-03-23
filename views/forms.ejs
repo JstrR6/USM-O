@@ -980,28 +980,44 @@ async function loadForm150OfficerQueue() {
 
     container.innerHTML = data.map(form => `
       <div class="border rounded p-4 mb-6 bg-gray-50">
-        <p><strong>Event:</strong> ${form.eventName}</p>
-        <p><strong>Trainees:</strong> ${form.trainees.join(', ')}</p>
-        <p><strong>Start:</strong> ${new Date(form.startTime).toLocaleString()}</p>
-        <p><strong>End:</strong> ${new Date(form.endTime).toLocaleString()}</p>
-        <p><strong>Grade:</strong> ${form.grade}</p>
-        <p><strong>Outcome:</strong> ${form.outcome}</p>
-        ${form.remedialTrainees?.length ? `<p><strong>Remedial:</strong> ${form.remedialTrainees.join(', ')}</p>` : ''}
-        ${form.failedTrainees?.length ? `<p><strong>Failed:</strong> ${form.failedTrainees.join(', ')}</p>` : ''}
-        <p><strong>SNCO Remarks:</strong> ${form.remarks || 'None'}</p>
-        <p><strong>Recommended XP:</strong> ${form.recommendedXP}</p>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <p><strong>Event:</strong> ${form.eventName || 'Untitled Training'}</p>
+            <p><strong>Grade:</strong> ${form.grade || 'Not graded'}</p>
+            <p><strong>Outcome:</strong> ${form.outcome || 'Not specified'}</p>
+            <p><strong>SNCO Signature:</strong> ${form.sncoSignature || 'None'}</p>
+          </div>
+          <div>
+            <p><strong>Start:</strong> ${new Date(form.startTime).toLocaleString()}</p>
+            <p><strong>End:</strong> ${new Date(form.endTime).toLocaleString()}</p>
+            <p><strong>Recommended XP:</strong> ${form.recommendedXP || 0}</p>
+            <p><strong>NCO Signature:</strong> ${form.ncoSignature || 'None'}</p>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <p><strong>Trainees:</strong> ${Array.isArray(form.trainees) ? form.trainees.join(', ') : form.trainees || 'None'}</p>
+          ${form.remedialTrainees?.length ? `<p><strong>Remedial:</strong> ${form.remedialTrainees.join(', ')}</p>` : ''}
+          ${form.failedTrainees?.length ? `<p><strong>Failed:</strong> ${form.failedTrainees.join(', ')}</p>` : ''}
+          <p><strong>SNCO Remarks:</strong> ${form.remarks || 'None'}</p>
+        </div>
 
         <form action="/api/training/officer-submit" method="POST" class="space-y-4 mt-4">
           <input type="hidden" name="formId" value="${form._id}">
           
           <label class="block text-sm font-medium">Assign XP to Trainees</label>
-          <div class="grid grid-cols-2 gap-4">
-            ${form.trainees.map(t => `
-              <div>
-                <label class="block text-xs font-medium">${t}</label>
-                <input type="number" name="xpAssignments[${t}]" class="w-full border rounded px-3 py-2" placeholder="XP">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            ${Array.isArray(form.trainees) ? form.trainees.map(trainee => `
+              <div class="border p-3 rounded-md bg-white">
+                <label class="block text-sm font-medium text-gray-700">${trainee}</label>
+                <div class="mt-1 flex items-center">
+                  <input type="number" name="xpAssignments[${trainee}]" 
+                         value="${form.recommendedXP || 0}"
+                         class="w-full border rounded px-3 py-2" 
+                         placeholder="XP">
+                </div>
               </div>
-            `).join('')}
+            `).join('') : 'No trainees found'}
           </div>
 
           <div class="text-right">
@@ -1012,7 +1028,7 @@ async function loadForm150OfficerQueue() {
     `).join('');
   } catch (err) {
     console.error('Failed to load officer training forms:', err);
-    container.innerHTML = '<p class="text-red-600">Error loading forms.</p>';
+    container.innerHTML = '<p class="text-red-600">Error loading forms: ' + err.message + '</p>';
   }
 }
     </script>
