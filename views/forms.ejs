@@ -96,15 +96,21 @@
             if (!node) return '';
             let html = `<div class="ml-4">
                 <details open>
-                <summary class="cursor-pointer font-semibold">${node.name}</summary>
-                <div class="ml-4 text-sm">
-                    ${node.assignedUsers?.length ? `<p class="text-gray-600 mb-1">Personnel:</p><ul class="list-disc list-inside mb-2">` +
-                    node.assignedUsers.map(u => `<li>${u.username} - ${u.role}</li>`).join('') + '</ul>' : ''}
-                    ${node.children?.map(child => renderTree(child)).join('') || ''}
-                </div>
+                    <summary class="cursor-pointer font-semibold">${node.name}</summary>
+                    <div class="ml-4 text-sm">
+                        ${node.assignedUsers?.length ? `
+                            <details class="mb-2">
+                                <summary class="text-gray-600 cursor-pointer">Personnel</summary>
+                                <ul class="list-disc list-inside mt-1 ml-4">
+                                    ${node.assignedUsers.map(u => `<li>${u.username} - ${u.role}</li>`).join('')}
+                                </ul>
+                            </details>
+                        ` : ''}
+                        ${(node.children || []).map(child => renderTree(child)).join('')}
+                    </div>
                 </details>
             </div>`;
-        return html;
+            return html;
         }
 
         function openAssignUserModal() {
@@ -116,11 +122,25 @@
 
         function filterUsers() {
             const search = document.getElementById('userSearch').value.toLowerCase();
-            const options = document.getElementById('userDropdown').options;
-            for (let i = 0; i < options.length; i++) {
-                const text = options[i].text.toLowerCase();
-                options[i].style.display = text.includes(search) ? '' : 'none';
-            }
+            const resultsContainer = document.getElementById('userSearchResults');
+            resultsContainer.innerHTML = '';
+
+            if (!search) return;
+
+            const users = Array.from(document.querySelectorAll('#userDropdown option'));
+            const matches = users.filter(opt => opt.text.toLowerCase().includes(search));
+
+            matches.forEach(opt => {
+                const div = document.createElement('div');
+                div.textContent = opt.text;
+                div.className = 'cursor-pointer px-2 py-1 hover:bg-gray-200';
+                div.onclick = () => {
+                    document.getElementById('userSearch').value = opt.text;
+                    document.getElementById('selectedUserId').value = opt.value;
+                    resultsContainer.innerHTML = '';
+                };
+                resultsContainer.appendChild(div);
+            });
         }
     </script>
 </head>
@@ -340,15 +360,8 @@
                 <div>
                     <label class="block font-medium text-sm mb-1">Search User</label>
                     <input type="text" id="userSearch" oninput="filterUsers()" placeholder="Type to search..." class="w-full border border-gray-300 rounded px-3 py-2">
-                </div>
-    
-                <div>
-                    <label class="block font-medium text-sm mb-1">Select User</label>
-                    <select name="userId" id="userDropdown" class="w-full border border-gray-300 rounded px-3 py-2">
-                        <% users.forEach(function(u) { %>
-                            <option value="<%= u._id %>"><%= u.username %></option>
-                        <% }) %>
-                    </select>
+                    <div id="userSearchResults" class="mt-2 border border-gray-300 rounded bg-white max-h-40 overflow-y-auto"></div>
+                    <input type="hidden" name="userId" id="selectedUserId">
                 </div>
     
                 <div>
