@@ -1139,14 +1139,19 @@ router.post('/api/division-removal/field-submit', async (req, res) => {
 router.post('/api/performance/submit', async (req, res) => {
     try {
       const {
-        targetUser,  // This is now the user ID from the hidden input
+        targetUser,
+        division,
         periodStart,
         periodEnd,
+        
+        // Get all the score fields (as direct properties, not nested)
         communication,
         discipline,
         teamwork,
         leadershipPotential,
         technicalSkill,
+        
+        // Get other fields
         remarks,
         strengths,
         weaknesses,
@@ -1161,7 +1166,7 @@ router.post('/api/performance/submit', async (req, res) => {
         return res.status(400).send('Required fields are missing');
       }
       
-      // Calculate weighted score
+      // Calculate weighted score from the grade values
       const weights = {
         communication: 0.2,
         discipline: 0.2,
@@ -1170,24 +1175,37 @@ router.post('/api/performance/submit', async (req, res) => {
         technicalSkill: 0.2
       };
   
-      // Calculate weighted score
-      const autoGrade = 
-        (Number(communication) * weights.communication) +
-        (Number(discipline) * weights.discipline) +
-        (Number(teamwork) * weights.teamwork) +
-        (Number(leadershipPotential) * weights.leadershipPotential) +
-        (Number(technicalSkill) * weights.technicalSkill);
+      // Parse the numeric values to ensure they're numbers
+      const communicationNum = Number(communication) || 0;
+      const disciplineNum = Number(discipline) || 0;
+      const teamworkNum = Number(teamwork) || 0;
+      const leadershipPotentialNum = Number(leadershipPotential) || 0;
+      const technicalSkillNum = Number(technicalSkill) || 0;
   
+      // Calculate weighted score
+      const calculatedScore = 
+        (communicationNum * weights.communication) +
+        (disciplineNum * weights.discipline) +
+        (teamworkNum * weights.teamwork) +
+        (leadershipPotentialNum * weights.leadershipPotential) +
+        (technicalSkillNum * weights.technicalSkill);
+  
+      // Create the report object using direct properties, not nested objects
       const report = new PerformanceReport({
-        targetUser,          // ID of the user being evaluated
-        evaluator: req.user._id,
-        periodStart,         // Start date of evaluation period
-        periodEnd,           // End date of evaluation period
-        communication,
-        discipline,
-        teamwork,
-        leadershipPotential,
-        technicalSkill,
+        targetUser,
+        division,
+        evaluator: req.user._id,  // Set the evaluator to the current user
+        periodStart,
+        periodEnd,
+        
+        // Store scores directly
+        communication: communicationNum,
+        discipline: disciplineNum,
+        teamwork: teamworkNum,
+        leadershipPotential: leadershipPotentialNum,
+        technicalSkill: technicalSkillNum,
+        
+        // Store other fields
         remarks,
         strengths,
         weaknesses,
@@ -1195,8 +1213,15 @@ router.post('/api/performance/submit', async (req, res) => {
         promotionRecommended: !!promotionRecommended,
         additionalTraining: !!additionalTraining,
         disciplinaryWatch: !!disciplinaryWatch,
-        autoGrade,
-        status: 'Submitted'
+        
+        // Store the calculated score
+        calculatedScore: calculatedScore,
+        
+        // Set status to Submitted
+        status: 'Submitted',
+        
+        // Set creation date
+        createdAt: new Date()
       });
   
       await report.save();

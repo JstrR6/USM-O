@@ -1833,6 +1833,10 @@ async function viewReportDetails(reportId) {
   try {
     // Fetch the report details
     const response = await fetch(`/api/performance/${reportId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch report: ${response.status} ${response.statusText}`);
+    }
+    
     const data = await response.json();
     const report = data.report;
     
@@ -1840,19 +1844,30 @@ async function viewReportDetails(reportId) {
       throw new Error('Report not found');
     }
     
+    console.log("Report data:", report); // Log the report for debugging
+    
     // Update the title
     document.getElementById('reportDetailTitle').textContent = 'Performance Report Details';
     
-    // Fill in the details
-    document.getElementById('detail-member').textContent = 
-      report.targetUser ? (typeof report.targetUser === 'object' ? report.targetUser.username : report.targetUser) : 'Unknown';
+    // Fill in the details - Get member name
+    const memberName = report.targetUser ? 
+      (typeof report.targetUser === 'object' ? report.targetUser.username : report.targetUser) : 'Unknown';
+    document.getElementById('detail-member').textContent = memberName;
     
-    // Use first available signature as evaluator
+    // Handle evaluator name correctly
     let evaluatorText = 'Unknown';
     if (report.evaluator) {
-      evaluatorText = typeof report.evaluator === 'object' ? report.evaluator.username : report.evaluator;
-    } else if (report.ncoSignature) {
-      evaluatorText = typeof report.ncoSignature === 'object' ? report.ncoSignature.username : report.ncoSignature;
+      if (typeof report.evaluator === 'object' && report.evaluator.username) {
+        evaluatorText = report.evaluator.username;
+      } else {
+        // Try to find the username from allUsers if we have the ID
+        const evaluatorUser = allUsers.find(u => u._id === report.evaluator.toString());
+        if (evaluatorUser) {
+          evaluatorText = evaluatorUser.username;
+        } else {
+          evaluatorText = `ID: ${report.evaluator}`;
+        }
+      }
     }
     document.getElementById('detail-evaluator').textContent = evaluatorText;
     
@@ -1863,88 +1878,110 @@ async function viewReportDetails(reportId) {
     
     // Other details
     document.getElementById('detail-status').textContent = report.status || 'Draft';
-    document.getElementById('detail-grade').textContent = report.calculatedScore ? 
-      report.calculatedScore.toFixed(1) : (report.overallGrade || 'N/A');
+    
+    // Display score - prefer calculated score, fallback to manual calculation
+    let scoreValue = report.calculatedScore || 0;
+    
+    // If no calculated score, compute from direct properties
+    if (!scoreValue && (report.communication || report.discipline || report.teamwork || 
+        report.leadershipPotential || report.technicalSkill)) {
+      
+      let sum = 0;
+      let count = 0;
+      
+      if (report.communication) { sum += Number(report.communication); count++; }
+      if (report.discipline) { sum += Number(report.discipline); count++; }
+      if (report.teamwork) { sum += Number(report.teamwork); count++; }
+      if (report.leadershipPotential) { sum += Number(report.leadershipPotential); count++; }
+      if (report.technicalSkill) { sum += Number(report.technicalSkill); count++; }
+      
+      if (count > 0) {
+        scoreValue = sum / count;
+      }
+    }
+    
+    // Display the calculated score
+    document.getElementById('detail-grade').textContent = 
+      scoreValue ? scoreValue.toFixed(1) : (report.overallGrade || 'N/A');
+    
+    // Other metadata
     document.getElementById('detail-xp').textContent = report.recommendedXP || 'None';
     document.getElementById('detail-flag').textContent = report.flag ? capitalize(report.flag) : 'None';
-    document.getElementById('detail-date').textContent = new Date(report.createdAt).toLocaleDateString();
+    document.getElementById('detail-date').textContent = new Date(report.createdAt || new Date()).toLocaleDateString();
     
-    // Evaluation scores - use the nested structure from your schema
-    document.getElementById('detail-communication').textContent = 
-      report.communication?.grade || 'N/A';
-    document.getElementById('detail-discipline').textContent = 
-      report.discipline?.grade || 'N/A';
-    document.getElementById('detail-duty').textContent = 
-      report.dutyPerformance?.grade || 'N/A';
-    document.getElementById('detail-initiative').textContent = 
-      report.initiative?.grade || 'N/A';
-    document.getElementById('detail-mission').textContent = 
-      report.missionContribution?.grade || 'N/A';
-    document.getElementById('detail-professionalism').textContent = 
-      report.professionalism?.grade || 'N/A';
+    // Display evaluation scores - treating all as direct properties
+    document.getElementById('detail-communication').textContent = report.communication || 'N/A';
+    document.getElementById('detail-discipline').textContent = report.discipline || 'N/A';
+    document.getElementById('detail-duty').textContent = report.dutyPerformance || 'N/A';
+    document.getElementById('detail-initiative').textContent = report.initiative || 'N/A';
+    document.getElementById('detail-mission').textContent = report.missionContribution || 'N/A';
+    document.getElementById('detail-professionalism').textContent = report.professionalism || 'N/A';
     
-    // Recommendations badges - use the nested structure
-    document.getElementById('promotion-badge').classList.toggle('hidden', !report.recommendations?.promotionRecommended);
-    document.getElementById('training-badge').classList.toggle('hidden', !report.recommendations?.additionalTraining);
-    document.getElementById('disciplinary-badge').classList.toggle('hidden', !report.recommendations?.disciplinaryWatch);
+    // If scores are missing the section in the detail card might need to be updated
+    const scoreCards = document.querySelectorAll('#detail-communication, #detail-discipline, #detail-teamwork, #detail-leadership, #detail-technical');
+    if (scoreCards.length > 0) {
+      // Show what scores we actually have available
+      document.getElementById('detail-communication').parentElement.textContent = 
+        `Communication: ${report.communication || 'N/A'}`;
+      document.getElementById('detail-discipline').parentElement.textContent = 
+        `Discipline: ${report.discipline || 'N/A'}`;
+      
+      // Add teamwork if it exists
+      if (document.getElementById('detail-teamwork')) {
+        document.getElementById('detail-teamwork').textContent = report.teamwork || 'N/A';
+      } else if (report.teamwork) {
+        const teamworkDiv = document.createElement('div');
+        teamworkDiv.className = 'flex justify-between';
+        teamworkDiv.innerHTML = `<span>Teamwork:</span><span id="detail-teamwork">${report.teamwork}</span>`;
+        scoreCards[0].parentElement.appendChild(teamworkDiv);
+      }
+      
+      // Add leadership if it exists
+      if (document.getElementById('detail-leadership')) {
+        document.getElementById('detail-leadership').textContent = report.leadershipPotential || 'N/A';
+      } else if (report.leadershipPotential) {
+        const leadershipDiv = document.createElement('div');
+        leadershipDiv.className = 'flex justify-between';
+        leadershipDiv.innerHTML = `<span>Leadership:</span><span id="detail-leadership">${report.leadershipPotential}</span>`;
+        scoreCards[0].parentElement.appendChild(leadershipDiv);
+      }
+      
+      // Add technical if it exists
+      if (document.getElementById('detail-technical')) {
+        document.getElementById('detail-technical').textContent = report.technicalSkill || 'N/A';
+      } else if (report.technicalSkill) {
+        const technicalDiv = document.createElement('div');
+        technicalDiv.className = 'flex justify-between';
+        technicalDiv.innerHTML = `<span>Technical Skill:</span><span id="detail-technical">${report.technicalSkill}</span>`;
+        scoreCards[0].parentElement.appendChild(technicalDiv);
+      }
+    }
+    
+    // Handle recommendations
+    document.getElementById('promotion-badge').classList.toggle('hidden', !report.promotionRecommended);
+    document.getElementById('training-badge').classList.toggle('hidden', !report.additionalTraining);
+    document.getElementById('disciplinary-badge').classList.toggle('hidden', !report.disciplinaryWatch);
     
     // Text fields
     document.getElementById('detail-strengths').textContent = report.strengths || 'None specified';
     document.getElementById('detail-weaknesses').textContent = report.weaknesses || 'None specified';
+    document.getElementById('detail-remarks').textContent = report.remarks || 'None provided';
     
-    // Remarks - use general remarks or specific ones if available
-    let remarksText = 'None provided';
-    if (report.remarks) {
-      remarksText = report.remarks;
-    } else {
-      // Collect all section remarks
-      const allRemarks = [];
-      if (report.dutyPerformance?.remarks) allRemarks.push(`Duty: ${report.dutyPerformance.remarks}`);
-      if (report.communication?.remarks) allRemarks.push(`Communication: ${report.communication.remarks}`);
-      if (report.discipline?.remarks) allRemarks.push(`Discipline: ${report.discipline.remarks}`);
-      if (report.initiative?.remarks) allRemarks.push(`Initiative: ${report.initiative.remarks}`);
-      if (report.missionContribution?.remarks) allRemarks.push(`Mission: ${report.missionContribution.remarks}`);
-      if (report.professionalism?.remarks) allRemarks.push(`Professionalism: ${report.professionalism.remarks}`);
-      
-      if (allRemarks.length > 0) {
-        remarksText = allRemarks.join('\n\n');
-      }
-    }
-    document.getElementById('detail-remarks').textContent = remarksText;
-    
-    // Calculate score for visualization
-    let scoreForBar = report.calculatedScore;
-    if (!scoreForBar && report.dutyPerformance && report.discipline) {
-      // Calculate average if not already done
-      const grades = [
-        report.dutyPerformance.grade,
-        report.discipline.grade,
-        report.communication?.grade,
-        report.initiative?.grade,
-        report.missionContribution?.grade,
-        report.professionalism?.grade
-      ].filter(g => g); // Filter out undefined/null
-      
-      if (grades.length > 0) {
-        scoreForBar = grades.reduce((sum, g) => sum + g, 0) / grades.length;
-      }
-    }
-    
-    // Update the score bar
+    // Update the score bar with the calculated score
     const scoreBar = document.getElementById('score-bar');
-    if (scoreBar && scoreForBar) {
+    if (scoreBar && scoreValue) {
       // Calculate percentage width (from 1-5 scale to 0-100%)
-      const percentage = ((scoreForBar - 1) / 4) * 100;
-      scoreBar.style.width = `${percentage}%`;
+      const percentage = ((scoreValue - 1) / 4) * 100;
+      scoreBar.style.width = `${Math.min(Math.max(percentage, 0), 100)}%`;
       
       // Set color based on score
-      if (scoreForBar >= 4.5) {
+      if (scoreValue >= 4.5) {
         scoreBar.style.backgroundColor = '#22C55E'; // Green (Excellent)
-      } else if (scoreForBar >= 3.5) {
+      } else if (scoreValue >= 3.5) {
         scoreBar.style.backgroundColor = '#3B82F6'; // Blue (Good)
-      } else if (scoreForBar >= 2.5) {
+      } else if (scoreValue >= 2.5) {
         scoreBar.style.backgroundColor = '#F59E0B'; // Yellow (Average)
-      } else if (scoreForBar >= 1.5) {
+      } else if (scoreValue >= 1.5) {
         scoreBar.style.backgroundColor = '#F97316'; // Orange (Needs Improvement)
       } else {
         scoreBar.style.backgroundColor = '#EF4444'; // Red (Poor)
@@ -1973,7 +2010,7 @@ async function viewReportDetails(reportId) {
   } catch (error) {
     console.error('Error loading report details:', error);
     document.getElementById('reportDetailTitle').textContent = 'Error Loading Report';
-    detailView.innerHTML += `<p class="text-red-600">Error: ${error.message}</p>`;
+    document.getElementById('reportDetailView').innerHTML += `<p class="text-red-600">Error: ${error.message}</p>`;
   }
 }
 

@@ -1,25 +1,25 @@
+// Updated PerformanceReport schema with flat structure
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const performanceReportSchema = new Schema({
   targetUser: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  evaluator: { type: Schema.Types.ObjectId, ref: 'User' },
   division: { type: Schema.Types.ObjectId, ref: 'Division' },
-  evaluator: { type: Schema.Types.ObjectId, ref: 'User' }, // Added for tracking who created the report
 
   // Evaluation Period
   periodStart: { type: Date, required: true },
   periodEnd: { type: Date, required: true },
 
-  // Performance Sections (graded 1-5)
+  // Performance Scores - Flat structure (direct properties)
+  communication: { type: Number, min: 1, max: 5 },
+  discipline: { type: Number, min: 1, max: 5 },
+  teamwork: { type: Number, min: 1, max: 5 },
+  leadershipPotential: { type: Number, min: 1, max: 5 },
+  technicalSkill: { type: Number, min: 1, max: 5 },
+  
+  // Legacy or alternative structure fields (can be nested)
   dutyPerformance: {
-    grade: { type: Number, min: 1, max: 5 },
-    remarks: String
-  },
-  discipline: {
-    grade: { type: Number, min: 1, max: 5 },
-    remarks: String
-  },
-  communication: {
     grade: { type: Number, min: 1, max: 5 },
     remarks: String
   },
@@ -47,18 +47,20 @@ const performanceReportSchema = new Schema({
   // Summary
   strengths: String,
   weaknesses: String,
-  remarks: String, // General remarks
-  recommendations: {
-    promotionRecommended: Boolean,
-    additionalTraining: Boolean,
-    disciplinaryWatch: Boolean
-  },
+  remarks: String,
+
+  // Recommendations - Flat structure
+  promotionRecommended: { type: Boolean, default: false },
+  additionalTraining: { type: Boolean, default: false },
+  disciplinaryWatch: { type: Boolean, default: false },
 
   // XP Recommendation
   recommendedXP: { type: Number, default: 0 },
 
-  // Auto Grade
-  calculatedScore: Number, // Raw calculated score
+  // Calculated Score
+  calculatedScore: Number,
+  
+  // Overall Grade
   overallGrade: {
     type: String,
     enum: ['Excellent', 'Satisfactory', 'Needs Improvement', 'Unsatisfactory']
