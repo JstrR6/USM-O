@@ -1871,7 +1871,7 @@ router.post('/api/performance/:id/officer-update', async (req, res) => {
       
           if (!user) return res.status(404).json({ error: 'User not found' });
       
-          const rankIndex = RANKS.indexOf(user.rank);
+          const rankIndex = RANKS.indexOf(user.highestRole);
           const isSlotBased = rankIndex >= RANKS.indexOf('First Sergeant');
       
           let nextRank = null;
@@ -1885,7 +1885,7 @@ router.post('/api/performance/:id/officer-update', async (req, res) => {
           }
       
           res.json({
-            rank: user.rank,
+            rank: user.highestRole,
             xp: user.xp,
             nextRank,
             nextXP,
@@ -1913,12 +1913,12 @@ router.post('/api/performance/:id/officer-update', async (req, res) => {
             return res.status(404).json({ error: 'Target user not found' });
           }
       
-          // Verify that targetUser.rank and targetUser.xp exist
-          if (!targetUser.rank || typeof targetUser.xp !== 'number') {
+          // Change here: 'rank' → 'highestRole'
+          if (!targetUser.highestRole || typeof targetUser.xp !== 'number') {
             return res.status(400).json({ error: 'Target user lacks rank or XP data' });
           }
       
-          const rankIndex = RANKS.indexOf(targetUser.rank);
+          const rankIndex = RANKS.indexOf(targetUser.highestRole);
       
           if (rankIndex === -1) {
             return res.status(400).json({ error: 'Invalid current rank for user' });
@@ -1936,7 +1936,7 @@ router.post('/api/performance/:id/officer-update', async (req, res) => {
           const promotionRequest = new PromotionRequest({
             requesterId,
             targetUserId,
-            currentRank: targetUser.rank,
+            currentRank: targetUser.highestRole, // ✅ fixed here
             currentXP: targetUser.xp,
             nextRank,
             nextXP,
