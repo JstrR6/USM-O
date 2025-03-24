@@ -15,7 +15,7 @@ const RecruitmentRequest = require('./models/recruitmentrequest');
 const Division = require('./models/division');
 const DivisionRemoval = require('./models/divisionRemoval');
 const Training = require('./models/training');
-const PerformanceReport = require('../models/performanceReport');
+const PerformanceReport = require('./models/performanceReport');
 
 // Middleware to check authentication
 function isAuthenticated(req, res, next) {
