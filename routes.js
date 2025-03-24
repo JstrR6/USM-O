@@ -1258,6 +1258,13 @@ router.post('/api/performance/submit', async (req, res) => {
       if (!report) {
         return res.status(404).json({ error: 'Report not found' });
       }
+      
+      res.json({ report });
+    } catch (err) {
+      console.error('Error fetching performance report:', err);
+      res.status(500).json({ error: 'Failed to fetch report' });
+    }
+  });
   
   // Update a performance report (SNCO review)
   router.post('/api/performance/:id/update', async (req, res) => {
@@ -1281,10 +1288,13 @@ router.post('/api/performance/submit', async (req, res) => {
       // Mark as reviewed by SNCO
       report.sncoReviewer = req.user._id;
       report.sncoReviewDate = new Date();
+      report.sncoSignature = req.user._id;
       
       // If flagged as red, update status
       if (flag === 'red') {
         report.status = 'Flagged';
+      } else if (report.status === 'Submitted') {
+        report.status = 'Reviewed';
       }
       
       await report.save();
@@ -1334,6 +1344,37 @@ router.post('/api/performance/submit', async (req, res) => {
     } catch (err) {
       console.error('Error adding comment to performance report:', err);
       res.status(500).json({ error: 'Failed to add comment' });
+    }
+  });
+  
+  // Update the route that puts a report on hold to work with your schema
+  router.post('/api/performance/:id/hold', async (req, res) => {
+    try {
+      const report = await PerformanceReport.findById(req.params.id);
+      if (!report) return res.status(404).send('Report not found');
+  
+      // Toggle between Hold and previous status
+      if (report.status === 'Hold') {
+        // If currently on hold, restore to appropriate status based on signatures
+        if (report.officerSignature) {
+          report.status = 'Finalized';
+        } else if (report.sncoSignature) {
+          report.status = 'Reviewed';
+        } else {
+          report.status = 'Submitted';
+        }
+      } else {
+        // If not on hold, place on hold and remember current status
+        report.previousStatus = report.status; // Optional: store previous status
+        report.status = 'Hold';
+      }
+      
+      await report.save();
+  
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Error toggling hold status:', err);
+      res.status(500).send('Failed to update hold status');
     }
   });
 

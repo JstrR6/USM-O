@@ -1912,6 +1912,45 @@ async function viewReportDetails(reportId) {
     }
     document.getElementById('detail-remarks').textContent = remarksText;
     
+    // Calculate score for visualization
+    let scoreForBar = report.calculatedScore;
+    if (!scoreForBar && report.dutyPerformance && report.discipline) {
+      // Calculate average if not already done
+      const grades = [
+        report.dutyPerformance.grade,
+        report.discipline.grade,
+        report.communication?.grade,
+        report.initiative?.grade,
+        report.missionContribution?.grade,
+        report.professionalism?.grade
+      ].filter(g => g); // Filter out undefined/null
+      
+      if (grades.length > 0) {
+        scoreForBar = grades.reduce((sum, g) => sum + g, 0) / grades.length;
+      }
+    }
+    
+    // Update the score bar
+    const scoreBar = document.getElementById('score-bar');
+    if (scoreBar && scoreForBar) {
+      // Calculate percentage width (from 1-5 scale to 0-100%)
+      const percentage = ((scoreForBar - 1) / 4) * 100;
+      scoreBar.style.width = `${percentage}%`;
+      
+      // Set color based on score
+      if (scoreForBar >= 4.5) {
+        scoreBar.style.backgroundColor = '#22C55E'; // Green (Excellent)
+      } else if (scoreForBar >= 3.5) {
+        scoreBar.style.backgroundColor = '#3B82F6'; // Blue (Good)
+      } else if (scoreForBar >= 2.5) {
+        scoreBar.style.backgroundColor = '#F59E0B'; // Yellow (Average)
+      } else if (scoreForBar >= 1.5) {
+        scoreBar.style.backgroundColor = '#F97316'; // Orange (Needs Improvement)
+      } else {
+        scoreBar.style.backgroundColor = '#EF4444'; // Red (Poor)
+      }
+    }
+    
     // Set current values for SNCO form
     document.getElementById('selectedFlag').value = report.flag || '';
     document.getElementById('sncoRemarks').value = report.sncoRemarks || '';
