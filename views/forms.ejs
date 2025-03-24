@@ -1216,6 +1216,18 @@
 
       <script>
 
+const RANKS = <%- JSON.stringify([
+        "Citizen", "Airman Basic", "Airman", "Airman First Class", "Senior Airman",
+        "Staff Sergeant", "Technical Sergeant", "Master Sergeant", "First Sergeant",
+        "Senior Master Sergeant", "Senior First Sergeant", "Chief Master Sergeant",
+        "Chief First Sergeant", "Command Chief Master Sergeant", "Senior Enlisted Leader",
+        "Chief Senior Enlisted Leader", "Chief Master Sergeant of the Air Force",
+        "Second Lieutenant", "First Lieutenant", "Captain",
+        "Major", "Lieutenant Colonel", "Colonel",
+        "Brigadier General", "Major General", "Lieutenant General", "General", "General of the Air Force"
+    ]) %>;
+
+
         function toggleFolder(folderName) {
             const allContent = document.querySelectorAll('.folder-content');
             allContent.forEach(el => el.classList.add('hidden'));

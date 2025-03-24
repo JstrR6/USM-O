@@ -1900,27 +1900,46 @@ router.post('/api/performance/:id/officer-update', async (req, res) => {
       // Submit Promotion Request
       router.post('/api/promotion-request/submit', async (req, res) => {
         const { targetUserId, recommendation } = req.body;
-        const requesterId = req.user._id; // Assumes user authentication middleware
+        const requesterId = req.user && req.user._id;
+      
+        if (!requesterId) {
+          return res.status(401).json({ error: 'Unauthorized: Requester ID missing' });
+        }
       
         try {
           const targetUser = await User.findById(targetUserId);
       
-          if (!targetUser) return res.status(404).json({ error: 'Target user not found' });
+          if (!targetUser) {
+            return res.status(404).json({ error: 'Target user not found' });
+          }
+      
+          // Verify that targetUser.rank and targetUser.xp exist
+          if (!targetUser.rank || typeof targetUser.xp !== 'number') {
+            return res.status(400).json({ error: 'Target user lacks rank or XP data' });
+          }
       
           const rankIndex = RANKS.indexOf(targetUser.rank);
+      
+          if (rankIndex === -1) {
+            return res.status(400).json({ error: 'Invalid current rank for user' });
+          }
+      
           const isSlotBased = rankIndex >= RANKS.indexOf('First Sergeant');
       
           if (rankIndex + 1 >= RANKS.length) {
             return res.status(400).json({ error: 'User is already at the highest possible rank' });
           }
       
+          const nextRank = !isSlotBased ? RANKS[rankIndex + 1] : null;
+          const nextXP = !isSlotBased ? calculateXPForNextRank(nextRank) : null;
+      
           const promotionRequest = new PromotionRequest({
             requesterId,
             targetUserId,
             currentRank: targetUser.rank,
             currentXP: targetUser.xp,
-            nextRank: !isSlotBased ? RANKS[rankIndex + 1] : null,
-            nextXP: !isSlotBased ? calculateXPForNextRank(RANKS[rankIndex + 1]) : null,
+            nextRank,
+            nextXP,
             isSlotBased,
             recommendation
           });
@@ -1928,9 +1947,10 @@ router.post('/api/performance/:id/officer-update', async (req, res) => {
           await promotionRequest.save();
       
           res.status(200).json({ message: 'Promotion request submitted successfully' });
+      
         } catch (err) {
-          console.error(err);
-          res.status(500).json({ error: 'Server error' });
+          console.error("Error submitting promotion request:", err);
+          res.status(500).json({ error: 'Server error', details: err.message });
         }
       });
       
