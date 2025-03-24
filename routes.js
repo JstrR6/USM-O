@@ -1139,15 +1139,29 @@ router.post('/api/division-removal/field-submit', async (req, res) => {
 router.post('/api/performance/submit', async (req, res) => {
     try {
       const {
-        traineeId,
+        targetUser,  // This is now the user ID from the hidden input
+        periodStart,
+        periodEnd,
         communication,
         discipline,
         teamwork,
         leadershipPotential,
         technicalSkill,
-        remarks
+        remarks,
+        strengths,
+        weaknesses,
+        recommendedXP,
+        promotionRecommended,
+        additionalTraining,
+        disciplinaryWatch
       } = req.body;
   
+      // Validate required fields
+      if (!targetUser || !periodStart || !periodEnd) {
+        return res.status(400).send('Required fields are missing');
+      }
+      
+      // Calculate weighted score
       const weights = {
         communication: 0.2,
         discipline: 0.2,
@@ -1165,14 +1179,22 @@ router.post('/api/performance/submit', async (req, res) => {
         (Number(technicalSkill) * weights.technicalSkill);
   
       const report = new PerformanceReport({
-        trainee: traineeId,
+        targetUser,          // ID of the user being evaluated
         evaluator: req.user._id,
+        periodStart,         // Start date of evaluation period
+        periodEnd,           // End date of evaluation period
         communication,
         discipline,
         teamwork,
         leadershipPotential,
         technicalSkill,
         remarks,
+        strengths,
+        weaknesses,
+        recommendedXP: Number(recommendedXP) || 0,
+        promotionRecommended: !!promotionRecommended,
+        additionalTraining: !!additionalTraining,
+        disciplinaryWatch: !!disciplinaryWatch,
         autoGrade,
         status: 'Submitted'
       });
@@ -1185,15 +1207,10 @@ router.post('/api/performance/submit', async (req, res) => {
     }
   });
   
-  // Get all performance reports for Field Officer view
   router.get('/api/performance/all', async (req, res) => {
-    if (!req.user.isFieldOfficer && !req.user.isOfficer) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
-  
     try {
       const reports = await PerformanceReport.find({})
-        .populate('trainee', 'username')
+        .populate('targetUser', 'username') // Changed from 'trainee' to 'targetUser' to match your schema
         .populate('evaluator', 'username')
         .sort('-evaluationDate');
   
@@ -1204,18 +1221,20 @@ router.post('/api/performance/submit', async (req, res) => {
     }
   });
   
-  // PUT a report on hold
+  // PUT a report on hold - accessible to all authenticated users
   router.post('/api/performance/:id/hold', async (req, res) => {
-    if (!req.user.isFieldOfficer && !req.user.isOfficer) {
-      return res.status(403).json({ error: 'Not authorized' });
-    }
-  
     try {
       const report = await PerformanceReport.findById(req.params.id);
       if (!report) return res.status(404).send('Report not found');
   
       report.status = 'Hold';
-      report.trainingEvent += ' (HOLD)';
+      // Check if trainingEvent exists before appending to it
+      if (report.trainingEvent) {
+        report.trainingEvent += ' (HOLD)';
+      } else {
+        // Set a default value if trainingEvent doesn't exist
+        report.trainingEvent = 'Performance Report (HOLD)';
+      }
       await report.save();
   
       res.json({ success: true });

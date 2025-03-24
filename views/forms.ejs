@@ -528,28 +528,29 @@
   </div>
 
   <!-- Form 110 - Enlisted Evaluation Report Modal -->
-  <div id="form110Modal" class="modal hidden overflow-auto py-6">
+<div id="form110Modal" class="modal hidden overflow-auto py-6">
     <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-8 relative max-h-[90vh] overflow-y-auto">
       <button class="absolute top-4 right-4 text-gray-600 hover:text-red-600 text-2xl" onclick="closeForm110Modal()">&times;</button>
       <h2 class="text-3xl font-bold mb-6">Form 110 – Enlisted Evaluation Report</h2>
   
       <form action="/api/performance/submit" method="POST" class="space-y-6">
-        <!-- Target User and Period -->
+        <!-- Target User Selection with Autocomplete -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label class="block text-sm font-medium">Select Member</label>
-            <select name="targetUser" class="w-full border border-gray-300 rounded px-3 py-2" required>
-              <% users.forEach(function(u) { %>
-                <option value="<%= u._id %>"><%= u.username %></option>
-              <% }) %>
-            </select>
+            <div class="relative">
+              <input type="text" id="userSearchInput" class="w-full border border-gray-300 rounded px-3 py-2" 
+                     placeholder="Type to search for a user..." autocomplete="off">
+              <div id="userSuggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-b max-h-40 overflow-y-auto hidden"></div>
+              <input type="hidden" id="targetUserId" name="targetUser" required>
+            </div>
+            <div id="selectedUserDisplay" class="mt-2 text-sm text-blue-600"></div>
           </div>
           <div>
             <label class="block text-sm font-medium">Division</label>
             <select name="division" class="w-full border border-gray-300 rounded px-3 py-2">
-              <% divisions.forEach(function(d) { %>
-                <option value="<%= d._id %>"><%= d.name %></option>
-              <% }) %>
+              <option value="">--Select Division--</option>
+              <!-- Divisions will be populated from server data -->
             </select>
           </div>
           <div>
@@ -564,51 +565,56 @@
   
         <!-- Graded Sections -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <% const sections = [
-            { key: 'dutyPerformance', label: 'Duty Performance' },
-            { key: 'discipline', label: 'Discipline' },
-            { key: 'communication', label: 'Communication' },
-            { key: 'initiative', label: 'Initiative' },
-            { key: 'missionContribution', label: 'Mission Contribution' },
-            { key: 'professionalism', label: 'Professionalism' }
-          ]; %>
-  
-          <% sections.forEach(section => { %>
-            <div>
-              <label class="block font-semibold text-gray-800 mb-1"><%= section.label %></label>
-              <input type="number" name="<%= section.key %>[grade]" min="1" max="5"
-                class="w-full border border-gray-300 rounded px-3 py-2 mb-2" placeholder="Grade (1-5)" required>
-              <details>
-                <summary class="text-sm text-gray-600 cursor-pointer">Add Remarks</summary>
-                <textarea name="<%= section.key %>[remarks]" rows="2"
-                  class="w-full border border-gray-300 rounded px-3 py-2 mt-2" placeholder="Remarks..."></textarea>
-              </details>
-            </div>
-          <% }) %>
+          <div>
+            <label class="block font-semibold text-gray-800 mb-1">Communication</label>
+            <input type="number" name="communication" min="1" max="5"
+              class="w-full border border-gray-300 rounded px-3 py-2 mb-2" placeholder="Grade (1-5)" required>
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-800 mb-1">Discipline</label>
+            <input type="number" name="discipline" min="1" max="5"
+              class="w-full border border-gray-300 rounded px-3 py-2 mb-2" placeholder="Grade (1-5)" required>
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-800 mb-1">Teamwork</label>
+            <input type="number" name="teamwork" min="1" max="5"
+              class="w-full border border-gray-300 rounded px-3 py-2 mb-2" placeholder="Grade (1-5)" required>
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-800 mb-1">Leadership Potential</label>
+            <input type="number" name="leadershipPotential" min="1" max="5"
+              class="w-full border border-gray-300 rounded px-3 py-2 mb-2" placeholder="Grade (1-5)" required>
+          </div>
+          <div>
+            <label class="block font-semibold text-gray-800 mb-1">Technical Skill</label>
+            <input type="number" name="technicalSkill" min="1" max="5"
+              class="w-full border border-gray-300 rounded px-3 py-2 mb-2" placeholder="Grade (1-5)" required>
+          </div>
         </div>
   
         <!-- Other Sections -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label class="block text-sm font-medium">Incident Log (Optional)</label>
-            <textarea name="incidents" rows="3"
-              class="w-full border border-gray-300 rounded px-3 py-2"
-              placeholder="E.g. Noteworthy performance on X date, or attendance issue on Y date..."></textarea>
-          </div>
-          <div>
             <label class="block text-sm font-medium">Strengths</label>
-            <textarea name="strengths" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+            <textarea name="strengths" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"
+              placeholder="Member's key strengths and positive contributions..."></textarea>
           </div>
           <div>
             <label class="block text-sm font-medium">Areas of Improvement</label>
-            <textarea name="weaknesses" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+            <textarea name="weaknesses" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"
+              placeholder="Areas where member needs improvement..."></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium">Remarks</label>
+            <textarea name="remarks" rows="3" class="w-full border border-gray-300 rounded px-3 py-2"
+              placeholder="Additional comments, observations, and recommendations..."></textarea>
           </div>
           <div>
             <label class="block text-sm font-medium">Recommendations</label>
             <div class="flex flex-col gap-2 mt-2">
-              <label><input type="checkbox" name="promotionRecommended"> Promotion</label>
-              <label><input type="checkbox" name="additionalTraining"> Additional Training</label>
-              <label><input type="checkbox" name="disciplinaryWatch"> Disciplinary Watch</label>
+              <label><input type="checkbox" name="promotionRecommended" value="1"> Promotion</label>
+              <label><input type="checkbox" name="additionalTraining" value="1"> Additional Training</label>
+              <label><input type="checkbox" name="disciplinaryWatch" value="1"> Disciplinary Watch</label>
             </div>
           </div>
         </div>
@@ -618,6 +624,7 @@
           <div>
             <label class="block text-sm font-medium">Recommended XP</label>
             <input type="number" name="recommendedXP" min="0" class="w-full border border-gray-300 rounded px-3 py-2">
+            <p class="text-xs text-gray-500 mt-1">Amount of XP to award for this evaluation period</p>
           </div>
           <div class="text-right">
             <button type="submit" class="w-full md:w-auto px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
@@ -1383,8 +1390,88 @@ function closeForm150FieldOfficerModal() {
   document.getElementById('form150FieldOfficerModal').classList.add('hidden');
 }
 
+function initializeForm110UserSearch() {
+  const userSearchInput = document.getElementById('userSearchInput');
+  const userSuggestions = document.getElementById('userSuggestions');
+  const targetUserIdInput = document.getElementById('targetUserId');
+  const selectedUserDisplay = document.getElementById('selectedUserDisplay');
+  
+  // Get all users from our existing variable
+  const users = allUsers || []; // Fallback to empty array if allUsers is not defined
+  
+  userSearchInput.addEventListener('input', function() {
+    const searchText = this.value.toLowerCase().trim();
+    
+    // Clear previous selection if input changes
+    if (targetUserIdInput.value && !this.value.includes(selectedUserDisplay.textContent)) {
+      targetUserIdInput.value = '';
+      selectedUserDisplay.textContent = '';
+      selectedUserDisplay.classList.add('hidden');
+    }
+    
+    // Show/hide suggestions based on input
+    if (searchText.length < 2) {
+      userSuggestions.classList.add('hidden');
+      return;
+    }
+    
+    // Filter users based on search text
+    const filteredUsers = users.filter(user => 
+      user.username.toLowerCase().includes(searchText)
+    );
+    
+    // Generate suggestion HTML
+    userSuggestions.innerHTML = '';
+    if (filteredUsers.length > 0) {
+      filteredUsers.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'px-3 py-2 cursor-pointer hover:bg-gray-100';
+        div.textContent = user.username;
+        div.addEventListener('click', function() {
+          // Set selected user
+          targetUserIdInput.value = user._id;
+          userSearchInput.value = user.username;
+          selectedUserDisplay.textContent = `Selected: ${user.username}`;
+          selectedUserDisplay.classList.remove('hidden');
+          
+          // Hide suggestions
+          userSuggestions.classList.add('hidden');
+        });
+        userSuggestions.appendChild(div);
+      });
+      userSuggestions.classList.remove('hidden');
+    } else {
+      userSuggestions.classList.add('hidden');
+    }
+  });
+  
+  // Hide suggestions when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!userSearchInput.contains(e.target) && !userSuggestions.contains(e.target)) {
+      userSuggestions.classList.add('hidden');
+    }
+  });
+  
+  // Handle form submission validation
+  const form110Form = document.querySelector('#form110Modal form');
+  form110Form.addEventListener('submit', function(e) {
+    if (!targetUserIdInput.value) {
+      e.preventDefault();
+      alert('Please select a user from the suggestions');
+      return false;
+    }
+    
+    // You can add other validation here if needed
+    return true;
+  });
+}
+
+// Initialize when modal is opened
 function openForm110Modal() {
   document.getElementById('form110Modal').classList.remove('hidden');
+  
+  // Initialize user search after a short delay to ensure DOM is ready
+  setTimeout(initializeForm110UserSearch, 100);
 }
 
 function closeForm110Modal() {
