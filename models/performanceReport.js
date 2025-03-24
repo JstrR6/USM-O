@@ -4,6 +4,7 @@ const Schema = mongoose.Schema;
 const performanceReportSchema = new Schema({
   targetUser: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   division: { type: Schema.Types.ObjectId, ref: 'Division' },
+  evaluator: { type: Schema.Types.ObjectId, ref: 'User' }, // Added for tracking who created the report
 
   // Evaluation Period
   periodStart: { type: Date, required: true },
@@ -46,6 +47,7 @@ const performanceReportSchema = new Schema({
   // Summary
   strengths: String,
   weaknesses: String,
+  remarks: String, // General remarks
   recommendations: {
     promotionRecommended: Boolean,
     additionalTraining: Boolean,
@@ -56,11 +58,28 @@ const performanceReportSchema = new Schema({
   recommendedXP: { type: Number, default: 0 },
 
   // Auto Grade
-  calculatedScore: Number,
+  calculatedScore: Number, // Raw calculated score
   overallGrade: {
     type: String,
     enum: ['Excellent', 'Satisfactory', 'Needs Improvement', 'Unsatisfactory']
   },
+
+  // SNCO Flag and Review
+  flag: {
+    type: String,
+    enum: ['red', 'yellow', 'blue', 'green', null],
+    default: null
+  },
+  sncoRemarks: String,
+  sncoReviewer: { type: Schema.Types.ObjectId, ref: 'User' },
+  sncoReviewDate: Date,
+
+  // Comments from various users
+  comments: [{
+    user: { type: Schema.Types.ObjectId, ref: 'User' },
+    text: { type: String, required: true },
+    date: { type: Date, default: Date.now }
+  }],
 
   // Signatures
   ncoSignature: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -70,7 +89,7 @@ const performanceReportSchema = new Schema({
   // Status / Meta
   status: { 
     type: String, 
-    enum: ['Draft', 'Submitted', 'Reviewed', 'Finalized'], 
+    enum: ['Draft', 'Submitted', 'Reviewed', 'Finalized', 'Hold', 'Flagged'], 
     default: 'Draft' 
   },
   createdAt: { type: Date, default: Date.now }

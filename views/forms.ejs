@@ -159,6 +159,11 @@
                             <h3 class="text-lg font-semibold text-gray-800 mb-1">Form 150 SNCO Queue</h3>
                             <p class="text-sm text-gray-600">Review pending training reports and recommend XP.</p>
                           </div>
+
+                          <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openSNCOPerformanceModal()">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-1">Performance Report Management</h3>
+                            <p class="text-sm text-gray-600">Review, flag, and manage performance reports.</p>
+                          </div>
                       <% } %>
 
                       <% if (folder.name === 'Company Officers') { %>
@@ -633,6 +638,200 @@
           </div>
         </div>
       </form>
+    </div>
+  </div>
+
+<!-- SNCO Performance Report Management Modal -->
+<div id="sncoPerformanceModal" class="modal hidden overflow-auto py-6">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-6 relative max-h-[90vh] overflow-y-auto">
+      <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-2xl" onclick="closeSNCOPerformanceModal()">&times;</button>
+      <h2 class="text-2xl font-bold mb-4">Performance Report Management</h2>
+      
+      <!-- Reports List -->
+      <div class="mb-6">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-lg font-semibold">All Performance Reports</h3>
+          <div class="flex gap-2">
+            <select id="reportStatusFilter" class="border border-gray-300 rounded px-2 py-1">
+              <option value="all">All Statuses</option>
+              <option value="Draft">Draft</option>
+              <option value="Submitted">Submitted</option>
+              <option value="Reviewed">Reviewed</option>
+              <option value="Finalized">Finalized</option>
+              <option value="Hold">On Hold</option>
+              <option value="Flagged">Flagged</option>
+            </select>
+            <input type="text" id="reportSearchInput" placeholder="Search by username..." 
+                   class="border border-gray-300 rounded px-2 py-1">
+          </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white border border-gray-300">
+            <thead>
+              <tr class="bg-gray-100">
+                <th class="px-4 py-2 border text-left">Date</th>
+                <th class="px-4 py-2 border text-left">Member</th>
+                <th class="px-4 py-2 border text-left">Evaluator</th>
+                <th class="px-4 py-2 border text-left">Score</th>
+                <th class="px-4 py-2 border text-left">Flag</th>
+                <th class="px-4 py-2 border text-left">Status</th>
+                <th class="px-4 py-2 border text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="performanceReportsList">
+              <!-- Reports will be loaded here dynamically -->
+              <tr>
+                <td colspan="7" class="px-4 py-2 text-center">Loading reports...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <!-- Detailed Report View (hidden initially) -->
+      <div id="reportDetailView" class="hidden border rounded-lg p-6 bg-gray-50">
+        <h3 id="reportDetailTitle" class="text-xl font-bold mb-4">Report Details</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div>
+            <p><strong>Member:</strong> <span id="detail-member"></span></p>
+            <p><strong>Evaluator:</strong> <span id="detail-evaluator"></span></p>
+            <p><strong>Period:</strong> <span id="detail-period"></span></p>
+            <p><strong>Status:</strong> <span id="detail-status"></span></p>
+          </div>
+          <div>
+            <p><strong>Overall Score:</strong> <span id="detail-grade"></span></p>
+            <p><strong>Recommended XP:</strong> <span id="detail-xp"></span></p>
+            <p><strong>Flag:</strong> <span id="detail-flag"></span></p>
+            <p><strong>Created:</strong> <span id="detail-date"></span></p>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div class="bg-white p-4 rounded border">
+            <h4 class="font-bold mb-2">Evaluation Scores</h4>
+            <div class="space-y-2">
+              <div class="flex justify-between">
+                <span>Duty Performance:</span>
+                <span id="detail-duty"></span>
+              </div>
+              <div class="flex justify-between">
+                <span>Discipline:</span>
+                <span id="detail-discipline"></span>
+              </div>
+              <div class="flex justify-between">
+                <span>Communication:</span>
+                <span id="detail-communication"></span>
+              </div>
+              <div class="flex justify-between">
+                <span>Initiative:</span>
+                <span id="detail-initiative"></span>
+              </div>
+              <div class="flex justify-between">
+                <span>Mission Contribution:</span>
+                <span id="detail-mission"></span>
+              </div>
+              <div class="flex justify-between">
+                <span>Professionalism:</span>
+                <span id="detail-professionalism"></span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="bg-white p-4 rounded border">
+            <h4 class="font-bold mb-2">Recommendations</h4>
+            <div class="space-y-2">
+              <p><span id="promotion-badge" class="hidden px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">Promotion Recommended</span></p>
+              <p><span id="training-badge" class="hidden px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">Additional Training</span></p>
+              <p><span id="disciplinary-badge" class="hidden px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800">Disciplinary Watch</span></p>
+            </div>
+            
+            <div class="mt-4">
+              <h4 class="font-bold mb-2">Calculated Score</h4>
+              <div class="w-full h-4 bg-gray-200 rounded">
+                <div id="score-bar" class="h-4 rounded" style="width: 0%; background-color: #4CAF50;"></div>
+              </div>
+              <div class="flex justify-between text-xs mt-1">
+                <span>1</span>
+                <span>2</span>
+                <span>3</span>
+                <span>4</span>
+                <span>5</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div class="bg-white p-4 rounded border">
+            <h4 class="font-bold mb-2">Strengths</h4>
+            <p id="detail-strengths" class="text-gray-700"></p>
+          </div>
+          <div class="bg-white p-4 rounded border">
+            <h4 class="font-bold mb-2">Areas of Improvement</h4>
+            <p id="detail-weaknesses" class="text-gray-700"></p>
+          </div>
+        </div>
+        
+        <div class="bg-white p-4 rounded border mb-6">
+          <h4 class="font-bold mb-2">Evaluator Remarks</h4>
+          <p id="detail-remarks" class="text-gray-700 whitespace-pre-line"></p>
+        </div>
+        
+        <!-- SNCO Actions Form -->
+        <form id="sncoActionForm" class="bg-white p-4 rounded border">
+          <h4 class="font-bold mb-2">SNCO Actions</h4>
+          
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">Flag Status</label>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" class="px-3 py-1 rounded border border-gray-300 flex items-center gap-1" 
+                      onclick="setReportFlag('none')">
+                <span class="w-3 h-3 rounded-full bg-gray-400"></span>
+                <span>None</span>
+              </button>
+              <button type="button" class="px-3 py-1 rounded border border-gray-300 flex items-center gap-1" 
+                      onclick="setReportFlag('green')">
+                <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                <span>Green (Exemplary)</span>
+              </button>
+              <button type="button" class="px-3 py-1 rounded border border-gray-300 flex items-center gap-1" 
+                      onclick="setReportFlag('blue')">
+                <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                <span>Blue (No Attention Required)</span>
+              </button>
+              <button type="button" class="px-3 py-1 rounded border border-gray-300 flex items-center gap-1" 
+                      onclick="setReportFlag('yellow')">
+                <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                <span>Yellow (May Need Attention)</span>
+              </button>
+              <button type="button" class="px-3 py-1 rounded border border-gray-300 flex items-center gap-1" 
+                      onclick="setReportFlag('red')">
+                <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                <span>Red (Needs Immediate Attention)</span>
+              </button>
+            </div>
+            <input type="hidden" id="selectedFlag" name="flag" value="">
+          </div>
+          
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">SNCO Remarks</label>
+            <textarea id="sncoRemarks" name="sncoRemarks" rows="3" 
+                      class="w-full border border-gray-300 rounded px-3 py-2"></textarea>
+          </div>
+          
+          <div class="flex justify-between">
+            <button type="button" id="holdReportBtn" 
+                    class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700">
+              Toggle Hold Status
+            </button>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -1476,6 +1675,330 @@ function openForm110Modal() {
 
 function closeForm110Modal() {
   document.getElementById('form110Modal').classList.add('hidden');
+}
+
+let currentReportId = null;
+
+// Open the SNCO Performance modal and load the reports
+function openSNCOPerformanceModal() {
+  document.getElementById('sncoPerformanceModal').classList.remove('hidden');
+  loadPerformanceReports();
+  
+  // Set up event listeners for filtering
+  document.getElementById('reportStatusFilter').addEventListener('change', filterReports);
+  document.getElementById('reportSearchInput').addEventListener('input', filterReports);
+}
+
+// Close the SNCO Performance modal
+function closeSNCOPerformanceModal() {
+  document.getElementById('sncoPerformanceModal').classList.add('hidden');
+}
+
+// Load all performance reports
+async function loadPerformanceReports() {
+  const tableBody = document.getElementById('performanceReportsList');
+  tableBody.innerHTML = '<tr><td colspan="7" class="px-4 py-2 text-center">Loading reports...</td></tr>';
+  
+  try {
+    const response = await fetch('/api/performance/all');
+    const data = await response.json();
+    
+    if (!data.reports || data.reports.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="7" class="px-4 py-2 text-center">No performance reports found.</td></tr>';
+      return;
+    }
+    
+    // Store the reports in a global variable for filtering
+    window.allPerformanceReports = data.reports;
+    
+    // Render the reports
+    renderReportsList(data.reports);
+  } catch (error) {
+    console.error('Error loading performance reports:', error);
+    tableBody.innerHTML = `<tr><td colspan="7" class="px-4 py-2 text-center text-red-600">
+      Error loading reports: ${error.message}</td></tr>`;
+  }
+}
+
+// Render the reports list
+function renderReportsList(reports) {
+  const tableBody = document.getElementById('performanceReportsList');
+  tableBody.innerHTML = '';
+  
+  reports.forEach(report => {
+    // Format the date
+    const date = new Date(report.createdAt).toLocaleDateString();
+    
+    // Get member and evaluator names
+    const memberName = report.targetUser ? 
+      (typeof report.targetUser === 'object' ? report.targetUser.username : report.targetUser) : 'Unknown';
+    
+    const evaluatorName = report.evaluator ? 
+      (typeof report.evaluator === 'object' ? report.evaluator.username : report.evaluator) : 
+      (report.ncoSignature ? 
+        (typeof report.ncoSignature === 'object' ? report.ncoSignature.username : report.ncoSignature) : 
+        'Unknown');
+    
+    // Calculate average score to display
+    let calculatedScore = report.calculatedScore;
+    if (!calculatedScore && report.dutyPerformance && report.discipline) {
+      // Calculate average if not already done
+      const grades = [
+        report.dutyPerformance.grade,
+        report.discipline.grade,
+        report.communication.grade,
+        report.initiative.grade,
+        report.missionContribution.grade,
+        report.professionalism.grade
+      ].filter(g => g); // Filter out undefined/null
+      
+      if (grades.length > 0) {
+        calculatedScore = grades.reduce((sum, g) => sum + g, 0) / grades.length;
+      }
+    }
+    
+    // Determine the flag color for the display
+    let flagHtml = '<span class="w-3 h-3 inline-block rounded-full bg-gray-400"></span> None';
+    if (report.flag) {
+      const flagColors = {
+        'red': 'bg-red-500',
+        'yellow': 'bg-yellow-500',
+        'blue': 'bg-blue-500',
+        'green': 'bg-green-500'
+      };
+      const flagColor = flagColors[report.flag] || 'bg-gray-400';
+      flagHtml = `<span class="w-3 h-3 inline-block rounded-full ${flagColor}"></span> ${capitalize(report.flag)}`;
+    }
+    
+    // Create the row
+    const row = document.createElement('tr');
+    row.className = report.status === 'Hold' ? 'bg-yellow-50' : '';
+    row.innerHTML = `
+      <td class="px-4 py-2 border">${date}</td>
+      <td class="px-4 py-2 border">${memberName}</td>
+      <td class="px-4 py-2 border">${evaluatorName}</td>
+      <td class="px-4 py-2 border">${calculatedScore ? calculatedScore.toFixed(1) : 'N/A'}</td>
+      <td class="px-4 py-2 border">${flagHtml}</td>
+      <td class="px-4 py-2 border">${report.status || 'Draft'}</td>
+      <td class="px-4 py-2 border">
+        <button class="px-2 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                onclick="viewReportDetails('${report._id}')">
+          View
+        </button>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+}
+
+// Filter reports based on status and search input
+function filterReports() {
+  const statusFilter = document.getElementById('reportStatusFilter').value;
+  const searchInput = document.getElementById('reportSearchInput').value.toLowerCase();
+  
+  if (!window.allPerformanceReports) return;
+  
+  const filteredReports = window.allPerformanceReports.filter(report => {
+    // Filter by status
+    if (statusFilter !== 'all' && report.status !== statusFilter) {
+      return false;
+    }
+    
+    // Filter by search term
+    if (searchInput) {
+      const memberName = report.targetUser ? 
+        (typeof report.targetUser === 'object' ? report.targetUser.username.toLowerCase() : '') : '';
+      const evaluatorName = report.evaluator ? 
+        (typeof report.evaluator === 'object' ? report.evaluator.username.toLowerCase() : '') : '';
+      
+      return memberName.includes(searchInput) || evaluatorName.includes(searchInput);
+    }
+    
+    return true;
+  });
+  
+  renderReportsList(filteredReports);
+}
+
+// View report details
+async function viewReportDetails(reportId) {
+  currentReportId = reportId;
+  
+  const detailView = document.getElementById('reportDetailView');
+  detailView.classList.remove('hidden');
+  
+  // Set loading state
+  document.getElementById('reportDetailTitle').textContent = 'Loading report details...';
+  
+  try {
+    // Fetch the report details
+    const response = await fetch(`/api/performance/${reportId}`);
+    const data = await response.json();
+    const report = data.report;
+    
+    if (!report) {
+      throw new Error('Report not found');
+    }
+    
+    // Update the title
+    document.getElementById('reportDetailTitle').textContent = 'Performance Report Details';
+    
+    // Fill in the details
+    document.getElementById('detail-member').textContent = 
+      report.targetUser ? (typeof report.targetUser === 'object' ? report.targetUser.username : report.targetUser) : 'Unknown';
+    
+    // Use first available signature as evaluator
+    let evaluatorText = 'Unknown';
+    if (report.evaluator) {
+      evaluatorText = typeof report.evaluator === 'object' ? report.evaluator.username : report.evaluator;
+    } else if (report.ncoSignature) {
+      evaluatorText = typeof report.ncoSignature === 'object' ? report.ncoSignature.username : report.ncoSignature;
+    }
+    document.getElementById('detail-evaluator').textContent = evaluatorText;
+    
+    // Period dates
+    const startDate = report.periodStart ? new Date(report.periodStart).toLocaleDateString() : 'N/A';
+    const endDate = report.periodEnd ? new Date(report.periodEnd).toLocaleDateString() : 'N/A';
+    document.getElementById('detail-period').textContent = `${startDate} to ${endDate}`;
+    
+    // Other details
+    document.getElementById('detail-status').textContent = report.status || 'Draft';
+    document.getElementById('detail-grade').textContent = report.calculatedScore ? 
+      report.calculatedScore.toFixed(1) : (report.overallGrade || 'N/A');
+    document.getElementById('detail-xp').textContent = report.recommendedXP || 'None';
+    document.getElementById('detail-flag').textContent = report.flag ? capitalize(report.flag) : 'None';
+    document.getElementById('detail-date').textContent = new Date(report.createdAt).toLocaleDateString();
+    
+    // Evaluation scores - use the nested structure from your schema
+    document.getElementById('detail-communication').textContent = 
+      report.communication?.grade || 'N/A';
+    document.getElementById('detail-discipline').textContent = 
+      report.discipline?.grade || 'N/A';
+    document.getElementById('detail-duty').textContent = 
+      report.dutyPerformance?.grade || 'N/A';
+    document.getElementById('detail-initiative').textContent = 
+      report.initiative?.grade || 'N/A';
+    document.getElementById('detail-mission').textContent = 
+      report.missionContribution?.grade || 'N/A';
+    document.getElementById('detail-professionalism').textContent = 
+      report.professionalism?.grade || 'N/A';
+    
+    // Recommendations badges - use the nested structure
+    document.getElementById('promotion-badge').classList.toggle('hidden', !report.recommendations?.promotionRecommended);
+    document.getElementById('training-badge').classList.toggle('hidden', !report.recommendations?.additionalTraining);
+    document.getElementById('disciplinary-badge').classList.toggle('hidden', !report.recommendations?.disciplinaryWatch);
+    
+    // Text fields
+    document.getElementById('detail-strengths').textContent = report.strengths || 'None specified';
+    document.getElementById('detail-weaknesses').textContent = report.weaknesses || 'None specified';
+    
+    // Remarks - use general remarks or specific ones if available
+    let remarksText = 'None provided';
+    if (report.remarks) {
+      remarksText = report.remarks;
+    } else {
+      // Collect all section remarks
+      const allRemarks = [];
+      if (report.dutyPerformance?.remarks) allRemarks.push(`Duty: ${report.dutyPerformance.remarks}`);
+      if (report.communication?.remarks) allRemarks.push(`Communication: ${report.communication.remarks}`);
+      if (report.discipline?.remarks) allRemarks.push(`Discipline: ${report.discipline.remarks}`);
+      if (report.initiative?.remarks) allRemarks.push(`Initiative: ${report.initiative.remarks}`);
+      if (report.missionContribution?.remarks) allRemarks.push(`Mission: ${report.missionContribution.remarks}`);
+      if (report.professionalism?.remarks) allRemarks.push(`Professionalism: ${report.professionalism.remarks}`);
+      
+      if (allRemarks.length > 0) {
+        remarksText = allRemarks.join('\n\n');
+      }
+    }
+    document.getElementById('detail-remarks').textContent = remarksText;
+    
+    // Set current values for SNCO form
+    document.getElementById('selectedFlag').value = report.flag || '';
+    document.getElementById('sncoRemarks').value = report.sncoRemarks || '';
+    
+    // Update hold button text
+    const holdBtn = document.getElementById('holdReportBtn');
+    holdBtn.textContent = report.status === 'Hold' ? 'Remove Hold' : 'Place on Hold';
+    holdBtn.onclick = () => toggleHoldStatus(reportId);
+    
+    // Set up the form submission
+    const form = document.getElementById('sncoActionForm');
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      saveReportChanges(reportId);
+    };
+    
+    // Scroll to the details view
+    detailView.scrollIntoView({ behavior: 'smooth' });
+    
+  } catch (error) {
+    console.error('Error loading report details:', error);
+    document.getElementById('reportDetailTitle').textContent = 'Error Loading Report';
+    detailView.innerHTML += `<p class="text-red-600">Error: ${error.message}</p>`;
+  }
+}
+
+// Set the flag for a report
+function setReportFlag(flag) {
+  document.getElementById('selectedFlag').value = flag;
+}
+
+// Toggle the hold status of a report
+async function toggleHoldStatus(reportId) {
+  try {
+    const response = await fetch(`/api/performance/${reportId}/hold`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}: ${await response.text()}`);
+    }
+    
+    // Reload the report details and list
+    await loadPerformanceReports();
+    await viewReportDetails(reportId);
+    
+    alert('Hold status updated successfully');
+  } catch (error) {
+    console.error('Error toggling hold status:', error);
+    alert(`Error: ${error.message}`);
+  }
+}
+
+// Save changes to a report
+async function saveReportChanges(reportId) {
+  try {
+    const flag = document.getElementById('selectedFlag').value;
+    const sncoRemarks = document.getElementById('sncoRemarks').value;
+    
+    const response = await fetch(`/api/performance/${reportId}/update`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        flag,
+        sncoRemarks
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}: ${await response.text()}`);
+    }
+    
+    // Reload the report details and list
+    await loadPerformanceReports();
+    await viewReportDetails(reportId);
+    
+    alert('Report updated successfully');
+  } catch (error) {
+    console.error('Error saving report changes:', error);
+    alert(`Error: ${error.message}`);
+  }
 }
     </script>
 </body>

@@ -1244,6 +1244,99 @@ router.post('/api/performance/submit', async (req, res) => {
     }
   });
 
+  // Get a specific performance report
+  router.get('/api/performance/:id', async (req, res) => {
+    try {
+      const report = await PerformanceReport.findById(req.params.id)
+        .populate('targetUser', 'username')
+        .populate('ncoSignature', 'username')
+        .populate('sncoSignature', 'username')
+        .populate('officerSignature', 'username')
+        .populate('sncoReviewer', 'username')
+        .populate('division', 'name');
+      
+      if (!report) {
+        return res.status(404).json({ error: 'Report not found' });
+      }
+  
+  // Update a performance report (SNCO review)
+  router.post('/api/performance/:id/update', async (req, res) => {
+    try {
+      const { flag, sncoRemarks } = req.body;
+      
+      const report = await PerformanceReport.findById(req.params.id);
+      if (!report) {
+        return res.status(404).json({ error: 'Report not found' });
+      }
+      
+      // Update fields
+      if (flag !== undefined) {
+        report.flag = flag === 'none' ? null : flag;
+      }
+      
+      if (sncoRemarks !== undefined) {
+        report.sncoRemarks = sncoRemarks;
+      }
+      
+      // Mark as reviewed by SNCO
+      report.sncoReviewer = req.user._id;
+      report.sncoReviewDate = new Date();
+      
+      // If flagged as red, update status
+      if (flag === 'red') {
+        report.status = 'Flagged';
+      }
+      
+      await report.save();
+      
+      res.json({ 
+        success: true, 
+        message: 'Performance report updated successfully' 
+      });
+    } catch (err) {
+      console.error('Error updating performance report:', err);
+      res.status(500).json({ error: 'Failed to update report' });
+    }
+  });
+  
+  // Add a comment to a performance report
+  router.post('/api/performance/:id/comment', async (req, res) => {
+    try {
+      const { comment } = req.body;
+      
+      if (!comment) {
+        return res.status(400).json({ error: 'Comment is required' });
+      }
+      
+      const report = await PerformanceReport.findById(req.params.id);
+      if (!report) {
+        return res.status(404).json({ error: 'Report not found' });
+      }
+      
+      // Initialize comments array if it doesn't exist
+      if (!report.comments) {
+        report.comments = [];
+      }
+      
+      // Add new comment
+      report.comments.push({
+        user: req.user._id,
+        text: comment,
+        date: new Date()
+      });
+      
+      await report.save();
+      
+      res.json({ 
+        success: true, 
+        message: 'Comment added successfully' 
+      });
+    } catch (err) {
+      console.error('Error adding comment to performance report:', err);
+      res.status(500).json({ error: 'Failed to add comment' });
+    }
+  });
+
 
 
 
