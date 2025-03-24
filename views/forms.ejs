@@ -164,6 +164,12 @@
                             <h3 class="text-lg font-semibold text-gray-800 mb-1">Performance Report Management</h3>
                             <p class="text-sm text-gray-600">Review, flag, and manage performance reports.</p>
                           </div>
+
+                          <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md"
+                                onclick="openPromotionRequestModal()">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-1">Form 168 – Promotion Request</h3>
+                                <p class="text-sm text-gray-600">Request promotion for eligible personnel.</p>
+                            </div>
                       <% } %>
 
                       <% if (folder.name === 'Company Officers') { %>
@@ -1165,6 +1171,48 @@
       </div>
     </div>
   </div>
+
+  <!-- Form 168 Promotion Request Modal -->
+<div id="form168PromotionRequestModal" class="modal hidden overflow-auto py-6">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative">
+        <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl"
+                onclick="closePromotionRequestModal()">&times;</button>
+        <h2 class="text-xl font-bold mb-4">Form 168 – Promotion Request</h2>
+
+        <form id="promotionRequestForm" class="space-y-4">
+            <!-- Username Live Search -->
+            <div>
+                <label class="block font-medium text-sm mb-1">Username</label>
+                <input type="text" id="promotionUserSearch" placeholder="Type username..."
+                       class="w-full border border-gray-300 rounded px-3 py-2" required>
+                <div id="promotionUserResults"
+                     class="mt-2 border border-gray-300 rounded bg-white max-h-40 overflow-y-auto hidden"></div>
+                <input type="hidden" id="promotionUserId" name="targetUserId">
+            </div>
+
+            <!-- User Details (auto-populated) -->
+            <div id="promotionUserDetails" class="hidden bg-gray-50 p-4 rounded space-y-1">
+                <p><strong>Current Rank:</strong> <span id="currentRank"></span></p>
+                <p><strong>Current XP:</strong> <span id="currentXP"></span></p>
+                <p id="nextRankInfo"><strong>Next Rank:</strong> <span id="nextRank"></span></p>
+                <p id="nextXPInfo"><strong>XP Required:</strong> <span id="nextXP"></span></p>
+                <p id="slotBasedInfo" class="text-sm text-blue-600 hidden"><strong>Note:</strong> Promotion is slot-based; no XP required.</p>
+            </div>
+
+            <!-- Recommendation -->
+            <div>
+                <label class="block font-medium text-sm mb-1">Promotion Recommendation</label>
+                <textarea name="recommendation" id="promotionRecommendation" required
+                          class="w-full border border-gray-300 rounded px-3 py-2" rows="3"
+                          placeholder="Provide justification for the promotion request"></textarea>
+            </div>
+
+            <div class="text-right">
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Submit Promotion Request</button>
+            </div>
+        </form>
+    </div>
+</div>
 
       <script>
 
@@ -3203,6 +3251,112 @@ function showSuccessNotification(message) {
     notification.classList.add('hidden');
   }, 3000);
 }
+
+// Open/Close Modal
+function openPromotionRequestModal() {
+    document.getElementById('form168PromotionRequestModal').classList.remove('hidden');
+}
+
+function closePromotionRequestModal() {
+    document.getElementById('form168PromotionRequestModal').classList.add('hidden');
+    resetPromotionForm();
+}
+
+// Reset form fields
+function resetPromotionForm() {
+    document.getElementById('promotionRequestForm').reset();
+    document.getElementById('promotionUserDetails').classList.add('hidden');
+    document.getElementById('promotionUserId').value = '';
+}
+
+// Live search functionality
+document.getElementById('promotionUserSearch').addEventListener('input', async function () {
+    const query = this.value.trim();
+    const resultsDiv = document.getElementById('promotionUserResults');
+
+    if (query.length < 2) {
+        resultsDiv.classList.add('hidden');
+        resultsDiv.innerHTML = '';
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/users/search?username=${encodeURIComponent(query)}`);
+        const users = await res.json();
+
+        resultsDiv.innerHTML = '';
+        if (users.length === 0) {
+            resultsDiv.innerHTML = '<div class="px-3 py-2">No matches found.</div>';
+        } else {
+            users.forEach(user => {
+                const div = document.createElement('div');
+                div.textContent = user.username;
+                div.className = 'px-3 py-2 cursor-pointer hover:bg-gray-100';
+                div.onclick = () => selectPromotionUser(user);
+                resultsDiv.appendChild(div);
+            });
+        }
+        resultsDiv.classList.remove('hidden');
+    } catch (err) {
+        console.error(err);
+        resultsDiv.innerHTML = '<div class="px-3 py-2 text-red-600">Error fetching users.</div>';
+        resultsDiv.classList.remove('hidden');
+    }
+});
+
+// User selection handling
+async function selectPromotionUser(user) {
+    document.getElementById('promotionUserSearch').value = user.username;
+    document.getElementById('promotionUserId').value = user._id;
+    document.getElementById('promotionUserResults').classList.add('hidden');
+
+    // Fetch user rank details
+    const res = await fetch(`/api/users/${user.username}`);
+    const userDetails = await res.json();
+
+    document.getElementById('currentRank').textContent = userDetails.rank;
+    document.getElementById('currentXP').textContent = userDetails.xp;
+
+    const rankIndex = RANKS.indexOf(userDetails.rank);
+    const isSlotBased = rankIndex >= RANKS.indexOf('First Sergeant');
+
+    if (isSlotBased || rankIndex + 1 >= RANKS.length) {
+        document.getElementById('nextRankInfo').classList.add('hidden');
+        document.getElementById('nextXPInfo').classList.add('hidden');
+        document.getElementById('slotBasedInfo').classList.remove('hidden');
+    } else {
+        document.getElementById('nextRank').textContent = RANKS[rankIndex + 1];
+        document.getElementById('nextXP').textContent = userDetails.nextXP;
+        document.getElementById('nextRankInfo').classList.remove('hidden');
+        document.getElementById('nextXPInfo').classList.remove('hidden');
+        document.getElementById('slotBasedInfo').classList.add('hidden');
+    }
+
+    document.getElementById('promotionUserDetails').classList.remove('hidden');
+}
+
+// Form submission
+document.getElementById('promotionRequestForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const payload = {
+        targetUserId: document.getElementById('promotionUserId').value,
+        recommendation: document.getElementById('promotionRecommendation').value
+    };
+
+    const res = await fetch('/api/promotion-request/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+        alert('Promotion request submitted successfully!');
+        closePromotionRequestModal();
+    } else {
+        alert('Failed to submit request. Please try again.');
+    }
+});
     </script>
 </body>
 </html>

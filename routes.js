@@ -16,6 +16,7 @@ const Division = require('./models/division');
 const DivisionRemoval = require('./models/divisionRemoval');
 const Training = require('./models/training');
 const PerformanceReport = require('./models/performanceReport');
+const PromotionRequest = require('./models/promotionRequest');
 
 // Middleware to check authentication
 function isAuthenticated(req, res, next) {
@@ -1835,7 +1836,118 @@ router.post('/api/performance/:id/officer-update', async (req, res) => {
         }
       });
     
-
+      const RANKS = [
+        "Citizen", "Airman Basic", "Airman", "Airman First Class", "Senior Airman",
+        "Staff Sergeant", "Technical Sergeant", "Master Sergeant", "First Sergeant",
+        "Senior Master Sergeant", "Senior First Sergeant", "Chief Master Sergeant",
+        "Chief First Sergeant", "Command Chief Master Sergeant", "Senior Enlisted Leader",
+        "Chief Senior Enlisted Leader", "Chief Master Sergeant of the Air Force",
+        "Second Lieutenant", "First Lieutenant", "Captain",
+        "Major", "Lieutenant Colonel", "Colonel",
+        "Brigadier General", "Major General", "Lieutenant General", "General", "General of the Air Force"
+      ];
+      
+      // Live user search (for autocomplete)
+      router.get('/api/users/search', async (req, res) => {
+        const { username } = req.query;
+      
+        if (!username) return res.status(400).json({ error: 'Username query required' });
+      
+        try {
+          const users = await User.find({ username: { $regex: username, $options: 'i' } })
+                                  .limit(10)
+                                  .select('username');
+          res.json(users);
+        } catch (err) {
+          console.error(err);
+          res.status(500).json({ error: 'Server error' });
+        }
+      });
+      
+      // Fetch user details (rank and XP)
+      router.get('/api/users/:username', async (req, res) => {
+        try {
+          const user = await User.findOne({ username: req.params.username });
+      
+          if (!user) return res.status(404).json({ error: 'User not found' });
+      
+          const rankIndex = RANKS.indexOf(user.rank);
+          const isSlotBased = rankIndex >= RANKS.indexOf('First Sergeant');
+      
+          let nextRank = null;
+          let nextXP = null;
+      
+          if (!isSlotBased && rankIndex + 1 < RANKS.length) {
+            nextRank = RANKS[rankIndex + 1];
+            
+            // Logic to determine nextXP (this logic is based on your existing XP system)
+            nextXP = calculateXPForNextRank(nextRank); // You must implement this function according to your XP system
+          }
+      
+          res.json({
+            rank: user.rank,
+            xp: user.xp,
+            nextRank,
+            nextXP,
+            isSlotBased
+          });
+        } catch (err) {
+          console.error(err);
+          res.status(500).json({ error: 'Server error' });
+        }
+      });
+      
+      // Submit Promotion Request
+      router.post('/api/promotion-request/submit', async (req, res) => {
+        const { targetUserId, recommendation } = req.body;
+        const requesterId = req.user._id; // Assumes user authentication middleware
+      
+        try {
+          const targetUser = await User.findById(targetUserId);
+      
+          if (!targetUser) return res.status(404).json({ error: 'Target user not found' });
+      
+          const rankIndex = RANKS.indexOf(targetUser.rank);
+          const isSlotBased = rankIndex >= RANKS.indexOf('First Sergeant');
+      
+          if (rankIndex + 1 >= RANKS.length) {
+            return res.status(400).json({ error: 'User is already at the highest possible rank' });
+          }
+      
+          const promotionRequest = new PromotionRequest({
+            requesterId,
+            targetUserId,
+            currentRank: targetUser.rank,
+            currentXP: targetUser.xp,
+            nextRank: !isSlotBased ? RANKS[rankIndex + 1] : null,
+            nextXP: !isSlotBased ? calculateXPForNextRank(RANKS[rankIndex + 1]) : null,
+            isSlotBased,
+            recommendation
+          });
+      
+          await promotionRequest.save();
+      
+          res.status(200).json({ message: 'Promotion request submitted successfully' });
+        } catch (err) {
+          console.error(err);
+          res.status(500).json({ error: 'Server error' });
+        }
+      });
+      
+      // Helper function (you must adjust according to your XP system)
+      function calculateXPForNextRank(nextRank) {
+        const xpRequirements = {
+          "Airman": 10,
+          "Airman First Class": 25,
+          "Senior Airman": 50,
+          "Staff Sergeant": 100,
+          "Technical Sergeant": 150,
+          "Master Sergeant": 250,
+          "First Sergeant": 350
+        };
+      
+        return xpRequirements[nextRank] || null;
+      }
 
 
 
