@@ -1134,79 +1134,96 @@ async function loadForm150FieldOfficerManager() {
 
   // Helper function to render a group of forms
   function renderFormGroup(forms) {
-    return forms.map(form => {
-      // Handle undefined or null values safely
-      const trainingEvent = form.trainingEvent || 'Untitled Training';
-      const formId = form._id || '';
-      const status = form.status || 'Unknown';
-      const statusColorClass = statusColor[status] || 'border-gray-300';
-      
-      // Parse trainee info safely
-      let traineesDisplay = 'None';
-      if (form.trainees && form.trainees.length) {
-        traineesDisplay = form.trainees.map(t => 
-          typeof t === 'object' ? (t.username || 'Unknown') : t
-        ).join(', ');
-      }
+  return forms.map(form => {
+    // Handle undefined or null values safely
+    const trainingEvent = form.trainingEvent || 'Untitled Training';
+    const formId = form._id || '';
+    const status = form.status || 'Unknown';
+    const statusColorClass = statusColor[status] || 'border-gray-300';
+    
+    // Parse trainee info safely
+    let traineesDisplay = 'None';
+    if (form.trainees && form.trainees.length) {
+      traineesDisplay = form.trainees.map(t => 
+        typeof t === 'object' ? (t.username || 'Unknown') : t
+      ).join(', ');
+    }
 
-      // XP info formatted safely
-      let xpInfo = 'Not yet approved';
-      if (form.xpApproved && form.xpApproved.length) {
-        xpInfo = form.xpApproved.map(x => {
-          const username = x.user ? (typeof x.user === 'object' ? x.user.username : x.user) : 'User';
-          return `${username}: ${x.xp || 0} XP`;
-        }).join(', ');
-      }
+    // Format XP information
+    // Check for both finalXP and xpApproved fields
+    let xpInfo = 'Not yet assigned';
+    
+    // First check for finalXP property
+    if (form.finalXP && Object.keys(form.finalXP).length > 0) {
+      xpInfo = Object.entries(form.finalXP)
+        .map(([username, xp]) => `${username}: ${xp} XP`)
+        .join(', ');
+    } 
+    // Then check for xpApproved property
+    else if (form.xpApproved && form.xpApproved.length > 0) {
+      xpInfo = form.xpApproved.map(entry => {
+        let username = 'Unknown';
+        if (entry.user) {
+          username = typeof entry.user === 'object' ? 
+            (entry.user.username || 'Unknown') : entry.user;
+        }
+        return `${username}: ${entry.xp || 0} XP`;
+      }).join(', ');
+    }
+    // If neither is present, show the recommended XP
+    else if (form.sncoXPRecommendation && form.status === 'Pending Officer Approval') {
+      xpInfo = `${form.sncoXPRecommendation} XP (recommended)`;
+    }
 
-      return `
-        <div class="p-4 rounded border ${statusColorClass} shadow">
-          <div class="flex justify-between items-center mb-2">
-            <h3 class="text-lg font-bold">${trainingEvent}</h3>
-            <span class="text-sm font-medium px-2 py-1 rounded ${status === 'HOLD' ? 'bg-red-100 text-red-800' : 'bg-gray-100'}">
-              ${status}
-            </span>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
-            <div>
-              <p><strong>Date:</strong> ${new Date(form.startTime || null).toLocaleDateString()}</p>
-              <p><strong>Time:</strong> ${new Date(form.startTime || null).toLocaleTimeString()} - ${new Date(form.endTime || null).toLocaleTimeString()}</p>
-              <p><strong>Grade:</strong> ${form.overallGrade || 'N/A'}</p>
-              <p><strong>Outcome:</strong> ${form.outcome || 'N/A'}</p>
-            </div>
-            <div>
-              <p><strong>Trainees:</strong> ${traineesDisplay}</p>
-              <p><strong>SNCO XP:</strong> ${form.sncoXPRecommendation || 'N/A'}</p>
-              <p><strong>SNCO Remarks:</strong> ${form.sncoRemarks || 'None'}</p>
-              <p><strong>XP Assigned:</strong> ${xpInfo}</p>
-            </div>
-          </div>
-
-          ${status === 'HOLD' ? `
-            <div class="bg-red-50 p-3 rounded mb-3">
-              <p class="text-red-700"><strong>Hold Reason:</strong> ${form.holdReason || 'None provided'}</p>
-            </div>
-            <form class="hold-form" data-id="${formId}">
-              <input type="hidden" name="action" value="lift">
-              <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                Lift HOLD
-              </button>
-            </form>
-          ` : `
-            <form class="hold-form" data-id="${formId}">
-              <input type="hidden" name="action" value="hold">
-              <div class="flex flex-col md:flex-row gap-2">
-                <input type="text" name="reason" required placeholder="Reason for HOLD..." 
-                       class="flex-grow border rounded px-3 py-2">
-                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap">
-                  Place on HOLD
-                </button>
-              </div>
-            </form>
-          `}
+    return `
+      <div class="p-4 rounded border ${statusColorClass} shadow">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-lg font-bold">${trainingEvent}</h3>
+          <span class="text-sm font-medium px-2 py-1 rounded ${status === 'HOLD' ? 'bg-red-100 text-red-800' : 'bg-gray-100'}">
+            ${status}
+          </span>
         </div>
-      `;
-    }).join('');
-  }
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+          <div>
+            <p><strong>Date:</strong> ${new Date(form.startTime || null).toLocaleDateString()}</p>
+            <p><strong>Time:</strong> ${new Date(form.startTime || null).toLocaleTimeString()} - ${new Date(form.endTime || null).toLocaleTimeString()}</p>
+            <p><strong>Grade:</strong> ${form.overallGrade || 'N/A'}</p>
+            <p><strong>Outcome:</strong> ${form.outcome || 'N/A'}</p>
+          </div>
+          <div>
+            <p><strong>Trainees:</strong> ${traineesDisplay}</p>
+            <p><strong>SNCO XP:</strong> ${form.sncoXPRecommendation || 'N/A'}</p>
+            <p><strong>SNCO Remarks:</strong> ${form.sncoRemarks || 'None'}</p>
+            <p><strong>XP Assigned:</strong> ${xpInfo}</p>
+          </div>
+        </div>
+
+        ${status === 'HOLD' ? `
+          <div class="bg-red-50 p-3 rounded mb-3">
+            <p class="text-red-700"><strong>Hold Reason:</strong> ${form.holdReason || 'None provided'}</p>
+          </div>
+          <form class="hold-form" data-id="${formId}">
+            <input type="hidden" name="action" value="lift">
+            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+              Lift HOLD
+            </button>
+          </form>
+        ` : `
+          <form class="hold-form" data-id="${formId}">
+            <input type="hidden" name="action" value="hold">
+            <div class="flex flex-col md:flex-row gap-2">
+              <input type="text" name="reason" required placeholder="Reason for HOLD..." 
+                     class="flex-grow border rounded px-3 py-2">
+              <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap">
+                Place on HOLD
+              </button>
+            </div>
+          </form>
+        `}
+      </div>
+    `;
+  }).join('');
+}
 }
 
 // Function to handle HOLD form submissions
