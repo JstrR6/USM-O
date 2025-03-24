@@ -743,26 +743,15 @@ router.post('/api/training/submit', async (req, res) => {
     }
   });
 
-router.get('/training/:id', async (req, res) => {
+  router.get('/training/:id', async (req, res) => {
     try {
-        const form = await Training.findById(req.params.id)
-            .populate('trainees', 'username');
-
-        if (!form) {
-            return res.status(404).json({ error: 'Form not found' });
+        // Validate that the ID is a valid ObjectId before querying
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ error: 'Invalid training ID format' });
         }
 
-        res.json(form);
-    } catch (err) {
-        console.error('Error fetching training form:', err);
-        res.status(500).json({ error: 'Server error' });
-    }
-});
-
-router.get('/:id', async (req, res) => {
-    try {
         const form = await Training.findById(req.params.id)
-            .populate('trainees', 'username'); // Only pulls usernames if trainees are ObjectIds
+            .populate('trainees', 'username');
 
         if (!form) {
             return res.status(404).json({ error: 'Form not found' });
