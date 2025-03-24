@@ -15,6 +15,7 @@ const RecruitmentRequest = require('./models/recruitmentrequest');
 const Division = require('./models/division');
 const DivisionRemoval = require('./models/divisionRemoval');
 const Training = require('./models/training');
+const PerformanceReport = require('../models/performanceReport');
 
 // Middleware to check authentication
 function isAuthenticated(req, res, next) {
@@ -1145,6 +1146,101 @@ router.post('/api/division-removal/field-submit', async (req, res) => {
     }
 });
   
+// Submit new performance report
+router.post('/api/performance/submit', async (req, res) => {
+    try {
+      const {
+        traineeId,
+        communication,
+        discipline,
+        teamwork,
+        leadershipPotential,
+        technicalSkill,
+        remarks
+      } = req.body;
+  
+      const weights = {
+        communication: 0.2,
+        discipline: 0.2,
+        teamwork: 0.2,
+        leadershipPotential: 0.2,
+        technicalSkill: 0.2
+      };
+  
+      // Calculate weighted score
+      const autoGrade = 
+        (Number(communication) * weights.communication) +
+        (Number(discipline) * weights.discipline) +
+        (Number(teamwork) * weights.teamwork) +
+        (Number(leadershipPotential) * weights.leadershipPotential) +
+        (Number(technicalSkill) * weights.technicalSkill);
+  
+      const report = new PerformanceReport({
+        trainee: traineeId,
+        evaluator: req.user._id,
+        communication,
+        discipline,
+        teamwork,
+        leadershipPotential,
+        technicalSkill,
+        remarks,
+        autoGrade,
+        status: 'Submitted'
+      });
+  
+      await report.save();
+      res.redirect('/forms');
+    } catch (err) {
+      console.error('Error submitting performance report:', err);
+      res.status(500).send('Failed to submit performance report.');
+    }
+  });
+  
+  // Get all performance reports for Field Officer view
+  router.get('/api/performance/all', async (req, res) => {
+    if (!req.user.isFieldOfficer && !req.user.isOfficer) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+  
+    try {
+      const reports = await PerformanceReport.find({})
+        .populate('trainee', 'username')
+        .populate('evaluator', 'username')
+        .sort('-evaluationDate');
+  
+      res.json({ reports });
+    } catch (err) {
+      console.error('Error fetching performance reports:', err);
+      res.status(500).json({ error: 'Failed to fetch reports' });
+    }
+  });
+  
+  // PUT a report on hold
+  router.post('/api/performance/:id/hold', async (req, res) => {
+    if (!req.user.isFieldOfficer && !req.user.isOfficer) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+  
+    try {
+      const report = await PerformanceReport.findById(req.params.id);
+      if (!report) return res.status(404).send('Report not found');
+  
+      report.status = 'Hold';
+      report.trainingEvent += ' (HOLD)';
+      await report.save();
+  
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Error putting report on hold:', err);
+      res.status(500).send('Failed to place report on hold');
+    }
+  });
+
+
+
+
+
+
 
 // Submit recruitment
 router.post('/api/recruitment', async (req, res) => {

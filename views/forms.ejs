@@ -142,6 +142,11 @@
                           <h3 class="text-lg font-semibold text-gray-800 mb-1">Form 150 – Training Report</h3>
                           <p class="text-sm text-gray-600">Log training events and submit for SNCO review.</p>
                         </div>
+
+                        <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openForm110()">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-1">Form 110 – Performance Report</h3>
+                            <p class="text-sm text-gray-600">Evaluate a trainee’s performance across key areas.</p>
+                          </div>
                       <% } %>
 
                     <% if (folder.name === 'SNCO') { %>
@@ -519,6 +524,103 @@
       <div id="form150FieldOfficerContainer">
         <p class="text-gray-600">Loading...</p>
       </div>
+    </div>
+  </div>
+
+  <!-- Form 110 - Enlisted Evaluation Report Modal -->
+<div id="form110Modal" class="modal hidden overflow-auto py-6">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6 relative">
+      <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="closeForm110Modal()">&times;</button>
+      <h2 class="text-2xl font-bold mb-6">Form 110 – Enlisted Evaluation Report</h2>
+  
+      <form action="/api/performance-report/submit" method="POST" class="space-y-6">
+        <!-- Target User and Period -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium">Select Member</label>
+            <select name="targetUser" class="w-full border border-gray-300 rounded px-3 py-2" required>
+              <% users.forEach(function(u) { %>
+                <option value="<%= u._id %>"><%= u.username %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium">Division</label>
+            <select name="division" class="w-full border border-gray-300 rounded px-3 py-2">
+              <% divisions.forEach(function(d) { %>
+                <option value="<%= d._id %>"><%= d.name %></option>
+              <% }) %>
+            </select>
+          </div>
+        </div>
+  
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium">Evaluation Start Date</label>
+            <input type="date" name="periodStart" class="w-full border border-gray-300 rounded px-3 py-2" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium">Evaluation End Date</label>
+            <input type="date" name="periodEnd" class="w-full border border-gray-300 rounded px-3 py-2" required>
+          </div>
+        </div>
+  
+        <!-- Graded Sections -->
+        <% const sections = [
+          { key: 'dutyPerformance', label: 'Duty Performance' },
+          { key: 'discipline', label: 'Discipline' },
+          { key: 'communication', label: 'Communication' },
+          { key: 'initiative', label: 'Initiative' },
+          { key: 'missionContribution', label: 'Mission Contribution' },
+          { key: 'professionalism', label: 'Professionalism' }
+        ]; %>
+  
+        <% sections.forEach(section => { %>
+          <div>
+            <label class="block font-semibold text-gray-800"><%= section.label %></label>
+            <div class="flex items-center gap-4 mb-2">
+              <label>Grade (1-5):</label>
+              <input type="number" name="<%= section.key %>[grade]" min="1" max="5" class="w-20 border border-gray-300 rounded px-2 py-1" required>
+            </div>
+            <textarea name="<%= section.key %>[remarks]" rows="2" class="w-full border border-gray-300 rounded px-3 py-2" placeholder="Remarks..."></textarea>
+          </div>
+        <% }) %>
+  
+        <!-- Incidents -->
+        <div>
+          <label class="block text-sm font-medium">Incident Log (Optional)</label>
+          <textarea name="incidents" rows="3" class="w-full border border-gray-300 rounded px-3 py-2" placeholder="E.g. Noteworthy performance on X date, or attendance issue on Y date..."></textarea>
+        </div>
+  
+        <!-- Strengths, Weaknesses, Recommendations -->
+        <div>
+          <label class="block font-medium text-sm">Strengths</label>
+          <textarea name="strengths" class="w-full border rounded px-3 py-2" rows="2"></textarea>
+        </div>
+        <div>
+          <label class="block font-medium text-sm">Areas of Improvement</label>
+          <textarea name="weaknesses" class="w-full border rounded px-3 py-2" rows="2"></textarea>
+        </div>
+        <div>
+          <label class="block font-medium text-sm">Recommendations</label>
+          <div class="flex gap-4">
+            <label><input type="checkbox" name="promotionRecommended"> Promotion</label>
+            <label><input type="checkbox" name="additionalTraining"> Additional Training</label>
+            <label><input type="checkbox" name="disciplinaryWatch"> Disciplinary Watch</label>
+          </div>
+        </div>
+  
+        <!-- XP & Submit -->
+        <div class="grid grid-cols-2 gap-4 items-end">
+          <div>
+            <label class="block text-sm font-medium">Recommended XP</label>
+            <input type="number" name="recommendedXP" min="0" class="w-full border rounded px-3 py-2">
+          </div>
+          <div class="text-right">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Submit Evaluation</button>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -1274,6 +1376,14 @@ function openForm150FieldOfficerModal() {
 
 function closeForm150FieldOfficerModal() {
   document.getElementById('form150FieldOfficerModal').classList.add('hidden');
+}
+
+function openForm110Modal() {
+  document.getElementById('form110Modal').classList.remove('hidden');
+}
+
+function closeForm110Modal() {
+  document.getElementById('form110Modal').classList.add('hidden');
 }
     </script>
 </body>
