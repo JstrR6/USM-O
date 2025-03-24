@@ -1057,6 +1057,199 @@ async function loadForm150OfficerQueue() {
   }
 }
 
+async function loadForm150FieldOfficerManager() {
+  const container = document.getElementById('form150FieldOfficerContainer');
+  container.innerHTML = '<p class="text-gray-600">Loading...</p>';
+
+  try {
+    const res = await fetch('/api/training/all');
+    if (!res.ok) {
+      throw new Error(`Server returned ${res.status}: ${await res.text()}`);
+    }
+    
+    const forms = await res.json();
+
+    if (!forms || !forms.length) {
+      container.innerHTML = '<p class="text-gray-600 italic">No training forms found.</p>';
+      return;
+    }
+
+    // Group forms by status for better organization
+    const groupedForms = {
+      'HOLD': [],
+      'Completed': [],
+      'Pending Officer Approval': [],
+      'Pending SNCO Review': []
+    };
+
+    forms.forEach(form => {
+      const status = form.status || 'Unknown';
+      if (!groupedForms[status]) {
+        groupedForms[status] = [];
+      }
+      groupedForms[status].push(form);
+    });
+
+    // Generate the HTML for each section
+    let html = '';
+
+    // HOLD section first for visibility
+    if (groupedForms['HOLD'] && groupedForms['HOLD'].length) {
+      html += `<div class="mb-6">
+        <h3 class="text-xl font-bold text-red-700 mb-3">Forms on HOLD (${groupedForms['HOLD'].length})</h3>
+        <div class="space-y-4">
+          ${renderFormGroup(groupedForms['HOLD'])}
+        </div>
+      </div>`;
+    }
+
+    // Then other statuses
+    for (const status of ['Pending Officer Approval', 'Pending SNCO Review', 'Completed']) {
+      if (groupedForms[status] && groupedForms[status].length) {
+        html += `<div class="mb-6">
+          <h3 class="text-xl font-bold mb-3">${status} (${groupedForms[status].length})</h3>
+          <div class="space-y-4">
+            ${renderFormGroup(groupedForms[status])}
+          </div>
+        </div>`;
+      }
+    }
+
+    container.innerHTML = html;
+
+    // Add event listeners for the form submissions
+    document.querySelectorAll('.hold-form').forEach(form => {
+      form.addEventListener('submit', handleHoldFormSubmit);
+    });
+  } catch (err) {
+    console.error('Failed to load training forms:', err);
+    container.innerHTML = `<div class="bg-red-50 p-4 rounded border border-red-300">
+      <p class="text-red-700 font-medium">Error loading training forms:</p>
+      <p class="text-red-600">${err.message}</p>
+      <button onclick="loadForm150FieldOfficerManager()" class="mt-3 px-4 py-2 bg-blue-600 text-white rounded">
+        Try Again
+      </button>
+    </div>`;
+  }
+
+  // Helper function to render a group of forms
+  function renderFormGroup(forms) {
+    return forms.map(form => {
+      // Handle undefined or null values safely
+      const trainingEvent = form.trainingEvent || 'Untitled Training';
+      const formId = form._id || '';
+      const status = form.status || 'Unknown';
+      const statusColorClass = statusColor[status] || 'border-gray-300';
+      
+      // Parse trainee info safely
+      let traineesDisplay = 'None';
+      if (form.trainees && form.trainees.length) {
+        traineesDisplay = form.trainees.map(t => 
+          typeof t === 'object' ? (t.username || 'Unknown') : t
+        ).join(', ');
+      }
+
+      // XP info formatted safely
+      let xpInfo = 'Not yet approved';
+      if (form.xpApproved && form.xpApproved.length) {
+        xpInfo = form.xpApproved.map(x => {
+          const username = x.user ? (typeof x.user === 'object' ? x.user.username : x.user) : 'User';
+          return `${username}: ${x.xp || 0} XP`;
+        }).join(', ');
+      }
+
+      return `
+        <div class="p-4 rounded border ${statusColorClass} shadow">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="text-lg font-bold">${trainingEvent}</h3>
+            <span class="text-sm font-medium px-2 py-1 rounded ${status === 'HOLD' ? 'bg-red-100 text-red-800' : 'bg-gray-100'}">
+              ${status}
+            </span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-3">
+            <div>
+              <p><strong>Date:</strong> ${new Date(form.startTime || null).toLocaleDateString()}</p>
+              <p><strong>Time:</strong> ${new Date(form.startTime || null).toLocaleTimeString()} - ${new Date(form.endTime || null).toLocaleTimeString()}</p>
+              <p><strong>Grade:</strong> ${form.overallGrade || 'N/A'}</p>
+              <p><strong>Outcome:</strong> ${form.outcome || 'N/A'}</p>
+            </div>
+            <div>
+              <p><strong>Trainees:</strong> ${traineesDisplay}</p>
+              <p><strong>SNCO XP:</strong> ${form.sncoXPRecommendation || 'N/A'}</p>
+              <p><strong>SNCO Remarks:</strong> ${form.sncoRemarks || 'None'}</p>
+              <p><strong>XP Assigned:</strong> ${xpInfo}</p>
+            </div>
+          </div>
+
+          ${status === 'HOLD' ? `
+            <div class="bg-red-50 p-3 rounded mb-3">
+              <p class="text-red-700"><strong>Hold Reason:</strong> ${form.holdReason || 'None provided'}</p>
+            </div>
+            <form class="hold-form" data-id="${formId}">
+              <input type="hidden" name="action" value="lift">
+              <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                Lift HOLD
+              </button>
+            </form>
+          ` : `
+            <form class="hold-form" data-id="${formId}">
+              <input type="hidden" name="action" value="hold">
+              <div class="flex flex-col md:flex-row gap-2">
+                <input type="text" name="reason" required placeholder="Reason for HOLD..." 
+                       class="flex-grow border rounded px-3 py-2">
+                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap">
+                  Place on HOLD
+                </button>
+              </div>
+            </form>
+          `}
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+// Function to handle HOLD form submissions
+async function handleHoldFormSubmit(event) {
+  event.preventDefault();
+  const form = event.target;
+  const formId = form.dataset.id;
+  const action = form.elements.action.value;
+  
+  try {
+    const formData = {};
+    if (action === 'hold') {
+      formData.reason = form.elements.reason.value;
+      if (!formData.reason) {
+        alert('Please provide a reason for the hold');
+        return;
+      }
+    }
+    
+    const res = await fetch(`/api/training/${formId}/hold`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Server returned ${res.status}: ${errorText}`);
+    }
+    
+    // Reload the manager view
+    loadForm150FieldOfficerManager();
+    
+    // Show a success message
+    const message = action === 'hold' ? 'Form placed on HOLD successfully' : 'HOLD lifted successfully';
+    alert(message);
+    
+  } catch (err) {
+    console.error('Error updating HOLD status:', err);
+    alert(`Error: ${err.message}`);
+  }
+}
+
 function openForm150FieldOfficerModal() {
   document.getElementById('form150FieldOfficerModal').classList.remove('hidden');
   loadForm150FieldOfficerManager();
@@ -1064,70 +1257,6 @@ function openForm150FieldOfficerModal() {
 
 function closeForm150FieldOfficerModal() {
   document.getElementById('form150FieldOfficerModal').classList.add('hidden');
-}
-
-async function loadForm150FieldOfficerManager() {
-  const container = document.getElementById('form150FieldOfficerContainer');
-  container.innerHTML = '<p class="text-gray-600">Loading...</p>';
-
-  try {
-    const res = await fetch('/api/training/all');
-    const forms = await res.json();
-
-    if (!forms.length) {
-      container.innerHTML = '<p class="text-gray-600 italic">No training forms found.</p>';
-      return;
-    }
-
-    const statusColor = {
-      'Pending SNCO Review': 'border-yellow-500 bg-yellow-50',
-      'Pending Officer Approval': 'border-blue-500 bg-blue-50',
-      'Completed': 'border-green-500 bg-green-50',
-      'HOLD': 'border-red-500 bg-red-50'
-    };
-
-    container.innerHTML = forms.map(form => `
-      <div class="mb-6 p-4 rounded border ${statusColor[form.status] || 'border-gray-300'} shadow">
-        <div class="flex justify-between items-center mb-2">
-          <h3 class="text-lg font-bold">${form.trainingEvent || 'Untitled Training'}</h3>
-          <span class="text-sm font-medium">Status: ${form.status}</span>
-        </div>
-        <p><strong>Start:</strong> ${new Date(form.startTime).toLocaleString()}</p>
-        <p><strong>End:</strong> ${new Date(form.endTime).toLocaleString()}</p>
-        <p><strong>Grade:</strong> ${form.overallGrade || 'N/A'}</p>
-        <p><strong>Outcome:</strong> ${form.outcome || 'N/A'}</p>
-        <p><strong>Trainees:</strong> ${form.trainees?.map(t => t.username).join(', ') || 'None'}</p>
-        <p><strong>SNCO XP:</strong> ${form.sncoXPRecommendation || 'N/A'}</p>
-        <p><strong>SNCO Remarks:</strong> ${form.sncoRemarks || 'None'}</p>
-        <p><strong>Officer XP Assigned:</strong> ${
-          form.xpApproved?.length 
-            ? form.xpApproved.map(x => `${x.user?.username || 'User'}: ${x.xp} XP`).join(', ')
-            : 'Not yet approved'
-        }</p>
-
-        ${form.status === 'HOLD' ? `
-          <form action="/api/training/${form._id}/hold" method="POST" class="mt-3">
-            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-              Lift HOLD
-            </button>
-          </form>
-          <p class="mt-2 text-sm text-red-700"><strong>Reason:</strong> ${form.holdReason || 'None provided'}</p>
-        ` : `
-          <form action="/api/training/${form._id}/hold" method="POST" class="mt-4 space-y-2">
-            <label class="block text-sm">Reason for HOLD</label>
-            <textarea name="reason" required class="w-full border rounded px-3 py-2"></textarea>
-            <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-              Place on HOLD
-            </button>
-          </form>
-        `}
-      </div>
-    `).join('');
-
-  } catch (err) {
-    console.error('Failed to load training forms:', err);
-    container.innerHTML = '<p class="text-red-600">Error loading training forms.</p>';
-  }
 }
     </script>
 </body>

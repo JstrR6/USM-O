@@ -24,6 +24,12 @@ const trainingSchema = new Schema({
     enum: ['Pending SNCO Review', 'Pending Officer Approval', 'Completed', 'HOLD'],
     default: 'Pending SNCO Review'
   },
+  // For HOLD functionality
+  previousStatus: String, // Store the status before being placed on hold
+  holdReason: String,
+  heldBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  xpRevoked: { type: Boolean, default: false },
+  
   ncoSignature: { type: Schema.Types.ObjectId, ref: 'User' },
   sncoSignature: { type: Schema.Types.ObjectId, ref: 'User' },
   officerSignature: { type: Schema.Types.ObjectId, ref: 'User' },

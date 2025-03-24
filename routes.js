@@ -866,13 +866,17 @@ router.get('/:id', async (req, res) => {
     }
   });
 
-  router.get('/api/training/all', isAuthenticated, async (req, res) => {
-    if (!req.user.isFieldOfficer) return res.status(403).json({ error: 'Unauthorized' });
-  
+  // Route to get all training forms without rank check
+router.get('/api/training/all', async (req, res) => {
     try {
+      // No authorization check - accessible to all authenticated users
       const forms = await Training.find({})
         .populate('trainees', 'username')
+        .populate('ncoSignature', 'username')
+        .populate('sncoSignature', 'username')
+        .populate('officerSignature', 'username')
         .populate('xpApproved.user', 'username')
+        .sort('-createdAt')
         .lean();
   
       res.json(forms);
@@ -882,14 +886,18 @@ router.get('/:id', async (req, res) => {
     }
   });
 
-  router.post('/api/training/:id/hold', isAuthenticated, async (req, res) => {
-    if (!req.user.isFieldOfficer) return res.status(403).json({ error: 'Unauthorized' });
-  
+ // HOLD route for training forms without rank check
+router.post('/api/training/:id/hold', async (req, res) => {
     try {
-      const form = await Training.findById(req.params.id).populate('xpApproved.user');
-      if (!form) return res.status(404).json({ error: 'Form not found' });
+      // No authorization check - accessible to all authenticated users
+      const form = await Training.findById(req.params.id)
+        .populate('xpApproved.user', 'username');
+        
+      if (!form) {
+        return res.status(404).json({ error: 'Form not found' });
+      }
   
-      // If already on hold, remove hold
+      // If already on hold, remove hold (toggle behavior)
       if (form.status === 'HOLD') {
         form.status = form.sncoSignature && form.officerSignature ? 'Completed' :
                       form.sncoSignature ? 'Pending Officer Approval' : 'Pending SNCO Review';
@@ -899,26 +907,17 @@ router.get('/:id', async (req, res) => {
         return res.json({ success: true, message: 'Hold lifted.' });
       }
   
-      // If not already held
+      // If not already held, place on hold
       const { reason } = req.body;
+      if (!reason) {
+        return res.status(400).json({ error: 'Reason for hold is required' });
+      }
+      
+      // Store the previous status to restore it when the hold is lifted
+      form.previousStatus = form.status;
       form.status = 'HOLD';
       form.holdReason = reason;
       form.heldBy = req.user._id;
-  
-      // If already approved, revoke XP
-      if (form.status === 'Completed' && !form.xpRevoked) {
-        for (const xpEntry of form.xpApproved) {
-          const user = await User.findById(xpEntry.user._id);
-          user.xp = Math.max(0, user.xp - xpEntry.xp);
-          await user.save();
-        }
-        form.xpRevoked = true;
-      }
-  
-      // Append (HOLD) to event name if not already there
-      if (!form.trainingEvent.endsWith('(HOLD)')) {
-        form.trainingEvent += ' (HOLD)';
-      }
   
       await form.save();
       res.json({ success: true, message: 'Training form placed on HOLD.' });
