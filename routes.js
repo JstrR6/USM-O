@@ -1140,18 +1140,14 @@ router.post('/api/performance/submit', async (req, res) => {
     try {
       const {
         targetUser,
-        division,
+        division, // We'll still accept this, but use it only if valid
         periodStart,
         periodEnd,
-        
-        // Get all the score fields (as direct properties, not nested)
         communication,
         discipline,
         teamwork,
         leadershipPotential,
         technicalSkill,
-        
-        // Get other fields
         remarks,
         strengths,
         weaknesses,
@@ -1166,7 +1162,7 @@ router.post('/api/performance/submit', async (req, res) => {
         return res.status(400).send('Required fields are missing');
       }
       
-      // Calculate weighted score from the grade values
+      // Calculate weighted score
       const weights = {
         communication: 0.2,
         discipline: 0.2,
@@ -1175,14 +1171,12 @@ router.post('/api/performance/submit', async (req, res) => {
         technicalSkill: 0.2
       };
   
-      // Parse the numeric values to ensure they're numbers
       const communicationNum = Number(communication) || 0;
       const disciplineNum = Number(discipline) || 0;
       const teamworkNum = Number(teamwork) || 0;
       const leadershipPotentialNum = Number(leadershipPotential) || 0;
       const technicalSkillNum = Number(technicalSkill) || 0;
   
-      // Calculate weighted score
       const calculatedScore = 
         (communicationNum * weights.communication) +
         (disciplineNum * weights.discipline) +
@@ -1190,22 +1184,46 @@ router.post('/api/performance/submit', async (req, res) => {
         (leadershipPotentialNum * weights.leadershipPotential) +
         (technicalSkillNum * weights.technicalSkill);
   
-      // Create the report object using direct properties, not nested objects
-      const report = new PerformanceReport({
+      // Try to find the user's division if not provided or invalid
+      let divisionId = null;
+      
+      // If division is provided and valid, use it
+      if (division && mongoose.Types.ObjectId.isValid(division)) {
+        divisionId = division;
+      } else {
+        // Look up the user's division
+        const userDivision = await Division.findOne({ 'personnel.user': targetUser });
+        
+        if (userDivision) {
+          divisionId = userDivision._id;
+        } else {
+          // If we need to create a "Divisionless" division (optional)
+          // You can uncomment this if you want to create a special division
+          /*
+          let divisionless = await Division.findOne({ name: 'Divisionless' });
+          if (!divisionless) {
+            divisionless = new Division({
+              name: 'Divisionless',
+              description: 'For personnel without an assigned division'
+            });
+            await divisionless.save();
+          }
+          divisionId = divisionless._id;
+          */
+        }
+      }
+  
+      // Create the report
+      const reportData = {
         targetUser,
-        division,
-        evaluator: req.user._id,  // Set the evaluator to the current user
+        evaluator: req.user._id,
         periodStart,
         periodEnd,
-        
-        // Store scores directly
         communication: communicationNum,
         discipline: disciplineNum,
         teamwork: teamworkNum,
         leadershipPotential: leadershipPotentialNum,
         technicalSkill: technicalSkillNum,
-        
-        // Store other fields
         remarks,
         strengths,
         weaknesses,
@@ -1213,22 +1231,22 @@ router.post('/api/performance/submit', async (req, res) => {
         promotionRecommended: !!promotionRecommended,
         additionalTraining: !!additionalTraining,
         disciplinaryWatch: !!disciplinaryWatch,
-        
-        // Store the calculated score
-        calculatedScore: calculatedScore,
-        
-        // Set status to Submitted
+        calculatedScore,
         status: 'Submitted',
-        
-        // Set creation date
         createdAt: new Date()
-      });
+      };
+      
+      // Only add division if we found a valid one
+      if (divisionId) {
+        reportData.division = divisionId;
+      }
   
+      const report = new PerformanceReport(reportData);
       await report.save();
       res.redirect('/forms');
     } catch (err) {
       console.error('Error submitting performance report:', err);
-      res.status(500).send('Failed to submit performance report.');
+      res.status(500).send('Failed to submit performance report: ' + err.message);
     }
   });
   

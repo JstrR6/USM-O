@@ -554,9 +554,12 @@
           <div>
             <label class="block text-sm font-medium">Division</label>
             <select name="division" class="w-full border border-gray-300 rounded px-3 py-2">
-              <option value="">--Select Division--</option>
-              <!-- Divisions will be populated from server data -->
+              <option value="">-- Auto-detect Division --</option>
+              <% divisions.forEach(function(d) { %>
+                <option value="<%= d._id %>"><%= d.name %></option>
+              <% }) %>
             </select>
+            <p class="text-xs text-gray-500 mt-1">If left empty, the system will attempt to use the member's current division</p>
           </div>
           <div>
             <label class="block text-sm font-medium">Evaluation Start Date</label>
