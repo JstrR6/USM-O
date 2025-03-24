@@ -1421,7 +1421,420 @@ router.post('/api/performance/submit', async (req, res) => {
     }
   });
 
-
+// Update a performance report (Officer review)
+router.post('/api/performance/:id/officer-update', async (req, res) => {
+    try {
+      const { flag, officerComments } = req.body;
+      
+      const report = await PerformanceReport.findById(req.params.id);
+      if (!report) {
+        return res.status(404).json({ error: 'Report not found' });
+      }
+      
+      // Update fields
+      if (flag !== undefined) {
+        report.flag = flag === 'none' ? null : flag;
+      }
+      
+      if (officerComments !== undefined) {
+        report.officerComments = officerComments;
+      }
+      
+      // Add officer review info
+      report.officerReviewer = req.user._id;
+      report.officerReviewDate = new Date();
+      
+      // If flagged as red, update status
+      if (flag === 'red') {
+        report.status = 'Flagged';
+      }
+      
+      await report.save();
+      
+      res.json({ 
+        success: true, 
+        message: 'Performance report updated successfully' 
+      });
+    } catch (err) {
+      console.error('Error updating performance report by officer:', err);
+      res.status(500).json({ error: 'Failed to update report' });
+    }
+  });
+  
+  // Finalize a report
+  router.post('/api/performance/:id/finalize', async (req, res) => {
+    try {
+      const report = await PerformanceReport.findById(req.params.id);
+      if (!report) {
+        return res.status(404).json({ error: 'Report not found' });
+      }
+      
+      // Check if the report has been reviewed by an SNCO
+      if (!report.sncoReviewer && !report.sncoSignature) {
+        return res.status(400).json({ 
+          error: 'Report must be reviewed by an SNCO before finalization' 
+        });
+      }
+      
+      // Update report status
+      report.status = 'Finalized';
+      report.officerSignature = req.user._id;
+      report.finalizedDate = new Date();
+      
+      await report.save();
+      
+      res.json({ 
+        success: true, 
+        message: 'Report finalized successfully' 
+      });
+    } catch (err) {
+      console.error('Error finalizing report:', err);
+      res.status(500).json({ error: 'Failed to finalize report' });
+    }
+  });
+  
+  // Award XP based on performance report
+  router.post('/api/performance/:id/award-xp', async (req, res) => {
+    try {
+      const { xp, reason } = req.body;
+      
+      if (isNaN(parseInt(xp))) {
+        return res.status(400).json({ error: 'XP must be a valid number' });
+      }
+      
+      const report = await PerformanceReport.findById(req.params.id)
+        .populate('targetUser');
+      
+      if (!report) {
+        return res.status(404).json({ error: 'Report not found' });
+      }
+      
+      // Get the target user
+      const targetUser = await User.findById(report.targetUser._id || report.targetUser);
+      if (!targetUser) {
+        return res.status(404).json({ error: 'Target user not found' });
+      }
+      
+      // Award the XP
+      targetUser.xp = (targetUser.xp || 0) + parseInt(xp);
+      await targetUser.save();
+      
+      // Update the report with XP award information
+      if (!report.xpAwards) {
+        report.xpAwards = [];
+      }
+      
+      report.xpAwards.push({
+        xp: parseInt(xp),
+        awardedBy: req.user._id,
+        date: new Date(),
+        reason: reason || 'Performance report XP award'
+      });
+      
+      // Update the report status if not already finalized
+      if (report.status !== 'Finalized') {
+        report.status = 'Reviewed';
+      }
+      
+      await report.save();
+      
+      res.json({ 
+        success: true, 
+        message: `${xp} XP awarded to ${targetUser.username}` 
+      });
+    } catch (err) {
+      console.error('Error awarding XP:', err);
+      res.status(500).json({ error: 'Failed to award XP' });
+    }
+  });
+  
+  // Get all performance reports for officer dashboard with detailed filtering
+  router.get('/api/performance/officer/dashboard', async (req, res) => {
+    try {
+      const { status, flag, dateFrom, dateTo, search } = req.query;
+      
+      // Build the query
+      const query = {};
+      
+      // Add status filter
+      if (status && status !== 'all') {
+        if (status === 'priority') {
+          query.flag = { $in: ['red', 'yellow'] };
+        } else if (['red', 'yellow', 'green', 'blue'].includes(status)) {
+          query.flag = status;
+        } else {
+          query.status = status;
+        }
+      }
+      
+      // Add date range filter
+      if (dateFrom || dateTo) {
+        query.createdAt = {};
+        if (dateFrom) {
+          query.createdAt.$gte = new Date(dateFrom);
+        }
+        if (dateTo) {
+          const toDate = new Date(dateTo);
+          toDate.setHours(23, 59, 59, 999);
+          query.createdAt.$lte = toDate;
+        }
+      }
+      
+      // Get the reports with populated fields
+      const reports = await PerformanceReport.find(query)
+        .populate('targetUser', 'username')
+        .populate('evaluator', 'username')
+        .populate('division', 'name')
+        .populate('sncoReviewer', 'username')
+        .populate('officerSignature', 'username')
+        .sort('-createdAt');
+      
+      // Apply search filter in memory if needed
+      let filteredReports = reports;
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filteredReports = reports.filter(report => {
+          // Search in member name
+          const memberName = report.targetUser ? 
+            (typeof report.targetUser === 'object' ? report.targetUser.username.toLowerCase() : '') : '';
+          
+          // Search in evaluator name
+          const evaluatorName = report.evaluator ? 
+            (typeof report.evaluator === 'object' ? report.evaluator.username.toLowerCase() : '') : '';
+          
+          // Search in division name
+          const divisionName = report.division ? 
+            (typeof report.division === 'object' ? report.division.name.toLowerCase() : '') : '';
+          
+          return memberName.includes(searchLower) || 
+                 evaluatorName.includes(searchLower) || 
+                 divisionName.includes(searchLower);
+        });
+      }
+      
+      res.json({ 
+        success: true, 
+        reports: filteredReports,
+        totalCount: reports.length,
+        filteredCount: filteredReports.length
+      });
+    } catch (err) {
+      console.error('Error fetching officer dashboard data:', err);
+      res.status(500).json({ error: 'Failed to fetch dashboard data' });
+    }
+  });
+    
+    // Generate a PDF report
+    router.get('/api/performance/:id/pdf', async (req, res) => {
+        try {
+          const report = await PerformanceReport.findById(req.params.id)
+            .populate('targetUser', 'username highestRole')
+            .populate('evaluator', 'username highestRole')
+            .populate('division', 'name')
+            .populate('sncoReviewer', 'username highestRole')
+            .populate('officerSignature', 'username highestRole');
+          
+          if (!report) {
+            return res.status(404).json({ error: 'Report not found' });
+          }
+          
+          // In a real implementation, you would generate a PDF here using a library like PDFKit
+          // For now, we'll just return the data as JSON
+          res.json({ 
+            success: true, 
+            report,
+            message: 'PDF generation would happen here in a production environment' 
+          });
+          
+          /* Example PDF generation code (commented out)
+          const PDFDocument = require('pdfkit');
+          const doc = new PDFDocument();
+          
+          // Set the response headers
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=performance-report-${report._id}.pdf`);
+          
+          // Pipe the PDF to the response
+          doc.pipe(res);
+          
+          // Add content to the PDF
+          doc.fontSize(25).text('Performance Report', { align: 'center' });
+          doc.moveDown();
+          doc.fontSize(14).text(`Member: ${report.targetUser.username}`);
+          doc.text(`Evaluator: ${report.evaluator.username}`);
+          doc.text(`Period: ${new Date(report.periodStart).toLocaleDateString()} to ${new Date(report.periodEnd).toLocaleDateString()}`);
+          doc.moveDown();
+          
+          // Add more content as needed...
+          
+          // Finalize the PDF and end the response
+          doc.end();
+          */
+        } catch (err) {
+          console.error('Error generating PDF:', err);
+          res.status(500).json({ error: 'Failed to generate PDF' });
+        }
+      });
+    
+    // Get performance statistics for leadership dashboard
+    router.get('/api/performance/stats', async (req, res) => {
+        try {
+          // Get counts by status
+          const statusCounts = await PerformanceReport.aggregate([
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+          ]);
+          
+          // Get counts by flag
+          const flagCounts = await PerformanceReport.aggregate([
+            { $group: { _id: '$flag', count: { $sum: 1 } } }
+          ]);
+          
+          // Get monthly counts for the last 6 months
+          const sixMonthsAgo = new Date();
+          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+          
+          const monthlyData = await PerformanceReport.aggregate([
+            { 
+              $match: { 
+                createdAt: { $gte: sixMonthsAgo } 
+              } 
+            },
+            {
+              $group: {
+                _id: { 
+                  year: { $year: '$createdAt' },
+                  month: { $month: '$createdAt' }
+                },
+                count: { $sum: 1 },
+                avgScore: { $avg: '$calculatedScore' }
+              }
+            },
+            { $sort: { '_id.year': 1, '_id.month': 1 } }
+          ]);
+          
+          // Calculate the average score of all reports
+          const averageScore = await PerformanceReport.aggregate([
+            {
+              $group: {
+                _id: null,
+                average: { $avg: '$calculatedScore' }
+              }
+            }
+          ]);
+          
+          // Format the status counts into a more user-friendly format
+          const statusStats = statusCounts.reduce((acc, curr) => {
+            acc[curr._id || 'Unknown'] = curr.count;
+            return acc;
+          }, {});
+          
+          // Format the flag counts
+          const flagStats = flagCounts.reduce((acc, curr) => {
+            acc[curr._id || 'None'] = curr.count;
+            return acc;
+          }, {});
+          
+          // Format the monthly data
+          const formattedMonthlyData = monthlyData.map(item => {
+            const monthNames = [
+              'January', 'February', 'March', 'April', 'May', 'June',
+              'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            
+            return {
+              month: monthNames[item._id.month - 1],
+              year: item._id.year,
+              label: `${monthNames[item._id.month - 1]} ${item._id.year}`,
+              count: item.count,
+              averageScore: item.avgScore ? item.avgScore.toFixed(2) : 'N/A'
+            };
+          });
+          
+          res.json({
+            success: true,
+            stats: {
+              total: await PerformanceReport.countDocuments(),
+              statusCounts: statusStats,
+              flagCounts: flagStats,
+              averageScore: averageScore.length > 0 ? averageScore[0].average.toFixed(2) : 'N/A',
+              monthlyData: formattedMonthlyData
+            }
+          });
+        } catch (err) {
+          console.error('Error generating statistics:', err);
+          res.status(500).json({ error: 'Failed to generate statistics' });
+        }
+      });
+    
+    // Get performance reports for a specific user
+    router.get('/api/performance/user/:userId', async (req, res) => {
+        try {
+          const reports = await PerformanceReport.find({ targetUser: req.params.userId })
+            .populate('evaluator', 'username')
+            .populate('division', 'name')
+            .sort('-createdAt');
+          
+          res.json({ reports });
+        } catch (err) {
+          console.error('Error fetching user performance reports:', err);
+          res.status(500).json({ error: 'Failed to fetch reports' });
+        }
+      });
+    
+    // Get recent activity for officer dashboard
+    router.get('/api/performance/recent-activity', async (req, res) => {
+        try {
+          // Get the 10 most recent reports
+          const recentReports = await PerformanceReport.find({})
+            .populate('targetUser', 'username')
+            .populate('evaluator', 'username')
+            .populate('sncoReviewer', 'username')
+            .populate('officerSignature', 'username')
+            .sort('-createdAt')
+            .limit(10);
+          
+          // Format the activity feed
+          const activityFeed = recentReports.map(report => {
+            const memberName = report.targetUser ? 
+              (typeof report.targetUser === 'object' ? report.targetUser.username : 'Unknown') : 'Unknown';
+            
+            let activityType = 'created';
+            let actorName = report.evaluator ? 
+              (typeof report.evaluator === 'object' ? report.evaluator.username : 'Unknown') : 'Unknown';
+            let date = report.createdAt;
+            
+            if (report.status === 'Finalized') {
+              activityType = 'finalized';
+              actorName = report.officerSignature ? 
+                (typeof report.officerSignature === 'object' ? report.officerSignature.username : 'Unknown') : 'Unknown';
+              date = report.finalizedDate || report.updatedAt || report.createdAt;
+            } else if (report.sncoReviewer) {
+              activityType = 'reviewed';
+              actorName = typeof report.sncoReviewer === 'object' ? report.sncoReviewer.username : 'Unknown';
+              date = report.sncoReviewDate || report.updatedAt || report.createdAt;
+            }
+            
+            return {
+              reportId: report._id,
+              date,
+              memberName,
+              actorName,
+              activityType,
+              status: report.status,
+              flag: report.flag
+            };
+          });
+          
+          res.json({ 
+            success: true, 
+            activityFeed 
+          });
+        } catch (err) {
+          console.error('Error fetching recent activity:', err);
+          res.status(500).json({ error: 'Failed to fetch activity' });
+        }
+      });
+    
 
 
 
