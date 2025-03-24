@@ -866,6 +866,68 @@ router.get('/:id', async (req, res) => {
     }
   });
 
+  router.get('/api/training/all', isAuthenticated, async (req, res) => {
+    if (!req.user.isFieldOfficer) return res.status(403).json({ error: 'Unauthorized' });
+  
+    try {
+      const forms = await Training.find({})
+        .populate('trainees', 'username')
+        .populate('xpApproved.user', 'username')
+        .lean();
+  
+      res.json(forms);
+    } catch (err) {
+      console.error('Error fetching all training forms:', err);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  router.post('/api/training/:id/hold', isAuthenticated, async (req, res) => {
+    if (!req.user.isFieldOfficer) return res.status(403).json({ error: 'Unauthorized' });
+  
+    try {
+      const form = await Training.findById(req.params.id).populate('xpApproved.user');
+      if (!form) return res.status(404).json({ error: 'Form not found' });
+  
+      // If already on hold, remove hold
+      if (form.status === 'HOLD') {
+        form.status = form.sncoSignature && form.officerSignature ? 'Completed' :
+                      form.sncoSignature ? 'Pending Officer Approval' : 'Pending SNCO Review';
+        form.holdReason = null;
+        form.heldBy = null;
+        await form.save();
+        return res.json({ success: true, message: 'Hold lifted.' });
+      }
+  
+      // If not already held
+      const { reason } = req.body;
+      form.status = 'HOLD';
+      form.holdReason = reason;
+      form.heldBy = req.user._id;
+  
+      // If already approved, revoke XP
+      if (form.status === 'Completed' && !form.xpRevoked) {
+        for (const xpEntry of form.xpApproved) {
+          const user = await User.findById(xpEntry.user._id);
+          user.xp = Math.max(0, user.xp - xpEntry.xp);
+          await user.save();
+        }
+        form.xpRevoked = true;
+      }
+  
+      // Append (HOLD) to event name if not already there
+      if (!form.trainingEvent.endsWith('(HOLD)')) {
+        form.trainingEvent += ' (HOLD)';
+      }
+  
+      await form.save();
+      res.json({ success: true, message: 'Training form placed on HOLD.' });
+    } catch (err) {
+      console.error('Error placing form on hold:', err);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
 // Get all users
 router.get('/api/users', isAuthenticated, async (req, res) => {
     try {

@@ -178,6 +178,11 @@
                           <h3 class="text-lg font-semibold text-gray-800 mb-1">Review Form 122 – Division Removal</h3>
                           <p class="text-sm text-gray-600">Review and approve or block submitted division removal forms.</p>
                         </div>
+
+                        <div class="bg-white rounded-lg shadow p-6 cursor-pointer hover:shadow-md" onclick="openForm150FieldOfficerModal()">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-1">Form 150 – Field Officer Training Manager</h3>
+                            <p class="text-sm text-gray-600">Review all training forms and manage HOLD status.</p>
+                          </div>
                       <% } %>
 
                     <% if (folder.name === 'Headquarters') { %>
@@ -506,7 +511,27 @@
         </div>
       </div>
 
+      <!-- Field Officer Training Management Modal -->
+<div id="form150FieldOfficerModal" class="modal hidden overflow-auto py-6">
+    <div class="bg-white rounded-lg shadow-lg w-full max-w-6xl p-6 relative">
+      <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="closeForm150FieldOfficerModal()">&times;</button>
+      <h2 class="text-2xl font-bold mb-6">Training Management – Field Officers</h2>
+      <div id="form150FieldOfficerContainer">
+        <p class="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  </div>
+
       <script>
+
+        const statusColorMap = {
+        'Pending SNCO Review': 'border-yellow-400 bg-yellow-50',
+        'Pending Officer Approval': 'border-blue-400 bg-blue-50',
+        'Completed': 'border-green-400 bg-green-50',
+        'HOLD': 'border-red-500 bg-red-50'
+        };
+
+
         function toggleFolder(folderName) {
             const allContent = document.querySelectorAll('.folder-content');
             allContent.forEach(el => el.classList.add('hidden'));
@@ -1029,6 +1054,79 @@ async function loadForm150OfficerQueue() {
   } catch (err) {
     console.error('Failed to load officer training forms:', err);
     container.innerHTML = '<p class="text-red-600">Error loading forms: ' + err.message + '</p>';
+  }
+}
+
+function openForm150FieldOfficerModal() {
+  document.getElementById('form150FieldOfficerModal').classList.remove('hidden');
+  loadForm150FieldOfficerManager();
+}
+
+function closeForm150FieldOfficerModal() {
+  document.getElementById('form150FieldOfficerModal').classList.add('hidden');
+}
+
+async function loadForm150FieldOfficerManager() {
+  const container = document.getElementById('form150FieldOfficerContainer');
+  container.innerHTML = '<p class="text-gray-600">Loading...</p>';
+
+  try {
+    const res = await fetch('/api/training/all');
+    const forms = await res.json();
+
+    if (!forms.length) {
+      container.innerHTML = '<p class="text-gray-600 italic">No training forms found.</p>';
+      return;
+    }
+
+    const statusColor = {
+      'Pending SNCO Review': 'border-yellow-500 bg-yellow-50',
+      'Pending Officer Approval': 'border-blue-500 bg-blue-50',
+      'Completed': 'border-green-500 bg-green-50',
+      'HOLD': 'border-red-500 bg-red-50'
+    };
+
+    container.innerHTML = forms.map(form => `
+      <div class="mb-6 p-4 rounded border ${statusColor[form.status] || 'border-gray-300'} shadow">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="text-lg font-bold">${form.trainingEvent || 'Untitled Training'}</h3>
+          <span class="text-sm font-medium">Status: ${form.status}</span>
+        </div>
+        <p><strong>Start:</strong> ${new Date(form.startTime).toLocaleString()}</p>
+        <p><strong>End:</strong> ${new Date(form.endTime).toLocaleString()}</p>
+        <p><strong>Grade:</strong> ${form.overallGrade || 'N/A'}</p>
+        <p><strong>Outcome:</strong> ${form.outcome || 'N/A'}</p>
+        <p><strong>Trainees:</strong> ${form.trainees?.map(t => t.username).join(', ') || 'None'}</p>
+        <p><strong>SNCO XP:</strong> ${form.sncoXPRecommendation || 'N/A'}</p>
+        <p><strong>SNCO Remarks:</strong> ${form.sncoRemarks || 'None'}</p>
+        <p><strong>Officer XP Assigned:</strong> ${
+          form.xpApproved?.length 
+            ? form.xpApproved.map(x => `${x.user?.username || 'User'}: ${x.xp} XP`).join(', ')
+            : 'Not yet approved'
+        }</p>
+
+        ${form.status === 'HOLD' ? `
+          <form action="/api/training/${form._id}/hold" method="POST" class="mt-3">
+            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+              Lift HOLD
+            </button>
+          </form>
+          <p class="mt-2 text-sm text-red-700"><strong>Reason:</strong> ${form.holdReason || 'None provided'}</p>
+        ` : `
+          <form action="/api/training/${form._id}/hold" method="POST" class="mt-4 space-y-2">
+            <label class="block text-sm">Reason for HOLD</label>
+            <textarea name="reason" required class="w-full border rounded px-3 py-2"></textarea>
+            <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+              Place on HOLD
+            </button>
+          </form>
+        `}
+      </div>
+    `).join('');
+
+  } catch (err) {
+    console.error('Failed to load training forms:', err);
+    container.innerHTML = '<p class="text-red-600">Error loading training forms.</p>';
   }
 }
     </script>

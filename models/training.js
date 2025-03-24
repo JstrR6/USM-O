@@ -21,7 +21,7 @@ const trainingSchema = new Schema({
   }],
   status: {
     type: String,
-    enum: ['Pending SNCO Review', 'Pending Officer Approval', 'Completed'],
+    enum: ['Pending SNCO Review', 'Pending Officer Approval', 'Completed', HOLD],
     default: 'Pending SNCO Review'
   },
   ncoSignature: { type: Schema.Types.ObjectId, ref: 'User' },
