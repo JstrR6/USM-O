@@ -1,11 +1,18 @@
-// Updated PerformanceReport schema with flat structure
+// Updated PerformanceReport schema with optional division field
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const performanceReportSchema = new Schema({
   targetUser: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   evaluator: { type: Schema.Types.ObjectId, ref: 'User' },
-  division: { type: Schema.Types.ObjectId, ref: 'Division' },
+  
+  // Make division field properly optional
+  division: { 
+    type: Schema.Types.ObjectId, 
+    ref: 'Division',
+    required: false,   // Explicitly mark as not required
+    default: null      // Set a default value of null
+  },
 
   // Evaluation Period
   periodStart: { type: Date, required: true },
