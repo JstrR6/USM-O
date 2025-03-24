@@ -524,14 +524,6 @@
 
       <script>
 
-        const statusColorMap = {
-        'Pending SNCO Review': 'border-yellow-400 bg-yellow-50',
-        'Pending Officer Approval': 'border-blue-400 bg-blue-50',
-        'Completed': 'border-green-400 bg-green-50',
-        'HOLD': 'border-red-500 bg-red-50'
-        };
-
-
         function toggleFolder(folderName) {
             const allContent = document.querySelectorAll('.folder-content');
             allContent.forEach(el => el.classList.add('hidden'));
@@ -1060,6 +1052,14 @@ async function loadForm150OfficerQueue() {
 async function loadForm150FieldOfficerManager() {
   const container = document.getElementById('form150FieldOfficerContainer');
   container.innerHTML = '<p class="text-gray-600">Loading...</p>';
+
+  // Define the statusColor mapping that was missing
+  const statusColor = {
+    'Pending SNCO Review': 'border-yellow-500 bg-yellow-50',
+    'Pending Officer Approval': 'border-blue-500 bg-blue-50',
+    'Completed': 'border-green-500 bg-green-50',
+    'HOLD': 'border-red-500 bg-red-50'
+  };
 
   try {
     const res = await fetch('/api/training/all');
