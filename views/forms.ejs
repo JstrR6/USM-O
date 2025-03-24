@@ -712,35 +712,31 @@
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div class="bg-white p-4 rounded border">
-            <h4 class="font-bold mb-2">Evaluation Scores</h4>
-            <div class="space-y-2">
-              <div class="flex justify-between">
-                <span>Duty Performance:</span>
-                <span id="detail-duty"></span>
+            <div class="bg-white p-4 rounded border">
+                <h4 class="font-bold mb-2">Evaluation Scores</h4>
+                <div class="space-y-2">
+                  <div class="flex justify-between">
+                    <span>Communication:</span>
+                    <span id="detail-communication">N/A</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Discipline:</span>
+                    <span id="detail-discipline">N/A</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Teamwork:</span>
+                    <span id="detail-teamwork">N/A</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Leadership Potential:</span>
+                    <span id="detail-leadership">N/A</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Technical Skill:</span>
+                    <span id="detail-technical">N/A</span>
+                  </div>
+                </div>
               </div>
-              <div class="flex justify-between">
-                <span>Discipline:</span>
-                <span id="detail-discipline"></span>
-              </div>
-              <div class="flex justify-between">
-                <span>Communication:</span>
-                <span id="detail-communication"></span>
-              </div>
-              <div class="flex justify-between">
-                <span>Initiative:</span>
-                <span id="detail-initiative"></span>
-              </div>
-              <div class="flex justify-between">
-                <span>Mission Contribution:</span>
-                <span id="detail-mission"></span>
-              </div>
-              <div class="flex justify-between">
-                <span>Professionalism:</span>
-                <span id="detail-professionalism"></span>
-              </div>
-            </div>
-          </div>
           
           <div class="bg-white p-4 rounded border">
             <h4 class="font-bold mb-2">Recommendations</h4>
@@ -1864,11 +1860,12 @@ async function viewReportDetails(reportId) {
         evaluatorText = report.evaluator.username;
       } else {
         // Try to find the username from allUsers if we have the ID
-        const evaluatorUser = allUsers.find(u => u._id === report.evaluator.toString());
+        const evaluatorId = typeof report.evaluator === 'object' ? report.evaluator._id : report.evaluator;
+        const evaluatorUser = allUsers.find(u => u._id === evaluatorId);
         if (evaluatorUser) {
           evaluatorText = evaluatorUser.username;
         } else {
-          evaluatorText = `ID: ${report.evaluator}`;
+          evaluatorText = `ID: ${evaluatorId}`;
         }
       }
     }
@@ -1912,63 +1909,47 @@ async function viewReportDetails(reportId) {
     document.getElementById('detail-flag').textContent = report.flag ? capitalize(report.flag) : 'None';
     document.getElementById('detail-date').textContent = new Date(report.createdAt || new Date()).toLocaleDateString();
     
-    // Display evaluation scores - treating all as direct properties
-    document.getElementById('detail-communication').textContent = report.communication || 'N/A';
-    document.getElementById('detail-discipline').textContent = report.discipline || 'N/A';
-    document.getElementById('detail-duty').textContent = report.dutyPerformance || 'N/A';
-    document.getElementById('detail-initiative').textContent = report.initiative || 'N/A';
-    document.getElementById('detail-mission').textContent = report.missionContribution || 'N/A';
-    document.getElementById('detail-professionalism').textContent = report.professionalism || 'N/A';
-    
-    // If scores are missing the section in the detail card might need to be updated
-    const scoreCards = document.querySelectorAll('#detail-communication, #detail-discipline, #detail-teamwork, #detail-leadership, #detail-technical');
-    if (scoreCards.length > 0) {
-      // Show what scores we actually have available
-      document.getElementById('detail-communication').parentElement.textContent = 
-        `Communication: ${report.communication || 'N/A'}`;
-      document.getElementById('detail-discipline').parentElement.textContent = 
-        `Discipline: ${report.discipline || 'N/A'}`;
-      
-      // Add teamwork if it exists
-      if (document.getElementById('detail-teamwork')) {
-        document.getElementById('detail-teamwork').textContent = report.teamwork || 'N/A';
-      } else if (report.teamwork) {
-        const teamworkDiv = document.createElement('div');
-        teamworkDiv.className = 'flex justify-between';
-        teamworkDiv.innerHTML = `<span>Teamwork:</span><span id="detail-teamwork">${report.teamwork}</span>`;
-        scoreCards[0].parentElement.appendChild(teamworkDiv);
-      }
-      
-      // Add leadership if it exists
-      if (document.getElementById('detail-leadership')) {
-        document.getElementById('detail-leadership').textContent = report.leadershipPotential || 'N/A';
-      } else if (report.leadershipPotential) {
-        const leadershipDiv = document.createElement('div');
-        leadershipDiv.className = 'flex justify-between';
-        leadershipDiv.innerHTML = `<span>Leadership:</span><span id="detail-leadership">${report.leadershipPotential}</span>`;
-        scoreCards[0].parentElement.appendChild(leadershipDiv);
-      }
-      
-      // Add technical if it exists
-      if (document.getElementById('detail-technical')) {
-        document.getElementById('detail-technical').textContent = report.technicalSkill || 'N/A';
-      } else if (report.technicalSkill) {
-        const technicalDiv = document.createElement('div');
-        technicalDiv.className = 'flex justify-between';
-        technicalDiv.innerHTML = `<span>Technical Skill:</span><span id="detail-technical">${report.technicalSkill}</span>`;
-        scoreCards[0].parentElement.appendChild(technicalDiv);
-      }
+    // Safely update evaluation scores - check if elements exist first
+    if (document.getElementById('detail-communication')) {
+      document.getElementById('detail-communication').textContent = report.communication || 'N/A';
+    }
+    if (document.getElementById('detail-discipline')) {
+      document.getElementById('detail-discipline').textContent = report.discipline || 'N/A';
+    }
+    if (document.getElementById('detail-teamwork')) {
+      const element = document.getElementById('detail-teamwork');
+      if (element) element.textContent = report.teamwork || 'N/A';
+    }
+    if (document.getElementById('detail-leadership')) {
+      const element = document.getElementById('detail-leadership');
+      if (element) element.textContent = report.leadershipPotential || 'N/A';
+    }
+    if (document.getElementById('detail-technical')) {
+      const element = document.getElementById('detail-technical');
+      if (element) element.textContent = report.technicalSkill || 'N/A';
     }
     
     // Handle recommendations
-    document.getElementById('promotion-badge').classList.toggle('hidden', !report.promotionRecommended);
-    document.getElementById('training-badge').classList.toggle('hidden', !report.additionalTraining);
-    document.getElementById('disciplinary-badge').classList.toggle('hidden', !report.disciplinaryWatch);
+    if (document.getElementById('promotion-badge')) {
+      document.getElementById('promotion-badge').classList.toggle('hidden', !report.promotionRecommended);
+    }
+    if (document.getElementById('training-badge')) {
+      document.getElementById('training-badge').classList.toggle('hidden', !report.additionalTraining);
+    }
+    if (document.getElementById('disciplinary-badge')) {
+      document.getElementById('disciplinary-badge').classList.toggle('hidden', !report.disciplinaryWatch);
+    }
     
-    // Text fields
-    document.getElementById('detail-strengths').textContent = report.strengths || 'None specified';
-    document.getElementById('detail-weaknesses').textContent = report.weaknesses || 'None specified';
-    document.getElementById('detail-remarks').textContent = report.remarks || 'None provided';
+    // Text fields - safely update if elements exist
+    if (document.getElementById('detail-strengths')) {
+      document.getElementById('detail-strengths').textContent = report.strengths || 'None specified';
+    }
+    if (document.getElementById('detail-weaknesses')) {
+      document.getElementById('detail-weaknesses').textContent = report.weaknesses || 'None specified';
+    }
+    if (document.getElementById('detail-remarks')) {
+      document.getElementById('detail-remarks').textContent = report.remarks || 'None provided';
+    }
     
     // Update the score bar with the calculated score
     const scoreBar = document.getElementById('score-bar');
@@ -2013,7 +1994,10 @@ async function viewReportDetails(reportId) {
   } catch (error) {
     console.error('Error loading report details:', error);
     document.getElementById('reportDetailTitle').textContent = 'Error Loading Report';
-    document.getElementById('reportDetailView').innerHTML += `<p class="text-red-600">Error: ${error.message}</p>`;
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'text-red-600 p-4';
+    errorDiv.textContent = `Error: ${error.message}`;
+    document.getElementById('reportDetailView').appendChild(errorDiv);
   }
 }
 

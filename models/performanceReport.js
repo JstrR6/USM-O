@@ -1,79 +1,45 @@
-// Updated PerformanceReport schema with optional division field
+// Simplified Performance Report Schema
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const performanceReportSchema = new Schema({
+  // Basic information
   targetUser: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   evaluator: { type: Schema.Types.ObjectId, ref: 'User' },
-  
-  // Make division field properly optional
   division: { 
     type: Schema.Types.ObjectId, 
     ref: 'Division',
-    required: false,   // Explicitly mark as not required
-    default: null      // Set a default value of null
+    required: false  // Make division optional
   },
 
   // Evaluation Period
   periodStart: { type: Date, required: true },
   periodEnd: { type: Date, required: true },
 
-  // Performance Scores - Flat structure (direct properties)
+  // Performance Scores - Only these 5 direct fields
   communication: { type: Number, min: 1, max: 5 },
   discipline: { type: Number, min: 1, max: 5 },
   teamwork: { type: Number, min: 1, max: 5 },
   leadershipPotential: { type: Number, min: 1, max: 5 },
   technicalSkill: { type: Number, min: 1, max: 5 },
   
-  // Legacy or alternative structure fields (can be nested)
-  dutyPerformance: {
-    grade: { type: Number, min: 1, max: 5 },
-    remarks: String
-  },
-  initiative: {
-    grade: { type: Number, min: 1, max: 5 },
-    remarks: String
-  },
-  missionContribution: {
-    grade: { type: Number, min: 1, max: 5 },
-    remarks: String
-  },
-  professionalism: {
-    grade: { type: Number, min: 1, max: 5 },
-    remarks: String
-  },
+  // Calculated Score
+  calculatedScore: Number,
 
-  // Incident Log
-  incidents: [{
-    title: String,
-    date: Date,
-    description: String,
-    type: { type: String, enum: ['Noteworthy', 'Needs Attention'] }
-  }],
-
-  // Summary
+  // Summary fields
   strengths: String,
   weaknesses: String,
   remarks: String,
 
-  // Recommendations - Flat structure
+  // Recommendations
   promotionRecommended: { type: Boolean, default: false },
   additionalTraining: { type: Boolean, default: false },
   disciplinaryWatch: { type: Boolean, default: false },
-
+  
   // XP Recommendation
   recommendedXP: { type: Number, default: 0 },
 
-  // Calculated Score
-  calculatedScore: Number,
-  
-  // Overall Grade
-  overallGrade: {
-    type: String,
-    enum: ['Excellent', 'Satisfactory', 'Needs Improvement', 'Unsatisfactory']
-  },
-
-  // SNCO Flag and Review
+  // SNCO Review fields
   flag: {
     type: String,
     enum: ['red', 'yellow', 'blue', 'green', null],
@@ -83,7 +49,7 @@ const performanceReportSchema = new Schema({
   sncoReviewer: { type: Schema.Types.ObjectId, ref: 'User' },
   sncoReviewDate: Date,
 
-  // Comments from various users
+  // Comments
   comments: [{
     user: { type: Schema.Types.ObjectId, ref: 'User' },
     text: { type: String, required: true },
