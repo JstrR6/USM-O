@@ -4058,6 +4058,23 @@ function hideAllDetailViews() {
 }
 
 // Show Performance Report Detail
+function getScoreColorClass(score) {
+  const scorePercentage = (score / 5.0) * 100;
+  if (scorePercentage >= 90) return 'text-green-600';
+  if (scorePercentage >= 70) return 'text-blue-600';
+  if (scorePercentage >= 60) return 'text-yellow-600';
+  return 'text-red-600';
+}
+
+function getScoreBarColor(score) {
+  const scorePercentage = (score / 5.0) * 100;
+  if (scorePercentage >= 90) return 'bg-green-500';
+  if (scorePercentage >= 70) return 'bg-blue-500';
+  if (scorePercentage >= 60) return 'bg-yellow-500';
+  return 'bg-red-500';
+}
+
+// Show Performance Report Detail
 function showPerformanceReportDetail(index) {
   if (!window.deepSearchData || !window.deepSearchData.performanceReports[index]) {
     console.error('Performance report data not found');
@@ -4127,7 +4144,7 @@ function showPerformanceReportDetail(index) {
     : 0;
   
   // Populate detail content
-  document.getElementById('performanceReportDetailContent').innerHTML = `
+  let html = `
     <div class="mb-6 pb-6 border-b border-gray-200">
       <div class="flex items-center justify-between">
         <h3 class="text-xl font-bold text-gray-800">Performance Review</h3>
@@ -4276,12 +4293,29 @@ function showPerformanceReportDetail(index) {
         <h4 class="font-medium text-indigo-700 mb-2">Officer Comments</h4>
         <p class="text-indigo-600">${report.officerComments}</p>
         ${report.officerReviewer ? `<p class="text-sm text-indigo-500 mt-2">Reviewed by: ${typeof report.officerReviewer === 'object' ? report.officerReviewer.username : 'ID: ' + report.officerReviewer}</p>` : ''}
-        ${report.officerReviewDate ? `<p class="text-sm text-indigo-500">Dateasync function openPromotionRequests() {
-  document.getElementById('promotionModal').classList.remove('hidden');
-  document.getElementById('promotionModal').style.opacity = '1';
-  closeRequestDetailView();
-  closeDeepSearchPanel();
-  await loadPendingPromotionRequests();
+        ${report.officerReviewDate ? `<p class="text-sm text-indigo-500">Date: ${new Date(report.officerReviewDate).toLocaleDateString()}</p>` : ''}
+      </div>
+      ` : ''}
+      
+      ${totalXpAwarded > 0 ? `
+      <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+        <h4 class="font-medium text-green-700 mb-2">XP Awarded: ${totalXpAwarded}</h4>
+        ${report.xpAwards && report.xpAwards.length ? `
+          <div class="space-y-2">
+            ${report.xpAwards.map(award => `
+              <div class="flex justify-between text-sm">
+                <span>${award.reason || 'Performance Review'}</span>
+                <span class="font-medium">+${award.xp} XP</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>
+      ` : ''}
+    </div>
+  `;
+  
+  document.getElementById('performanceReportDetailContent').innerHTML = html;
 }
 
 // Close Performance Report Detail
@@ -4303,10 +4337,10 @@ function showTrainingReportDetail(index) {
   document.getElementById('mainDeepSearchContent').classList.add('hidden');
   document.getElementById('trainingReportDetailView').classList.remove('hidden');
   
-  // Determine outcome badge color
-  const outcomeColor = report.outcome === 'Passed' || report.outcome === 'Completed' 
+  // Determine outcome badge color based on training schema
+  const outcomeColor = report.outcome === 'Satisfactory' 
     ? 'bg-green-100 text-green-800' 
-    : report.outcome === 'Failed' 
+    : report.outcome === 'Training Failed' || report.outcome === 'Remedial Training Advised'
       ? 'bg-red-100 text-red-800' 
       : 'bg-blue-100 text-blue-800';
   
@@ -4316,7 +4350,7 @@ function showTrainingReportDetail(index) {
       <div class="flex items-center justify-between">
         <h3 class="text-xl font-bold text-gray-800">${report.trainingEvent}</h3>
         <div class="px-3 py-1 rounded-full ${outcomeColor} text-sm">
-          ${report.outcome}
+          ${report.outcome || 'Status Unknown'}
         </div>
       </div>
       <p class="text-gray-500 mt-1">
@@ -4325,16 +4359,6 @@ function showTrainingReportDetail(index) {
     </div>
     
     <div class="grid grid-cols-2 gap-4 mb-6">
-      <div class="bg-gray-50 p-4 rounded-lg">
-        <p class="text-sm text-gray-500 mb-1">Instructor</p>
-        <p class="font-medium">${report.instructorId ? report.instructorId.username || 'Unknown' : 'Unknown'}</p>
-      </div>
-      
-      <div class="bg-gray-50 p-4 rounded-lg">
-        <p class="text-sm text-gray-500 mb-1">Location</p>
-        <p class="font-medium">${report.location || 'Not specified'}</p>
-      </div>
-      
       <div class="bg-gray-50 p-4 rounded-lg">
         <p class="text-sm text-gray-500 mb-1">Start Time</p>
         <p class="font-medium">${new Date(report.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
@@ -4346,31 +4370,81 @@ function showTrainingReportDetail(index) {
       </div>
     </div>
     
-    <div class="space-y-4">
-      <div class="bg-gray-50 p-4 rounded-lg">
-        <h4 class="font-medium text-gray-700 mb-2">Description</h4>
-        <p class="text-gray-600">${report.description || 'No description provided.'}</p>
-      </div>
-      
-      <div class="bg-gray-50 p-4 rounded-lg">
-        <h4 class="font-medium text-gray-700 mb-2">Instructor Comments</h4>
-        <p class="text-gray-600">${report.instructorComments || 'No instructor comments provided.'}</p>
-      </div>
-      
-      ${report.certificationAwarded ? `
-      <div class="bg-green-50 p-4 rounded-lg border border-green-200">
-        <div class="flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-          <div>
-            <h4 class="font-medium text-green-800">Certification Awarded</h4>
-            <p class="text-green-700">${report.certificationAwarded}</p>
-          </div>
-        </div>
-      </div>
-      ` : ''}
+    <div class="bg-gray-50 p-4 rounded-lg mb-4">
+      <p class="text-sm text-gray-500 mb-1">Trainees</p>
+      <p class="font-medium">${Array.isArray(report.trainees) ? 
+        (report.trainees.map(t => typeof t === 'object' ? t.username || t : t).join(', ')) : 
+        'Information not available'}</p>
     </div>
+    
+    ${report.overallGrade ? `
+    <div class="bg-gray-50 p-4 rounded-lg mb-4">
+      <p class="text-sm text-gray-500 mb-1">Overall Grade</p>
+      <p class="font-medium">${report.overallGrade}</p>
+    </div>
+    ` : ''}
+    
+    ${report.remedialTrainees && report.remedialTrainees.length ? `
+    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-4">
+      <h4 class="font-medium text-yellow-700 mb-2">Remedial Training Advised</h4>
+      <p class="text-yellow-600">For trainees: ${report.remedialTrainees.map(t => 
+        typeof t === 'object' ? t.username || t : t).join(', ')}</p>
+    </div>
+    ` : ''}
+    
+    ${report.failedTrainees && report.failedTrainees.length ? `
+    <div class="bg-red-50 p-4 rounded-lg border border-red-200 mb-4">
+      <h4 class="font-medium text-red-700 mb-2">Failed Trainees</h4>
+      <p class="text-red-600">${report.failedTrainees.map(t => 
+        typeof t === 'object' ? t.username || t : t).join(', ')}</p>
+    </div>
+    ` : ''}
+    
+    ${report.sncoRemarks || report.sncoReviewer ? `
+    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
+      <h4 class="font-medium text-blue-700 mb-2">SNCO Review</h4>
+      ${report.sncoRemarks ? `<p class="text-blue-600 mb-2">${report.sncoRemarks}</p>` : ''}
+      ${report.sncoReviewer ? `<p class="text-sm text-blue-500">Reviewed by: ${
+        typeof report.sncoReviewer === 'object' ? report.sncoReviewer.username : report.sncoReviewer
+      }</p>` : ''}
+      ${report.sncoXPRecommendation ? `<p class="text-sm text-blue-500">XP Recommendation: ${report.sncoXPRecommendation}</p>` : ''}
+    </div>
+    ` : ''}
+    
+    ${report.xpApproved && report.xpApproved.length ? `
+    <div class="bg-green-50 p-4 rounded-lg border border-green-200 mb-4">
+      <h4 class="font-medium text-green-700 mb-2">XP Awarded</h4>
+      <div class="space-y-1">
+        ${report.xpApproved.map(entry => `
+          <div class="flex justify-between text-sm">
+            <span>${typeof entry.user === 'object' ? entry.user.username || 'User' : entry.user || 'User'}</span>
+            <span class="font-medium">+${entry.xp || 0} XP</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    ` : ''}
+    
+    ${report.xpRevoked ? `
+    <div class="bg-red-50 p-4 rounded-lg border border-red-200 mb-4">
+      <div class="flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        <h4 class="font-medium text-red-700">XP Has Been Revoked</h4>
+      </div>
+    </div>
+    ` : ''}
+    
+    ${report.status === 'HOLD' ? `
+    <div class="bg-red-50 p-4 rounded-lg border border-red-200 mb-4">
+      <h4 class="font-medium text-red-700 mb-2">Training on HOLD</h4>
+      ${report.holdReason ? `<p class="text-red-600">Reason: ${report.holdReason}</p>` : ''}
+      ${report.heldBy ? `<p class="text-sm text-red-500 mt-1">Held by: ${
+        typeof report.heldBy === 'object' ? report.heldBy.username : report.heldBy
+      }</p>` : ''}
+    </div>
+    ` : ''}
   `;
 }
 
