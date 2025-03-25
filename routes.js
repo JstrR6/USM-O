@@ -1969,6 +1969,98 @@ router.post('/api/performance/:id/officer-update', async (req, res) => {
         return xpRequirements[nextRank] || null;
       }
 
+// Get all pending promotion requests
+router.get('/api/promotion-request/pending', async (req, res) => {
+    try {
+      const pendingRequests = await PromotionRequest.find({ status: 'Pending' })
+        .populate('targetUserId requesterId', 'username highestRole xp')
+        .sort({ createdAt: -1 });
+  
+      res.json(pendingRequests);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Server error fetching pending requests' });
+    }
+  });
+
+  router.get('/api/users/:userId/deep-search', async (req, res) => {
+    const userId = req.params.userId;
+  
+    try {
+      // Search Division Removals
+      const divisionRemovals = await DivisionRemoval.find({ targetUser: userId })
+        .sort({ createdAt: -1 });
+  
+      // Search Performance Reports
+      const performanceReports = await PerformanceReport.find({ targetUser: userId })
+        .sort({ periodEnd: -1 });
+  
+      // Search Training Reports
+      const trainingReports = await Training.find({ trainees: userId })
+        .sort({ startTime: -1 });
+  
+      // Previous Promotion Requests
+      const promotionHistory = await PromotionRequest.find({ targetUserId: userId })
+        .sort({ createdAt: -1 });
+  
+      res.json({
+        divisionRemovals,
+        performanceReports,
+        trainingReports,
+        promotionHistory
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Deep Search failed', details: err.message });
+    }
+  });
+
+  router.post('/api/promotion-request/:id/decision', async (req, res) => {
+    const requestId = req.params.id;
+    const { decision } = req.body; // decision = "Approved" or "Denied"
+  
+    try {
+      const promotionRequest = await PromotionRequest.findById(requestId).populate('targetUserId');
+  
+      if (!promotionRequest) {
+        return res.status(404).json({ error: 'Promotion request not found' });
+      }
+  
+      if (promotionRequest.status !== 'Pending') {
+        return res.status(400).json({ error: 'This request has already been processed' });
+      }
+  
+      promotionRequest.status = decision;
+      promotionRequest.reviewedAt = Date.now();
+      promotionRequest.reviewedBy = req.user._id;
+      await promotionRequest.save();
+  
+      // Promote user if approved
+      if (decision === 'Approved') {
+        const user = await User.findById(promotionRequest.targetUserId);
+  
+        const isSlotBased = RANKS.indexOf(promotionRequest.nextRank) > RANKS.indexOf('First Sergeant');
+        if (!isSlotBased && promotionRequest.nextXP) {
+          user.xp = promotionRequest.nextXP; // set to minimum required XP
+        }
+        user.highestRole = promotionRequest.nextRank;
+  
+        await user.save();
+      }
+  
+      res.json({ message: `Request ${decision}` });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Promotion decision failed', details: err.message });
+    }
+  });
+
+
+
+
+
+
+
 
 
 
