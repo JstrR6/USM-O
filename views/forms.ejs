@@ -1220,18 +1220,30 @@
 </div>
 
 <!-- Company Officer Pending Promotions Modal -->
-<div id="promotionRequestsModal" class="modal hidden overflow-auto py-6">
-    <div class="bg-white rounded-lg shadow-xl max-w-6xl w-full p-6 relative">
-      <button onclick="closePromotionRequests()" class="absolute top-3 right-3 text-gray-600 text-2xl hover:text-red-600">&times;</button>
-      <h2 class="text-2xl font-bold mb-4">Pending Promotion Requests</h2>
+<div id="promotionRequestsModal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+    <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-6xl overflow-y-auto max-h-[90vh]">
+      <button class="absolute top-4 right-4 text-3xl text-gray-500 hover:text-red-500" onclick="closePromotionRequests()">&times;</button>
+      <h2 class="text-2xl font-bold mb-6">Pending Promotion Requests</h2>
   
-      <div id="pendingPromotionRequestsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        Loading requests...
+      <div id="promotionRequestsContainer" class="grid grid-cols-2 gap-4 overflow-y-auto">
+        <!-- Cards loaded here -->
       </div>
   
-      <div id="promotionDetailView" class="hidden mt-6 border-t pt-6">
-        <h3 class="text-xl font-bold">Promotion Request Details</h3>
-        <div id="promotionDetailContent"></div>
+      <div id="promotionRequestDetail" class="hidden mt-8 p-6 border-t border-gray-200">
+        <h3 class="text-xl font-bold mb-4">Promotion Request Details</h3>
+        <div id="requestDetailContent">
+          <!-- Detailed information -->
+        </div>
+  
+        <button class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded" onclick="deepSearch()">🔎 Deep Search</button>
+        <div id="deepSearchResults" class="mt-4 space-y-4 hidden">
+          <!-- Deep search results appear here -->
+        </div>
+  
+        <div class="mt-6 flex gap-4">
+          <button class="px-4 py-2 bg-green-600 text-white rounded" onclick="decidePromotion('Approved')">Approve</button>
+          <button class="px-4 py-2 bg-red-600 text-white rounded" onclick="decidePromotion('Denied')">Deny</button>
+        </div>
       </div>
     </div>
   </div>
@@ -3394,79 +3406,110 @@ document.getElementById('promotionRequestForm').addEventListener('submit', async
 
 async function openPromotionRequests() {
   document.getElementById('promotionRequestsModal').classList.remove('hidden');
-  const container = document.getElementById('pendingPromotionRequestsContainer');
-  container.innerHTML = 'Loading...';
-
-  const res = await fetch('/api/promotion-request/pending');
-  const data = await res.json();
-
-  container.innerHTML = data.map(req => `
-    <div class="p-4 border rounded shadow cursor-pointer hover:bg-gray-50" onclick="showPromotionDetail('${req._id}')">
-      <p><strong>User:</strong> ${req.targetUserId.username}</p>
-      <p><strong>Current Rank:</strong> ${req.currentRank}</p>
-      <p><strong>Requested Rank:</strong> ${req.nextRank || 'Slotted Promotion'}</p>
-      <p><strong>Requested By:</strong> ${req.requesterId.username}</p>
-    </div>
-  `).join('');
-}
-
-async function showPromotionDetail(requestId) {
-  const detailContainer = document.getElementById('promotionDetailView');
-  const detailContent = document.getElementById('promotionDetailContent');
-  detailContainer.classList.remove('hidden');
-  detailContent.innerHTML = 'Loading details...';
-
-  const res = await fetch(`/api/promotion-request/pending`);
-  const requests = await res.json();
-  const req = requests.find(r => r._id === requestId);
-
-  detailContent.innerHTML = `
-    <p><strong>User:</strong> ${req.targetUserId.username} (<button class="text-blue-600 underline" onclick="deepSearch('${req.targetUserId._id}')">Deep Search</button>)</p>
-    <p><strong>Current Rank:</strong> ${req.currentRank}</p>
-    <p><strong>Current XP:</strong> ${req.currentXP}</p>
-    <p><strong>Requested Rank:</strong> ${req.nextRank || 'Slotted Promotion'}</p>
-    <p><strong>Recommended By:</strong> ${req.requesterId.username}</p>
-    <p><strong>Recommendation:</strong> ${req.recommendation || 'None'}</p>
-    <div class="mt-4">
-      <button onclick="submitPromotionDecision('${req._id}', 'Approved')" class="px-4 py-2 bg-green-600 text-white rounded">Approve</button>
-      <button onclick="submitPromotionDecision('${req._id}', 'Denied')" class="px-4 py-2 bg-red-600 text-white rounded ml-2">Deny</button>
-    </div>
-    <div id="deepSearchResults" class="mt-4"></div>
-  `;
-}
-
-async function deepSearch(userId) {
-  const container = document.getElementById('deepSearchResults');
-  container.innerHTML = 'Loading deep search results...';
-
-  const res = await fetch(`/api/users/${userId}/deep-search`);
-  const data = await res.json();
-
-  container.innerHTML = `
-    <h4 class="font-bold">Division Removals:</h4>
-    ${data.divisionRemovals.length ? data.divisionRemovals.map(dr => `<p>- ${dr.reason}</p>`).join('') : '<p>No removals.</p>'}
-    <h4 class="font-bold">Performance Reports:</h4>
-    ${data.performanceReports.length ? data.performanceReports.map(pr => `<p>- Score: ${pr.overallScore}, Date: ${new Date(pr.periodEnd).toLocaleDateString()}</p>`).join('') : '<p>No performance reports.</p>'}
-    <h4 class="font-bold">Training Reports:</h4>
-    ${data.trainingReports.length ? data.trainingReports.map(tr => `<p>- ${tr.eventName}, Grade: ${tr.grade}</p>`).join('') : '<p>No training reports.</p>'}
-    <h4 class="font-bold">Previous Promotions:</h4>
-    ${data.promotionHistory.length ? data.promotionHistory.map(ph => `<p>- Rank: ${ph.nextRank}, Status: ${ph.status}</p>`).join('') : '<p>No previous requests.</p>'}
-  `;
-}
-
-async function submitPromotionDecision(requestId, decision) {
-  await fetch(`/api/promotion-request/${requestId}/decision`, {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ decision })
-  });
-  alert(`Request ${decision}`);
-  openPromotionRequests();
+  loadPendingPromotionRequests();
 }
 
 function closePromotionRequests() {
   document.getElementById('promotionRequestsModal').classList.add('hidden');
 }
+
+let currentRequestId = null;
+let currentTargetUserId = null;
+
+async function loadPendingPromotionRequests() {
+  const container = document.getElementById('promotionRequestsContainer');
+  container.innerHTML = 'Loading requests...';
+  const res = await fetch('/api/promotion-request/pending');
+  const requests = await res.json();
+
+  container.innerHTML = requests.map(req => `
+    <div class="border rounded p-4 hover:bg-gray-50 cursor-pointer" onclick="showRequestDetails('${req._id}')">
+      <p><strong>User:</strong> ${req.targetUserId.username}</p>
+      <p><strong>Current Rank:</strong> ${req.currentRank}</p>
+      <p><strong>Next Rank:</strong> ${req.nextRank || 'Slotted Rank'}</p>
+      <p><strong>Requested By:</strong> ${req.requesterId.username}</p>
+      <p><strong>Recommendation:</strong> ${req.recommendation}</p>
+    </div>
+  `).join('');
+}
+
+async function showRequestDetails(requestId) {
+  currentRequestId = requestId;
+  const res = await fetch('/api/promotion-request/pending');
+  const requests = await res.json();
+  const req = requests.find(r => r._id === requestId);
+
+  if (!req) return;
+
+  currentTargetUserId = req.targetUserId._id;
+
+  document.getElementById('requestDetailContent').innerHTML = `
+    <p><strong>User:</strong> ${req.targetUserId.username}</p>
+    <p><strong>Rank:</strong> ${req.currentRank}</p>
+    <p><strong>XP:</strong> ${req.currentXP}</p>
+    <p><strong>Next Rank:</strong> ${req.nextRank || 'Slotted Rank'}</p>
+    <p><strong>XP Required:</strong> ${req.nextXP || 'N/A'}</p>
+    <p><strong>Recommendation:</strong> ${req.recommendation}</p>
+    <p><strong>Requested By:</strong> ${req.requesterId.username}</p>
+  `;
+
+  document.getElementById('promotionRequestDetail').classList.remove('hidden');
+  document.getElementById('deepSearchResults').classList.add('hidden');
+}
+
+async function deepSearch() {
+  const container = document.getElementById('deepSearchResults');
+  container.classList.remove('hidden');
+  container.innerHTML = 'Searching...';
+
+  const res = await fetch(`/api/users/${currentTargetUserId}/deep-search`);
+  const data = await res.json();
+
+  container.innerHTML = `
+    <div>
+      <h4 class="font-semibold">🔹 Division Removals (${data.divisionRemovals.length})</h4>
+      ${data.divisionRemovals.map(d => `
+        <p>- ${d.reason} (Status: ${d.status})</p>`).join('') || '<p>No records found.</p>'}
+    </div>
+
+    <div>
+      <h4 class="font-semibold">🔹 Performance Reports (${data.performanceReports.length})</h4>
+      ${data.performanceReports.map(r => `
+        <p>- Period: ${new Date(r.periodStart).toLocaleDateString()} to ${new Date(r.periodEnd).toLocaleDateString()}, Score: ${r.calculatedScore.toFixed(2)}, Status: ${r.status}</p>`).join('') || '<p>No records found.</p>'}
+    </div>
+
+    <div>
+      <h4 class="font-semibold">🔹 Training Reports (${data.trainingReports.length})</h4>
+      ${data.trainingReports.map(t => `
+        <p>- ${t.trainingEvent} (${new Date(t.startTime).toLocaleDateString()}), Outcome: ${t.outcome}</p>`).join('') || '<p>No records found.</p>'}
+    </div>
+
+    <div>
+      <h4 class="font-semibold">🔹 Promotion History (${data.promotionHistory.length})</h4>
+      ${data.promotionHistory.map(p => `
+        <p>- To ${p.nextRank} (Status: ${p.status}, Reviewed: ${p.reviewedAt ? new Date(p.reviewedAt).toLocaleDateString() : 'Pending'})</p>`).join('') || '<p>No records found.</p>'}
+    </div>
+  `;
+}
+
+async function decidePromotion(decision) {
+  const confirmMsg = decision === 'Approved' ? 
+    'Approve this promotion?' : 'Deny this promotion?';
+
+  if (!confirm(confirmMsg)) return;
+
+  const res = await fetch(`/api/promotion-request/${currentRequestId}/decision`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ decision })
+  });
+
+  const result = await res.json();
+  alert(result.message);
+  
+  closePromotionRequests();
+}
+
     </script>
 </body>
 </html>
