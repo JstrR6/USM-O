@@ -1987,21 +1987,31 @@ router.get('/api/promotion-request/pending', async (req, res) => {
     const userId = req.params.userId;
   
     try {
-      // Search Division Removals
+      // Division Removals
       const divisionRemovals = await DivisionRemoval.find({ targetUser: userId })
-        .sort({ createdAt: -1 });
+        .populate('targetDivision', 'name')
+        .populate('sncoSignature officerSignature fieldSignature', 'username highestRole')
+        .sort('-createdAt')
+        .lean();
   
-      // Search Performance Reports
+      // Performance Reports
       const performanceReports = await PerformanceReport.find({ targetUser: userId })
-        .sort({ periodEnd: -1 });
+        .populate('division', 'name')
+        .populate('evaluator sncoReviewer officerReviewer', 'username highestRole')
+        .sort('-createdAt')
+        .lean();
   
-      // Search Training Reports
+      // Training Reports
       const trainingReports = await Training.find({ trainees: userId })
-        .sort({ startTime: -1 });
+        .populate('ncoSignature sncoSignature officerSignature', 'username highestRole')
+        .sort('-startTime')
+        .lean();
   
-      // Previous Promotion Requests
+      // Promotion History
       const promotionHistory = await PromotionRequest.find({ targetUserId: userId })
-        .sort({ createdAt: -1 });
+        .populate('requesterId reviewedBy', 'username highestRole')
+        .sort('-createdAt')
+        .lean();
   
       res.json({
         divisionRemovals,
@@ -2009,8 +2019,9 @@ router.get('/api/promotion-request/pending', async (req, res) => {
         trainingReports,
         promotionHistory
       });
+  
     } catch (err) {
-      console.error(err);
+      console.error('Deep Search Error:', err);
       res.status(500).json({ error: 'Deep Search failed', details: err.message });
     }
   });
