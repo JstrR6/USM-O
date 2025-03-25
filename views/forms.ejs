@@ -43,6 +43,14 @@
             justify-content: center;
             z-index: 50;
         }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+            .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -1220,68 +1228,125 @@
 </div>
 
 <!-- Company Officer Pending Promotions Modal -->
-<div id="promotionModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-60 flex justify-center items-center hidden">
-    <div class="relative bg-white rounded-xl shadow-xl w-full max-w-7xl h-[90vh] overflow-hidden flex">
-  
-      <!-- Close Entire Modal Button -->
-      <button class="absolute top-3 right-3 text-2xl text-gray-600 hover:text-red-500" onclick="closePromotionModal()">
-        &times;
-      </button>
+<div id="promotionModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-80 flex justify-center items-center hidden z-50 transition-opacity duration-300">
+    <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[90vh] overflow-hidden flex animate-fadeIn">
+      
+      <!-- Header Bar -->
+      <div class="absolute top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-indigo-800 text-white py-3 px-6 flex justify-between items-center z-10">
+        <h1 class="text-xl font-bold">Promotion Management Dashboard</h1>
+        <button class="text-white hover:text-red-300 focus:outline-none transition-colors duration-200" onclick="closePromotionModal()">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
   
       <!-- Left Panel: Request List & Detail -->
-      <div class="w-1/2 border-r border-gray-200 flex flex-col">
-  
+      <div class="w-1/2 border-r border-gray-200 flex flex-col pt-14">
+        
         <!-- Requests List -->
         <div id="requestListView" class="flex-1 overflow-y-auto p-4">
-          <h2 class="text-xl font-semibold mb-4">Pending Promotion Requests</h2>
-          <div id="pendingRequestsContainer">
+          <div class="flex items-center mb-6 mt-2">
+            <div class="bg-blue-500 w-1 h-6 mr-2"></div>
+            <h2 class="text-xl font-semibold text-gray-800">Pending Promotion Requests</h2>
+          </div>
+          
+          <div class="bg-gray-50 p-2 rounded-lg mb-4 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-sm text-gray-600">Select a promotion request to view details and approve/deny.</p>
+          </div>
+          
+          <div id="pendingRequestsContainer" class="space-y-3">
             <!-- Dynamically populate request cards here -->
           </div>
         </div>
   
         <!-- Request Detail View (hidden initially) -->
-        <div id="requestDetailView" class="hidden flex-1 overflow-y-auto p-4 relative">
-          <!-- Close Request Detail Button -->
-          <button id="closeRequestDetailBtn" class="absolute top-2 right-2 text-xl text-gray-500 hover:text-red-500" onclick="closeRequestDetailView()">
-            &times; Close
+        <div id="requestDetailView" class="hidden flex-1 overflow-y-auto p-6 relative bg-white">
+          <!-- Back Button -->
+          <button id="closeRequestDetailBtn" class="flex items-center text-blue-600 hover:text-blue-800 mb-4 transition-colors duration-200" onclick="closeRequestDetailView()">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Requests
           </button>
   
-          <!-- Detailed info dynamically populated here -->
-          <div id="requestDetailContent"></div>
-        </div>
+          <div class="flex items-center mb-6">
+            <div class="bg-indigo-500 w-1 h-6 mr-2"></div>
+            <h2 class="text-xl font-semibold text-gray-800">Request Details</h2>
+          </div>
   
+          <!-- Detailed info card -->
+          <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+            <div id="requestDetailContent" class="space-y-3">
+              <!-- Detailed info dynamically populated here -->
+            </div>
+          </div>
+        </div>
       </div>
   
       <!-- Right Panel: Deep Search Results (hidden initially) -->
-      <div id="deepSearchPanel" class="w-1/2 hidden flex-col overflow-y-auto p-4 bg-gray-50 relative">
-        <button class="absolute top-2 right-2 text-xl text-gray-500 hover:text-red-500" onclick="closeDeepSearchPanel()">
-          &times; Close Search
-        </button>
-        <h2 class="text-xl font-semibold mb-4">Deep Search Results</h2>
+      <div id="deepSearchPanel" class="w-1/2 hidden flex-col overflow-y-auto pt-14 bg-gray-50 relative">
+        <div class="p-6">
+          <button class="absolute top-16 right-4 flex items-center text-gray-600 hover:text-red-500 focus:outline-none transition-colors duration-200" onclick="closeDeepSearchPanel()">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Close Search
+          </button>
   
-        <!-- Deep Search Content -->
-        <div id="deepSearchContent" class="space-y-6">
-          <section id="promotionHistory">
-            <h3 class="font-semibold text-lg mb-2">Promotion History</h3>
-            <div id="promotionHistoryResults" class="text-sm"></div>
-          </section>
+          <div class="flex items-center mb-6">
+            <div class="bg-purple-500 w-1 h-6 mr-2"></div>
+            <h2 class="text-xl font-semibold text-gray-800">Deep Search Results</h2>
+          </div>
   
-          <section id="performanceReports">
-            <h3 class="font-semibold text-lg mb-2">Performance Reports</h3>
-            <div id="performanceReportsResults" class="text-sm"></div>
-          </section>
+          <!-- Deep Search Content -->
+          <div id="deepSearchContent" class="space-y-6">
+            <section id="promotionHistory" class="bg-white rounded-lg shadow-sm p-4">
+              <h3 class="font-semibold text-lg mb-3 flex items-center text-indigo-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Promotion History
+              </h3>
+              <div id="promotionHistoryResults" class="text-sm space-y-2"></div>
+            </section>
   
-          <section id="trainingReports">
-            <h3 class="font-semibold text-lg mb-2">Training Reports</h3>
-            <div id="trainingReportsResults" class="text-sm"></div>
-          </section>
+            <section id="performanceReports" class="bg-white rounded-lg shadow-sm p-4">
+              <h3 class="font-semibold text-lg mb-3 flex items-center text-green-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Performance Reports
+              </h3>
+              <div id="performanceReportsResults" class="text-sm space-y-2"></div>
+            </section>
   
-          <section id="divisionRemovals">
-            <h3 class="font-semibold text-lg mb-2">Division Removals</h3>
-            <div id="divisionRemovalsResults" class="text-sm"></div>
-          </section>
+            <section id="trainingReports" class="bg-white rounded-lg shadow-sm p-4">
+              <h3 class="font-semibold text-lg mb-3 flex items-center text-blue-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path d="M12 14l9-5-9-5-9 5 9 5z" />
+                  <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
+                </svg>
+                Training Reports
+              </h3>
+              <div id="trainingReportsResults" class="text-sm space-y-2"></div>
+            </section>
+  
+            <section id="divisionRemovals" class="bg-white rounded-lg shadow-sm p-4">
+              <h3 class="font-semibold text-lg mb-3 flex items-center text-red-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Division Removals
+              </h3>
+              <div id="divisionRemovalsResults" class="text-sm space-y-2"></div>
+            </section>
+          </div>
         </div>
-  
       </div>
     </div>
   </div>
@@ -3444,13 +3509,18 @@ document.getElementById('promotionRequestForm').addEventListener('submit', async
 
 async function openPromotionRequests() {
   document.getElementById('promotionModal').classList.remove('hidden');
+  document.getElementById('promotionModal').style.opacity = '1';
   closeRequestDetailView();
   closeDeepSearchPanel();
   await loadPendingPromotionRequests();
 }
 
 function closePromotionRequests() {
-  document.getElementById('promotionModal').classList.add('hidden');
+  const modal = document.getElementById('promotionModal');
+  modal.style.opacity = '0';
+  setTimeout(() => {
+    modal.classList.add('hidden');
+  }, 300);
   closeRequestDetailView();
   closeDeepSearchPanel();
 }
@@ -3460,7 +3530,11 @@ let currentTargetUserId = null;
 
 // Opens the main promotion modal and loads pending requests
 async function openPromotionModal() {
-  document.getElementById('promotionModal').classList.remove('hidden');
+  const modal = document.getElementById('promotionModal');
+  modal.classList.remove('hidden');
+  setTimeout(() => {
+    modal.style.opacity = '1';
+  }, 10); // Small delay to allow the display:flex to take effect before the transition
   closeRequestDetailView();
   closeDeepSearchPanel();
   await loadPendingPromotionRequests();
@@ -3468,7 +3542,11 @@ async function openPromotionModal() {
 
 // Closes the entire promotion modal
 function closePromotionModal() {
-  document.getElementById('promotionModal').classList.add('hidden');
+  const modal = document.getElementById('promotionModal');
+  modal.style.opacity = '0';
+  setTimeout(() => {
+    modal.classList.add('hidden');
+  }, 300); // Match the duration in CSS transition
   closeRequestDetailView();
   closeDeepSearchPanel();
 }
@@ -3476,65 +3554,210 @@ function closePromotionModal() {
 // Load pending promotion requests into the list view
 async function loadPendingPromotionRequests() {
   const container = document.getElementById('pendingRequestsContainer');
-  container.innerHTML = 'Loading requests...';
+  container.innerHTML = `
+    <div class="flex justify-center items-center p-12">
+      <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </div>
+  `;
 
   try {
     const res = await fetch('/api/promotion-request/pending');
     const requests = await res.json();
 
     if (!requests.length) {
-      container.innerHTML = '<p class="text-gray-600">No pending requests found.</p>';
+      container.innerHTML = `
+        <div class="text-center py-8 px-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <p class="text-gray-600">No pending requests found.</p>
+        </div>
+      `;
       return;
     }
 
-    container.innerHTML = requests.map(req => `
-      <div class="border rounded p-4 hover:bg-gray-50 cursor-pointer mb-2" onclick="openRequestDetailView('${req._id}')">
-        <p><strong>User:</strong> ${req.targetUserId.username}</p>
-        <p><strong>Current Rank:</strong> ${req.currentRank}</p>
-        <p><strong>Next Rank:</strong> ${req.nextRank || 'Slotted Rank'}</p>
-        <p><strong>Requested By:</strong> ${req.requesterId.username}</p>
-        <p><strong>Recommendation:</strong> ${req.recommendation}</p>
-      </div>
-    `).join('');
+    container.innerHTML = requests.map(req => {
+      // Determine status badge color
+      const badgeColor = req.recommendation === 'Highly Recommended' 
+        ? 'bg-green-100 text-green-800' 
+        : req.recommendation === 'Recommended' 
+          ? 'bg-blue-100 text-blue-800' 
+          : 'bg-yellow-100 text-yellow-800';
+
+      return `
+        <div class="border border-gray-200 rounded-lg p-4 hover:bg-blue-50 cursor-pointer mb-4 transition-colors duration-200 shadow-sm" 
+             onclick="openRequestDetailView('${req._id}')">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="font-medium text-gray-900">${req.targetUserId.username}</div>
+              <div class="text-sm text-gray-500">Requested by ${req.requesterId.username}</div>
+            </div>
+            <span class="px-2 py-1 text-xs rounded-full ${badgeColor}">${req.recommendation}</span>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span class="text-gray-500">Current Rank:</span> 
+              <span class="font-medium">${req.currentRank}</span>
+            </div>
+            <div>
+              <span class="text-gray-500">Next Rank:</span> 
+              <span class="font-medium">${req.nextRank || 'Slotted Rank'}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
   } catch (err) {
     console.error(err);
-    container.innerHTML = '<p class="text-red-500">Failed to load requests.</p>';
+    container.innerHTML = `
+      <div class="text-center py-8 px-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p class="text-red-500 font-medium">Failed to load requests.</p>
+        <p class="text-gray-600 mt-2">Please try again later or contact support.</p>
+      </div>
+    `;
   }
 }
 
 // Opens detailed view of a selected promotion request
 async function openRequestDetailView(requestId) {
   currentRequestId = requestId;
+  
+  // Show loading state
+  document.getElementById('requestDetailContent').innerHTML = `
+    <div class="flex justify-center items-center p-12">
+      <svg class="animate-spin h-8 w-8 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </div>
+  `;
+
+  document.getElementById('requestDetailView').classList.remove('hidden');
+  document.getElementById('requestListView').classList.add('hidden');
 
   try {
     const res = await fetch('/api/promotion-request/pending');
     const requests = await res.json();
     const req = requests.find(r => r._id === requestId);
 
-    if (!req) return;
+    if (!req) {
+      document.getElementById('requestDetailContent').innerHTML = `
+        <div class="text-center py-8">
+          <p class="text-red-500">Request not found or has been processed.</p>
+          <button class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md" onclick="closeRequestDetailView()">Return to List</button>
+        </div>
+      `;
+      return;
+    }
 
     currentTargetUserId = req.targetUserId._id;
 
+    // Calculate XP progress percentage for progress bar
+    let progressPercentage = 0;
+    if (req.nextXP && req.currentXP) {
+      const prevRankXP = req.currentXP - (req.currentXP % 100); // Simplistic calculation, adjust based on actual XP system
+      progressPercentage = ((req.currentXP - prevRankXP) / (req.nextXP - prevRankXP)) * 100;
+    }
+
+    // Determine recommendation badge color
+    const badgeColor = req.recommendation === 'Highly Recommended' 
+      ? 'bg-green-100 text-green-800' 
+      : req.recommendation === 'Recommended' 
+        ? 'bg-blue-100 text-blue-800' 
+        : 'bg-yellow-100 text-yellow-800';
+
     document.getElementById('requestDetailContent').innerHTML = `
-      <p><strong>User:</strong> ${req.targetUserId.username}</p>
-      <p><strong>Rank:</strong> ${req.currentRank}</p>
-      <p><strong>XP:</strong> ${req.currentXP}</p>
-      <p><strong>Next Rank:</strong> ${req.nextRank || 'Slotted Rank'}</p>
-      <p><strong>XP Required:</strong> ${req.nextXP || 'N/A'}</p>
-      <p><strong>Recommendation:</strong> ${req.recommendation}</p>
-      <p><strong>Requested By:</strong> ${req.requesterId.username}</p>
-      <div class="mt-4 space-x-2">
-        <button class="px-4 py-2 bg-green-600 text-white rounded" onclick="decidePromotion('Approved')">Approve</button>
-        <button class="px-4 py-2 bg-red-600 text-white rounded" onclick="decidePromotion('Denied')">Deny</button>
-        <button class="px-4 py-2 bg-blue-600 text-white rounded" onclick="openDeepSearch(currentTargetUserId)">Deep Search</button>
+      <div class="mb-6 pb-6 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h3 class="text-2xl font-bold text-gray-800">${req.targetUserId.username}</h3>
+          <span class="px-3 py-1 rounded-full ${badgeColor} text-sm">${req.recommendation}</span>
+        </div>
+        <p class="text-gray-500 mt-1">Requested by ${req.requesterId.username}</p>
       </div>
+
+      <div class="grid md:grid-cols-2 gap-6">
+        <div class="space-y-4">
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <p class="text-sm text-gray-500 mb-1">Current Rank</p>
+            <p class="font-medium text-lg">${req.currentRank}</p>
+          </div>
+          
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <p class="text-sm text-gray-500 mb-1">Next Rank</p>
+            <p class="font-medium text-lg">${req.nextRank || 'Slotted Rank'}</p>
+          </div>
+        </div>
+        
+        <div class="space-y-4">
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <p class="text-sm text-gray-500 mb-1">Current XP</p>
+            <p class="font-medium text-lg">${req.currentXP || 'N/A'}</p>
+          </div>
+          
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <p class="text-sm text-gray-500 mb-1">XP Required</p>
+            <p class="font-medium text-lg">${req.nextXP || 'N/A'}</p>
+          </div>
+        </div>
+      </div>
+
+      ${req.nextXP ? `
+      <div class="mt-6">
+        <div class="flex justify-between text-sm mb-1">
+          <span>XP Progress</span>
+          <span>${req.currentXP}/${req.nextXP}</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2.5">
+          <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${progressPercentage}%"></div>
+        </div>
+      </div>
+      ` : ''}
+
+      <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+        <h4 class="font-medium mb-2">Recommendation Notes</h4>
+        <p class="text-gray-700">${req.recommendation}</p>
+      </div>
+
+      <div class="mt-8 flex space-x-4">
+        <button class="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200 flex items-center justify-center" onclick="decidePromotion('Approved')">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Approve
+        </button>
+        <button class="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200 flex items-center justify-center" onclick="decidePromotion('Denied')">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          Deny
+        </button>
+      </div>
+      
+      <button class="mt-4 w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200 flex items-center justify-center" onclick="openDeepSearch(currentTargetUserId)">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        Deep Search
+      </button>
     `;
 
-    document.getElementById('requestDetailView').classList.remove('hidden');
-    document.getElementById('requestListView').classList.add('hidden');
   } catch (err) {
     console.error(err);
-    alert('Failed to load request details.');
+    document.getElementById('requestDetailContent').innerHTML = `
+      <div class="text-center py-8">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p class="text-red-500 font-medium">Failed to load request details.</p>
+        <button class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md" onclick="closeRequestDetailView()">Return to List</button>
+      </div>
+    `;
   }
 }
 
@@ -3553,86 +3776,328 @@ async function openDeepSearch(userId) {
   }
 
   document.getElementById('deepSearchPanel').classList.remove('hidden');
+  
+  // Show loading indicators in each section
+  const sections = ['promotionHistoryResults', 'performanceReportsResults', 'trainingReportsResults', 'divisionRemovalsResults'];
+  
+  sections.forEach(sectionId => {
+    document.getElementById(sectionId).innerHTML = `
+      <div class="flex items-center justify-center py-4">
+        <svg class="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span class="ml-2 text-gray-500">Loading...</span>
+      </div>
+    `;
+  });
+  
   await loadDeepSearchResults(userId);
 }
 
 async function loadDeepSearchResults(userId) {
-  const res = await fetch(`/api/users/${userId}/deep-search`);
-  const data = await res.json();
+  try {
+    const res = await fetch(`/api/users/${userId}/deep-search`);
+    const data = await res.json();
 
-  const elements = {
-    promotionHistoryResults: document.getElementById('promotionHistoryResults'),
-    performanceReportsResults: document.getElementById('performanceReportsResults'),
-    trainingReportsResults: document.getElementById('trainingReportsResults'),
-    divisionRemovalsResults: document.getElementById('divisionRemovalsResults'),
-  };
+    const elements = {
+      promotionHistoryResults: document.getElementById('promotionHistoryResults'),
+      performanceReportsResults: document.getElementById('performanceReportsResults'),
+      trainingReportsResults: document.getElementById('trainingReportsResults'),
+      divisionRemovalsResults: document.getElementById('divisionRemovalsResults'),
+    };
 
-  // Check existence of all required elements
-  for (const [key, el] of Object.entries(elements)) {
-    if (!el) {
-      console.error(`Element with ID '${key}' not found!`);
-      continue; // Skip to next if not found
+    // Check existence of all required elements
+    for (const [key, el] of Object.entries(elements)) {
+      if (!el) {
+        console.error(`Element with ID '${key}' not found!`);
+        continue; // Skip to next if not found
+      }
     }
+
+    // Promotion History section
+    if (data.promotionHistory.length) {
+      elements.promotionHistoryResults.innerHTML = data.promotionHistory.map(ph => {
+        // Determine status badge color
+        const statusColor = ph.status === 'Approved' 
+          ? 'bg-green-100 text-green-800' 
+          : ph.status === 'Denied' 
+            ? 'bg-red-100 text-red-800' 
+            : 'bg-yellow-100 text-yellow-800';
+        
+        return `
+          <div class="border border-gray-100 p-3 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div class="flex justify-between items-center">
+              <div class="font-medium">${new Date(ph.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+              <span class="px-2 py-1 text-xs rounded-full ${statusColor}">${ph.status}</span>
+            </div>
+            <div class="text-sm text-gray-600 mt-1">${ph.notes || 'No additional notes'}</div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      elements.promotionHistoryResults.innerHTML = `
+        <div class="text-center py-4 text-gray-500">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <p>No promotion history records found.</p>
+        </div>
+      `;
+    }
+
+    // Performance Reports section
+    if (data.performanceReports.length) {
+      elements.performanceReportsResults.innerHTML = data.performanceReports.map(pr => {
+        // Determine score color
+        let scoreClass = 'text-yellow-600';
+        if (pr.calculatedScore >= 90) scoreClass = 'text-green-600';
+        else if (pr.calculatedScore >= 70) scoreClass = 'text-blue-600';
+        else if (pr.calculatedScore < 60) scoreClass = 'text-red-600';
+        
+        return `
+          <div class="border border-gray-100 p-3 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div class="flex justify-between items-center">
+              <div class="font-medium">${new Date(pr.periodStart).toLocaleDateString()} - ${new Date(pr.periodEnd).toLocaleDateString()}</div>
+              <span class="px-2 py-1 text-xs font-bold ${scoreClass}">${pr.calculatedScore}%</span>
+            </div>
+            <div class="mt-2">
+              <div class="w-full bg-gray-200 rounded-full h-1.5">
+                <div class="h-1.5 rounded-full ${pr.calculatedScore >= 90 ? 'bg-green-500' : 
+                  pr.calculatedScore >= 70 ? 'bg-blue-500' : 
+                  pr.calculatedScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'}" 
+                  style="width: ${pr.calculatedScore}%"></div>
+              </div>
+            </div>
+            <div class="text-sm text-gray-600 mt-2">Status: ${pr.status}</div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      elements.performanceReportsResults.innerHTML = `
+        <div class="text-center py-4 text-gray-500">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          <p>No performance reports found.</p>
+        </div>
+      `;
+    }
+
+    // Training Reports section
+    if (data.trainingReports.length) {
+      elements.trainingReportsResults.innerHTML = data.trainingReports.map(tr => {
+        // Determine outcome badge color
+        const outcomeColor = tr.outcome === 'Passed' || tr.outcome === 'Completed' 
+          ? 'bg-green-100 text-green-800' 
+          : tr.outcome === 'Failed' 
+            ? 'bg-red-100 text-red-800' 
+            : 'bg-blue-100 text-blue-800';
+        
+        return `
+          <div class="border border-gray-100 p-3 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div class="flex justify-between items-center">
+              <div class="font-medium">${tr.trainingEvent}</div>
+              <span class="px-2 py-1 text-xs rounded-full ${outcomeColor}">${tr.outcome}</span>
+            </div>
+            <div class="text-sm text-gray-600 mt-1">Date: ${new Date(tr.startTime).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      elements.trainingReportsResults.innerHTML = `
+        <div class="text-center py-4 text-gray-500">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path d="M12 14l9-5-9-5-9 5 9 5z" />
+            <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />
+          </svg>
+          <p>No training reports found.</p>
+        </div>
+      `;
+    }
+
+    // Division Removals section
+    if (data.divisionRemovals.length) {
+      elements.divisionRemovalsResults.innerHTML = data.divisionRemovals.map(dr => {
+        // Determine status badge color
+        const statusColor = dr.status === 'Approved' 
+          ? 'bg-red-100 text-red-800' 
+          : dr.status === 'Denied' 
+            ? 'bg-green-100 text-green-800' 
+            : 'bg-yellow-100 text-yellow-800';
+        
+        return `
+          <div class="border border-gray-100 p-3 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div class="flex justify-between items-center">
+              <div class="font-medium">${new Date(dr.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+              <span class="px-2 py-1 text-xs rounded-full ${statusColor}">${dr.status}</span>
+            </div>
+            <div class="text-sm text-gray-600 mt-1">Reason: ${dr.reason}</div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      elements.divisionRemovalsResults.innerHTML = `
+        <div class="text-center py-4 text-gray-500">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <p>No division removal records found.</p>
+        </div>
+      `;
+    }
+  } catch (err) {
+    console.error(err);
+    
+    // Display error message in all sections
+    const sections = ['promotionHistoryResults', 'performanceReportsResults', 'trainingReportsResults', 'divisionRemovalsResults'];
+    
+    sections.forEach(sectionId => {
+      document.getElementById(sectionId).innerHTML = `
+        <div class="text-center py-4 text-red-500">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p>Failed to load data. Please try again.</p>
+        </div>
+      `;
+    });
   }
-
-  elements.promotionHistoryResults.innerHTML = data.promotionHistory.length
-    ? data.promotionHistory.map(ph => `
-      <div class="border p-2 rounded bg-white shadow-sm">
-        Status: ${ph.status}, Requested: ${new Date(ph.createdAt).toLocaleDateString()}, Decision: ${ph.status === 'Pending' ? 'Awaiting' : ph.status}
-      </div>`).join('')
-    : '<p>No promotion history records found.</p>';
-
-  elements.performanceReportsResults.innerHTML = data.performanceReports.length
-    ? data.performanceReports.map(pr => `
-      <div class="border p-2 rounded bg-white shadow-sm">
-        Period: ${new Date(pr.periodStart).toLocaleDateString()} - ${new Date(pr.periodEnd).toLocaleDateString()}, Score: ${pr.calculatedScore}, Status: ${pr.status}
-      </div>`).join('')
-    : '<p>No performance reports found.</p>';
-
-  elements.trainingReportsResults.innerHTML = data.trainingReports.length
-    ? data.trainingReports.map(tr => `
-      <div class="border p-2 rounded bg-white shadow-sm">
-        Event: ${tr.trainingEvent}, Outcome: ${tr.outcome}, Date: ${new Date(tr.startTime).toLocaleDateString()}
-      </div>`).join('')
-    : '<p>No training reports found.</p>';
-
-  elements.divisionRemovalsResults.innerHTML = data.divisionRemovals.length
-    ? data.divisionRemovals.map(dr => `
-      <div class="border p-2 rounded bg-white shadow-sm">
-        Reason: ${dr.reason}, Status: ${dr.status}, Date: ${new Date(dr.createdAt).toLocaleDateString()}
-      </div>`).join('')
-    : '<p>No division removal records found.</p>';
 }
 
 // Closes the deep search panel
 function closeDeepSearchPanel() {
-  document.getElementById('deepSearchPanel').classList.add('hidden');
+  const panel = document.getElementById('deepSearchPanel');
+  if (panel) {
+    panel.classList.add('hidden');
+  }
 }
 
 // Handles Promotion Decisions (Approve/Deny)
 async function decidePromotion(decision) {
-  const confirmMsg = decision === 'Approved' ? 
-    'Approve this promotion?' : 'Deny this promotion?';
-
-  if (!confirm(confirmMsg)) return;
-
-  try {
-    const res = await fetch(`/api/promotion-request/${currentRequestId}/decision`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ decision })
-    });
-
-    const result = await res.json();
-    alert(result.message);
+  // Create and show a modern confirmation dialog
+  const confirmDialog = document.createElement('div');
+  confirmDialog.className = 'fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 transition-opacity duration-300';
+  confirmDialog.style.opacity = '0';
+  
+  const dialogContent = document.createElement('div');
+  dialogContent.className = 'bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4 transform transition-transform duration-300 scale-95';
+  
+  dialogContent.innerHTML = `
+    <div class="text-center">
+      <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full ${decision === 'Approved' ? 'bg-green-100' : 'bg-red-100'} mb-4">
+        <svg class="h-6 w-6 ${decision === 'Approved' ? 'text-green-600' : 'text-red-600'}" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${decision === 'Approved' ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12'}" />
+        </svg>
+      </div>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">${decision === 'Approved' ? 'Approve Promotion' : 'Deny Promotion'}</h3>
+      <p class="text-gray-600">Are you sure you want to ${decision === 'Approved' ? 'approve' : 'deny'} this promotion request? This action cannot be undone.</p>
+      
+      <div class="mt-6 flex justify-center space-x-3">
+        <button type="button" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none" id="cancelDecisionBtn">
+          Cancel
+        </button>
+        <button type="button" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white ${decision === 'Approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'} border border-transparent rounded-md focus:outline-none" id="confirmDecisionBtn">
+          ${decision === 'Approved' ? 'Approve' : 'Deny'}
+        </button>
+      </div>
+    </div>
+  `;
+  
+  confirmDialog.appendChild(dialogContent);
+  document.body.appendChild(confirmDialog);
+  
+  // Fade in animation
+  setTimeout(() => {
+    confirmDialog.style.opacity = '1';
+    dialogContent.classList.remove('scale-95');
+    dialogContent.classList.add('scale-100');
+  }, 10);
+  
+  // Setup event handlers
+  const closeDialog = () => {
+    confirmDialog.style.opacity = '0';
+    dialogContent.classList.remove('scale-100');
+    dialogContent.classList.add('scale-95');
+    setTimeout(() => {
+      document.body.removeChild(confirmDialog);
+    }, 300);
+  };
+  
+  document.getElementById('cancelDecisionBtn').addEventListener('click', closeDialog);
+  
+  document.getElementById('confirmDecisionBtn').addEventListener('click', async () => {
+    // Show loading state in the dialog
+    dialogContent.innerHTML = `
+      <div class="text-center py-6">
+        <svg class="animate-spin h-10 w-10 text-gray-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-gray-600">Processing your request...</p>
+      </div>
+    `;
     
-    closeRequestDetailView();
-    await loadPendingPromotionRequests();
+    try {
+      const res = await fetch(`/api/promotion-request/${currentRequestId}/decision`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision })
+      });
 
-  } catch (err) {
-    console.error(err);
-    alert('Failed to process decision.');
-  }
+      const result = await res.json();
+      
+      // Show success message
+      dialogContent.innerHTML = `
+        <div class="text-center py-6">
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+            <svg class="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Success!</h3>
+          <p class="text-gray-600">${result.message}</p>
+          
+          <div class="mt-6">
+            <button type="button" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-md focus:outline-none" id="closeSuccessBtn">
+              Close
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('closeSuccessBtn').addEventListener('click', () => {
+        closeDialog();
+        closeRequestDetailView();
+        loadPendingPromotionRequests();
+      });
+      
+    } catch (err) {
+      console.error(err);
+      
+      // Show error message
+      dialogContent.innerHTML = `
+        <div class="text-center py-6">
+          <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+            <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Error</h3>
+          <p class="text-gray-600">Failed to process your decision. Please try again.</p>
+          
+          <div class="mt-6">
+            <button type="button" class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 border border-transparent rounded-md focus:outline-none" id="closeErrorBtn">
+              Close
+            </button>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('closeErrorBtn').addEventListener('click', closeDialog);
+    }
+  });
 }
     </script>
 </body>
