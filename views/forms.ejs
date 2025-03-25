@@ -3547,46 +3547,61 @@ function closeRequestDetailView() {
 
 // Initiates Deep Search functionality
 async function openDeepSearch(userId) {
-  const container = document.getElementById('deepSearchPanel');
-  container.classList.remove('hidden');
-  document.getElementById('deepSearchContent').innerHTML = 'Searching...';
-
-  try {
-    const res = await fetch(`/api/users/${userId}/deep-search`);
-    const data = await res.json();
-
-    document.getElementById('promotionHistoryResults').innerHTML = data.promotionHistory.length
-      ? data.promotionHistory.map(p => `
-        <div class="border p-2 rounded bg-white shadow-sm mb-2">
-          To: ${p.nextRank}, Status: ${p.status}, Requested: ${new Date(p.createdAt).toLocaleDateString()}, Reviewed: ${p.reviewedAt ? new Date(p.reviewedAt).toLocaleDateString() : 'Pending'}
-        </div>
-      `).join('') : '<p>No records found.</p>';
-
-    document.getElementById('performanceReportsResults').innerHTML = data.performanceReports.length
-      ? data.performanceReports.map(r => `
-        <div class="border p-2 rounded bg-white shadow-sm mb-2">
-          Period: ${new Date(r.periodStart).toLocaleDateString()} - ${new Date(r.periodEnd).toLocaleDateString()}, Score: ${r.calculatedScore.toFixed(2)}, Status: ${r.status}
-        </div>
-      `).join('') : '<p>No records found.</p>';
-
-    document.getElementById('trainingReportsResults').innerHTML = data.trainingReports.length
-      ? data.trainingReports.map(t => `
-        <div class="border p-2 rounded bg-white shadow-sm mb-2">
-          Event: ${t.trainingEvent}, Outcome: ${t.outcome}, Date: ${new Date(t.startTime).toLocaleDateString()}
-        </div>
-      `).join('') : '<p>No records found.</p>';
-
-    document.getElementById('divisionRemovalsResults').innerHTML = data.divisionRemovals.length
-      ? data.divisionRemovals.map(d => `
-        <div class="border p-2 rounded bg-white shadow-sm mb-2">
-          Reason: ${d.reason}, Status: ${d.status}, Date: ${new Date(d.createdAt).toLocaleDateString()}
-        </div>
-      `).join('') : '<p>No records found.</p>';
-
-  } catch (err) {
-    console.error(err);
-    document.getElementById('deepSearchContent').innerHTML = '<p class="text-red-500">Failed to perform deep search.</p>';
+  if (!userId) {
+    alert("User ID is missing. Cannot perform Deep Search.");
+    return;
   }
+
+  document.getElementById('deepSearchPanel').classList.remove('hidden');
+  await loadDeepSearchResults(userId);
+}
+
+async function loadDeepSearchResults(userId) {
+  const res = await fetch(`/api/users/${userId}/deep-search`);
+  const data = await res.json();
+
+  const elements = {
+    promotionHistoryResults: document.getElementById('promotionHistoryResults'),
+    performanceReportsResults: document.getElementById('performanceReportsResults'),
+    trainingReportsResults: document.getElementById('trainingReportsResults'),
+    divisionRemovalsResults: document.getElementById('divisionRemovalsResults'),
+  };
+
+  // Check existence of all required elements
+  for (const [key, el] of Object.entries(elements)) {
+    if (!el) {
+      console.error(`Element with ID '${key}' not found!`);
+      continue; // Skip to next if not found
+    }
+  }
+
+  elements.promotionHistoryResults.innerHTML = data.promotionHistory.length
+    ? data.promotionHistory.map(ph => `
+      <div class="border p-2 rounded bg-white shadow-sm">
+        Status: ${ph.status}, Requested: ${new Date(ph.createdAt).toLocaleDateString()}, Decision: ${ph.status === 'Pending' ? 'Awaiting' : ph.status}
+      </div>`).join('')
+    : '<p>No promotion history records found.</p>';
+
+  elements.performanceReportsResults.innerHTML = data.performanceReports.length
+    ? data.performanceReports.map(pr => `
+      <div class="border p-2 rounded bg-white shadow-sm">
+        Period: ${new Date(pr.periodStart).toLocaleDateString()} - ${new Date(pr.periodEnd).toLocaleDateString()}, Score: ${pr.calculatedScore}, Status: ${pr.status}
+      </div>`).join('')
+    : '<p>No performance reports found.</p>';
+
+  elements.trainingReportsResults.innerHTML = data.trainingReports.length
+    ? data.trainingReports.map(tr => `
+      <div class="border p-2 rounded bg-white shadow-sm">
+        Event: ${tr.trainingEvent}, Outcome: ${tr.outcome}, Date: ${new Date(tr.startTime).toLocaleDateString()}
+      </div>`).join('')
+    : '<p>No training reports found.</p>';
+
+  elements.divisionRemovalsResults.innerHTML = data.divisionRemovals.length
+    ? data.divisionRemovals.map(dr => `
+      <div class="border p-2 rounded bg-white shadow-sm">
+        Reason: ${dr.reason}, Status: ${dr.status}, Date: ${new Date(dr.createdAt).toLocaleDateString()}
+      </div>`).join('')
+    : '<p>No division removal records found.</p>';
 }
 
 // Closes the deep search panel
