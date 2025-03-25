@@ -4070,9 +4070,19 @@ function showPerformanceReportDetail(index) {
   document.getElementById('mainDeepSearchContent').classList.add('hidden');
   document.getElementById('performanceReportDetailView').classList.remove('hidden');
   
-  // Calculate score percentage for the progress bar
-  const normalizedScore = parseFloat(report.calculatedScore).toFixed(1);
-  const scorePercentage = (parseFloat(normalizedScore) / 5.0) * 100;
+  // Get metrics and calculate score
+  const metrics = [
+    report.communication,
+    report.discipline,
+    report.teamwork,
+    report.leadershipPotential,
+    report.technicalSkill
+  ].filter(Boolean); // Filter out undefined/null values
+  
+  const normalizedScore = report.calculatedScore ? parseFloat(report.calculatedScore).toFixed(1) : 
+    (metrics.length > 0 ? (metrics.reduce((sum, val) => sum + val, 0) / metrics.length).toFixed(1) : "N/A");
+  
+  const scorePercentage = normalizedScore !== "N/A" ? (parseFloat(normalizedScore) / 5.0) * 100 : 0;
   
   // Determine score color
   let scoreClass = 'text-yellow-600';
@@ -4088,19 +4098,51 @@ function showPerformanceReportDetail(index) {
     barColor = 'bg-red-500';
   }
   
+  // Determine flag color if present
+  let flagDisplay = '';
+  if (report.flag) {
+    const flagColors = {
+      'red': 'bg-red-100 text-red-800',
+      'yellow': 'bg-yellow-100 text-yellow-800',
+      'blue': 'bg-blue-100 text-blue-800',
+      'green': 'bg-green-100 text-green-800'
+    };
+    
+    flagDisplay = `
+      <div class="px-3 py-1 rounded-full ${flagColors[report.flag] || 'bg-gray-100 text-gray-800'} text-sm">
+        ${report.flag.toUpperCase()} FLAG
+      </div>
+    `;
+  }
+  
+  // Determine status color
+  const statusColor = report.status === 'Finalized' ? 'bg-green-100 text-green-800' :
+                     report.status === 'Hold' ? 'bg-red-100 text-red-800' :
+                     report.status === 'Flagged' ? 'bg-red-100 text-red-800' :
+                     'bg-blue-100 text-blue-800';
+  
+  // Calculate total XP awarded
+  const totalXpAwarded = report.xpAwards && report.xpAwards.length
+    ? report.xpAwards.reduce((sum, award) => sum + award.xp, 0)
+    : 0;
+  
   // Populate detail content
   document.getElementById('performanceReportDetailContent').innerHTML = `
     <div class="mb-6 pb-6 border-b border-gray-200">
       <div class="flex items-center justify-between">
         <h3 class="text-xl font-bold text-gray-800">Performance Review</h3>
-        <div class="px-3 py-1 rounded-full bg-gray-100 text-gray-800 text-sm">
-          ${report.status}
+        <div class="flex items-center space-x-2">
+          <div class="px-3 py-1 rounded-full ${statusColor} text-sm">
+            ${report.status}
+          </div>
+          ${flagDisplay}
         </div>
       </div>
       <p class="text-gray-500 mt-1">
         Period: ${new Date(report.periodStart).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} 
         to ${new Date(report.periodEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
       </p>
+      ${report.division ? `<p class="text-gray-500">Division: ${report.division}</p>` : ''}
     </div>
     
     <div class="mb-6">
@@ -4121,55 +4163,125 @@ function showPerformanceReportDetail(index) {
     <div class="grid grid-cols-2 gap-4 mb-6">
       <div class="bg-gray-50 p-4 rounded-lg">
         <p class="text-sm text-gray-500 mb-1">Evaluator</p>
-        <p class="font-medium">${report.evaluatorId ? report.evaluatorId.username || 'Unknown' : 'Unknown'}</p>
+        <p class="font-medium">${report.evaluator ? (typeof report.evaluator === 'object' ? report.evaluator.username || 'Unknown' : 'ID: ' + report.evaluator) : 'Unknown'}</p>
       </div>
       
-      <div class="bg-gray-50 p-4 rounded-lg">
-        <p class="text-sm text-gray-500 mb-1">Department</p>
-        <p class="font-medium">${report.department || 'N/A'}</p>
+      ${report.promotionRecommended !== undefined ? `
+      <div class="bg-gray-50 p-4 rounded-lg ${report.promotionRecommended ? 'border-l-4 border-green-500' : ''}">
+        <p class="text-sm text-gray-500 mb-1">Promotion Recommended</p>
+        <p class="font-medium">${report.promotionRecommended ? 'Yes' : 'No'}</p>
+      </div>
+      ` : ''}
+    </div>
+    
+    <div class="space-y-4 mb-6">
+      <h4 class="font-medium text-gray-700">Performance Metrics</h4>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ${report.communication ? `
+        <div class="bg-white border border-gray-100 rounded-lg p-3 shadow-sm">
+          <div class="flex justify-between items-center mb-2">
+            <p class="font-medium">Communication</p>
+            <span class="font-bold ${getScoreColorClass(report.communication)}">${report.communication}/5.0</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+            <div class="h-1.5 rounded-full ${getScoreBarColor(report.communication)}" style="width: ${(report.communication / 5) * 100}%"></div>
+          </div>
+        </div>
+        ` : ''}
+        
+        ${report.discipline ? `
+        <div class="bg-white border border-gray-100 rounded-lg p-3 shadow-sm">
+          <div class="flex justify-between items-center mb-2">
+            <p class="font-medium">Discipline</p>
+            <span class="font-bold ${getScoreColorClass(report.discipline)}">${report.discipline}/5.0</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+            <div class="h-1.5 rounded-full ${getScoreBarColor(report.discipline)}" style="width: ${(report.discipline / 5) * 100}%"></div>
+          </div>
+        </div>
+        ` : ''}
+        
+        ${report.teamwork ? `
+        <div class="bg-white border border-gray-100 rounded-lg p-3 shadow-sm">
+          <div class="flex justify-between items-center mb-2">
+            <p class="font-medium">Teamwork</p>
+            <span class="font-bold ${getScoreColorClass(report.teamwork)}">${report.teamwork}/5.0</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+            <div class="h-1.5 rounded-full ${getScoreBarColor(report.teamwork)}" style="width: ${(report.teamwork / 5) * 100}%"></div>
+          </div>
+        </div>
+        ` : ''}
+        
+        ${report.leadershipPotential ? `
+        <div class="bg-white border border-gray-100 rounded-lg p-3 shadow-sm">
+          <div class="flex justify-between items-center mb-2">
+            <p class="font-medium">Leadership Potential</p>
+            <span class="font-bold ${getScoreColorClass(report.leadershipPotential)}">${report.leadershipPotential}/5.0</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+            <div class="h-1.5 rounded-full ${getScoreBarColor(report.leadershipPotential)}" style="width: ${(report.leadershipPotential / 5) * 100}%"></div>
+          </div>
+        </div>
+        ` : ''}
+        
+        ${report.technicalSkill ? `
+        <div class="bg-white border border-gray-100 rounded-lg p-3 shadow-sm">
+          <div class="flex justify-between items-center mb-2">
+            <p class="font-medium">Technical Skill</p>
+            <span class="font-bold ${getScoreColorClass(report.technicalSkill)}">${report.technicalSkill}/5.0</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+            <div class="h-1.5 rounded-full ${getScoreBarColor(report.technicalSkill)}" style="width: ${(report.technicalSkill / 5) * 100}%"></div>
+          </div>
+        </div>
+        ` : ''}
       </div>
     </div>
     
     <div class="space-y-4">
-      <h4 class="font-medium text-gray-700">Performance Categories</h4>
-      
-      ${report.categories ? report.categories.map(cat => {
-        const catScore = parseFloat(cat.score).toFixed(1);
-        const catPercentage = (parseFloat(catScore) / 5.0) * 100;
-        
-        let catScoreClass = 'text-yellow-600';
-        let catBarColor = 'bg-yellow-500';
-        if (catPercentage >= 90) {
-          catScoreClass = 'text-green-600';
-          catBarColor = 'bg-green-500';
-        } else if (catPercentage >= 70) {
-          catScoreClass = 'text-blue-600';
-          catBarColor = 'bg-blue-500';
-        } else if (catPercentage < 60) {
-          catScoreClass = 'text-red-600';
-          catBarColor = 'bg-red-500';
-        }
-        
-        return `
-          <div class="bg-white border border-gray-100 rounded-lg p-3 shadow-sm">
-            <div class="flex justify-between items-center mb-2">
-              <p class="font-medium">${cat.name}</p>
-              <span class="font-bold ${catScoreClass}">${catScore}/5.0</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-1.5 mb-2">
-              <div class="h-1.5 rounded-full ${catBarColor}" style="width: ${catPercentage}%"></div>
-            </div>
-            <p class="text-sm text-gray-600 mt-2">${cat.comments || 'No comments provided.'}</p>
-          </div>
-        `;
-      }).join('') : '<p class="text-gray-500">No category details available.</p>'}
-      
-      <div class="bg-gray-50 p-4 rounded-lg mt-4">
-        <h4 class="font-medium text-gray-700 mb-2">Comments</h4>
-        <p class="text-gray-600">${report.comments || 'No additional comments provided.'}</p>
+      ${report.strengths ? `
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <h4 class="font-medium text-gray-700 mb-2">Strengths</h4>
+        <p class="text-gray-600">${report.strengths}</p>
       </div>
-    </div>
-  `;
+      ` : ''}
+      
+      ${report.weaknesses ? `
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <h4 class="font-medium text-gray-700 mb-2">Areas for Improvement</h4>
+        <p class="text-gray-600">${report.weaknesses}</p>
+      </div>
+      ` : ''}
+      
+      ${report.remarks ? `
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <h4 class="font-medium text-gray-700 mb-2">Remarks</h4>
+        <p class="text-gray-600">${report.remarks}</p>
+      </div>
+      ` : ''}
+      
+      ${report.sncoRemarks ? `
+      <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <h4 class="font-medium text-blue-700 mb-2">SNCO Remarks</h4>
+        <p class="text-blue-600">${report.sncoRemarks}</p>
+        ${report.sncoReviewer ? `<p class="text-sm text-blue-500 mt-2">Reviewed by: ${typeof report.sncoReviewer === 'object' ? report.sncoReviewer.username : 'ID: ' + report.sncoReviewer}</p>` : ''}
+        ${report.sncoReviewDate ? `<p class="text-sm text-blue-500">Date: ${new Date(report.sncoReviewDate).toLocaleDateString()}</p>` : ''}
+      </div>
+      ` : ''}
+      
+      ${report.officerComments ? `
+      <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+        <h4 class="font-medium text-indigo-700 mb-2">Officer Comments</h4>
+        <p class="text-indigo-600">${report.officerComments}</p>
+        ${report.officerReviewer ? `<p class="text-sm text-indigo-500 mt-2">Reviewed by: ${typeof report.officerReviewer === 'object' ? report.officerReviewer.username : 'ID: ' + report.officerReviewer}</p>` : ''}
+        ${report.officerReviewDate ? `<p class="text-sm text-indigo-500">Dateasync function openPromotionRequests() {
+  document.getElementById('promotionModal').classList.remove('hidden');
+  document.getElementById('promotionModal').style.opacity = '1';
+  closeRequestDetailView();
+  closeDeepSearchPanel();
+  await loadPendingPromotionRequests();
 }
 
 // Close Performance Report Detail
