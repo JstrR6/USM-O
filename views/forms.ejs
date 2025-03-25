@@ -3443,12 +3443,16 @@ document.getElementById('promotionRequestForm').addEventListener('submit', async
 });
 
 async function openPromotionRequests() {
-  document.getElementById('promotionRequestsModal').classList.remove('hidden');
-  loadPendingPromotionRequests();
+  document.getElementById('promotionModal').classList.remove('hidden');
+  closeRequestDetailView();
+  closeDeepSearchPanel();
+  await loadPendingPromotionRequests();
 }
 
 function closePromotionRequests() {
-  document.getElementById('promotionRequestsModal').classList.add('hidden');
+  document.getElementById('promotionModal').classList.add('hidden');
+  closeRequestDetailView();
+  closeDeepSearchPanel();
 }
 
 let currentRequestId = null;
