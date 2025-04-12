@@ -95,61 +95,29 @@ router.get('/dashboard', isAuthenticated, async (req, res) => {
 
 // Profile route
 router.get('/profile', isAuthenticated, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id);
-        
-        // Get user's current division
-        const division = await Division.findOne({ 'personnel.user': user._id });
-        const currentDivision = division ? {
-            name: division.name,
-            position: division.personnel?.find(p => p.user.toString() === user._id.toString())?.position || 'None'
-        } : null;
+  try {
+      const userId = req.user._id; // Get the user ID from the session
+      const user = await User.findById(userId);
 
-        // Get training history
-        const trainings = await Training.find({
-            $or: [
-                { instructor: user._id },
-                { trainees: user._id }
-            ]
-        }).sort({ createdAt: -1 });
+      if (!user) {
+          return res.status(404).send('User not found');
+      }
 
-        // Get promotion history
-        const promotions = await Promotion.find({
-            targetUser: user._id,
-            status: 'approved'
-        }).sort({ createdAt: -1 });
+      // Fetch related data (divisions, reports, actions)
+      const divisions = await Division.find({ 'personnel.user': userId });
+      const performanceReports = await PerformanceReport.find({ targetUser: userId }).populate('evaluator');
+      const disciplinaryActions = await DisciplinaryAction.find({ targetUser: userId }).populate('issuedBy');
 
-        // Get disciplinary actions for the user
-        const disciplinaryActions = await DisciplinaryAction.find({
-            targetUser: user._id
-        })
-        .populate('issuedBy', 'username')
-        .populate('officerApproval.officer', 'username')
-        .sort({ dateIssued: -1 });
-
-        // Get recent activity
-        const recentActivity = [...trainings, ...promotions, ...disciplinaryActions]
-            .sort((a, b) => b.createdAt - a.createdAt)
-            .slice(0, 5)
-            .map(activity => ({
-                date: activity.createdAt || activity.dateIssued,
-                description: activity.type || activity.reason || 'Activity'
-            }));
-
-        res.render('profile', {
-            title: 'Profile',
-            user,
-            currentDivision,
-            trainings,
-            promotions,
-            disciplinaryActions,
-            recentActivity,
-            path: req.path
-        });
-    } catch (error) {
-        console.error('Profile error:', error);
-        res.status(500).send('Error loading profile');
-    }
+      res.render('profile', {
+          user: user,
+          divisions: divisions,
+          performanceReports: performanceReports,
+          disciplinaryActions: disciplinaryActions
+      });
+  } catch (error) {
+      console.error('Profile error:', error);
+      res.status(500).send('Internal server error');
+  }
 });
 
 // Members route
