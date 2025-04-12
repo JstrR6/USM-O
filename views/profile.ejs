@@ -3,269 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %> | Military Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Profile - <%= user.username %></title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f4f4f4;
+        }
+
+        .profile-container {
+            max-width: 900px;
+            margin: 30px auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .profile-section {
+            margin-bottom: 25px;
+        }
+
+        .profile-section h2 {
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .profile-info p {
+            margin-bottom: 8px;
+        }
+
+        .table thead th {
+            background-color: #e9ecef;
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
-    <div class="min-h-screen flex">
-        <!-- Sidebar -->
-        <div class="bg-gray-800 text-white w-64 flex-shrink-0 flex flex-col">
-            <div class="px-6 py-4">
-                <h1 class="text-2xl font-semibold">Military Portal</h1>
-            </div>
-            <!-- Navigation -->
-            <nav class="flex-1 px-4 mt-6">
-                <a href="/dashboard" class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/dashboard' ? 'bg-gray-700' : '' %>">
-                    <i class="fas fa-home w-5 h-5 mr-3"></i>
-                    Dashboard
-                </a>
-                <a href="/forms" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/forms' ? 'bg-gray-700' : '' %>">
-                    <i class="fas fa-file-alt w-5 h-5 mr-3"></i>
-                    Forms
-                </a>
-                <a href="/profile" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/profile' ? 'bg-gray-700' : '' %>">
-                    <i class="fas fa-user w-5 h-5 mr-3"></i>
-                    Profile
-                </a>
-                <a href="/members" class="flex items-center px-4 py-3 mt-2 text-gray-300 hover:bg-gray-700 rounded-lg <%= path === '/members' ? 'bg-gray-700' : '' %>">
-                    <i class="fas fa-users w-5 h-5 mr-3"></i>
-                    Members
-                </a>
-            </nav>
-            <!-- User Info -->
-            <div class="px-6 py-4 border-t border-gray-700">
-                <div class="flex items-center">
-                    <div class="ml-3">
-                        <p class="text-sm font-medium"><%= user.username %></p>
-                        <p class="text-xs text-gray-400"><%= user.highestRole %></p>
-                    </div>
-                </div>
-                <a href="/logout" class="mt-4 block px-4 py-2 text-center text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg">
-                    Logout
-                </a>
-            </div>
+<body>
+    <div class="container profile-container">
+        <div class="profile-header">
+            <h1><%= user.fullName || user.username %></h1>
+            <p class="lead">Rank: <%= user.highestRole %></p>
         </div>
 
-        <!-- Main Content Container -->
-        <div class="flex-1 flex flex-col h-screen overflow-hidden">
-            <!-- Header -->
-            <header class="bg-white shadow-sm flex-shrink-0">
-                <div class="px-6 py-4">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-xl font-semibold text-gray-800">Profile</h2>
-                        <div class="flex items-center">
-                            <span class="text-gray-600"><%= new Date().toLocaleDateString() %></span>
-                        </div>
-                    </div>
-                </div>
-            </header>
+        <div class="profile-section profile-info">
+            <h2>User Information</h2>
+            <p><strong>Username:</strong> <%= user.username %></p>
+            <p><strong>XP:</strong> <%= user.xp %></p>
+            <% if (user.discordId) { %>
+                <p><strong>Discord ID:</strong> <%= user.discordId %></p>
+            <% } %>
+            <% if (user.robloxId) { %>
+                <p><strong>Roblox ID:</strong> <%= user.robloxId %></p>
+            <% } %>
 
-            <!-- Scrollable Main Content -->
-            <main class="flex-1 overflow-auto p-6">
-        <!-- Profile Header -->
-        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div class="flex items-center">
-                <div class="p-3 rounded-full bg-blue-100 text-blue-600">
-                    <i class="fas fa-user text-2xl"></i>
-                </div>
-                <div class="ml-4">
-                    <h2 class="text-2xl font-bold text-gray-900"><%= user.username %></h2>
-                    <p class="text-gray-500"><%= user.highestRole %></p>
-                </div>
-            </div>
+            <% if (divisions && divisions.length > 0) { %>
+                <p><strong>Divisions:</strong>
+                    <% divisions.forEach(division => { %>
+                        <%= division.name %><% if (divisions.indexOf(division) !== divisions.length - 1) { %>, <% } %>
+                    <% }); %>
+                </p>
+            <% } else { %>
+                <p><strong>Divisions:</strong> Not assigned to any divisions.</p>
+            <% } %>
         </div>
 
-        <!-- Tabs -->
-        <div class="mb-6 bg-white rounded-lg shadow-sm">
-            <div class="border-b border-gray-200">
-                <nav class="flex -mb-px">
-                    <button onclick="switchTab('main')" class="tab-btn active px-6 py-3 border-b-2 font-medium text-sm">
-                        Main
-                    </button>
-                    <button onclick="switchTab('training')" class="tab-btn px-6 py-3 border-b-2 font-medium text-sm">
-                        Training
-                    </button>
-                    <button onclick="switchTab('promotions')" class="tab-btn px-6 py-3 border-b-2 font-medium text-sm">
-                        Promotions
-                    </button>
-                    <button onclick="switchTab('disciplinary')" class="tab-btn px-6 py-3 border-b-2 font-medium text-sm">
-                        Disciplinary
-                    </button>
-                </nav>
-            </div>
-
-            <!-- Main Tab Content -->
-            <div id="mainTab" class="tab-content p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Stats -->
-                    <div>
-                        <h3 class="text-lg font-semibold mb-4">Statistics</h3>
-                        <div class="space-y-4">
-                            <div class="flex justify-between p-3 bg-gray-50 rounded">
-                                <span>XP</span>
-                                <span class="font-semibold"><%= user.xp || 0 %></span>
-                            </div>
-                            <div class="flex justify-between p-3 bg-gray-50 rounded">
-                                <span>Division</span>
-                                <span class="font-semibold"><%= currentDivision?.name || 'None' %></span>
-                            </div>
-                            <div class="flex justify-between p-3 bg-gray-50 rounded">
-                                <span>Position</span>
-                                <span class="font-semibold"><%= currentDivision?.position || 'None' %></span>
-                            </div>
-                            <div class="flex justify-between p-3 bg-gray-50 rounded">
-                                <span>Join Date</span>
-                                <span class="font-semibold"><%= new Date(user.dateJoined).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Recent Activity -->
-                    <div>
-                        <h3 class="text-lg font-semibold mb-4">Recent Activity</h3>
-                        <div class="space-y-4">
-                            <% recentActivity.forEach(activity => { %>
-                            <div class="flex items-center p-3 bg-gray-50 rounded">
-                                <div class="w-2 h-2 rounded-full bg-blue-500 mr-3"></div>
-                                <span class="flex-1"><%= activity.description %></span>
-                                <span class="text-sm text-gray-500">
-                                    <%= new Date(activity.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %>
-                                </span>
-                            </div>
-                            <% }) %>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Training Tab Content -->
-            <div id="trainingTab" class="tab-content hidden p-6">
-                <div class="flex justify-end mb-4">
-                    <div class="space-x-2">
-                        <button onclick="filterTrainings('all')" class="px-4 py-2 bg-gray-100 rounded">All</button>
-                        <button onclick="filterTrainings('trainee')" class="px-4 py-2 bg-gray-100 rounded">As Trainee</button>
-                        <button onclick="filterTrainings('instructor')" class="px-4 py-2 bg-gray-100 rounded">As Instructor</button>
-                    </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+        <div class="profile-section">
+            <h2>Performance Reports</h2>
+            <% if (performanceReports && performanceReports.length > 0) { %>
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered">
+                        <thead>
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">XP</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th>Date</th>
+                                <th>Evaluator</th>
+                                <th>Score</th>
+                                <th>Status</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <% trainings.forEach(training => { %>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                    <%= new Date(training.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm"><%= training.type %></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                    <%= training.instructor.toString() === user._id.toString() ? 'Instructor' : 'Trainee' %>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm"><%= training.xpAmount || 0 %> XP</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 text-xs rounded-full
-                                        <%= training.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                            training.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                            'bg-yellow-100 text-yellow-800' %>">
-                                        <%= training.status %>
-                                    </span>
-                                </td>
-                            </tr>
-                            <% }) %>
+                        <tbody>
+                            <% performanceReports.forEach(report => { %>
+                                <tr>
+                                    <td><%= report.evaluationDate.toLocaleDateString() %></td>
+                                    <td><%= report.evaluator.username %></td>
+                                    <td><%= report.score %></td>
+                                    <td><%= report.status %></td>
+                                </tr>
+                            <% }); %>
                         </tbody>
                     </table>
                 </div>
-            </div>
-
-            <!-- Promotions Tab Content -->
-            <div id="promotionsTab" class="tab-content hidden p-6">
-                <div class="space-y-6">
-                    <% promotions.forEach(promotion => { %>
-                    <div class="flex items-center p-4 bg-gray-50 rounded">
-                        <div class="p-3 rounded-full bg-blue-100 text-blue-600">
-                            <i class="fas fa-medal text-xl"></i>
-                        </div>
-                        <div class="ml-4">
-                            <h4 class="font-medium">
-                                <%= promotion.currentRank %> → <%= promotion.promotionRank %>
-                            </h4>
-                            <p class="text-sm text-gray-500">
-                                <%= new Date(promotion.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %> • 
-                                Promoted by <%= promotion.promotedBy?.username || 'Unknown' %>
-                            </p>
-                            <% if (promotion.reason) { %>
-                            <p class="text-sm text-gray-600 mt-1"><%= promotion.reason %></p>
-                            <% } %>
-                        </div>
-                    </div>
-                    <% }) %>
-                </div>
-            </div>
-
-            <!-- Disciplinary Tab Content -->
-            <div id="disciplinaryTab" class="tab-content hidden p-6">
-                <div class="space-y-4">
-                    <% disciplinaryActions.forEach(action => { %>
-                    <div class="border-l-4 border-red-500 p-4 bg-gray-50">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h4 class="font-medium">Grade <%= action.grade %> - <%= action.type %></h4>
-                                <p class="text-sm text-gray-600 mt-1"><%= action.reason %></p>
-                                <p class="text-xs text-gray-500 mt-2">
-                                    Issued by <%= action.issuedBy?.username || 'Unknown' %> on 
-                                    <%= new Date(action.dateIssued).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %>
-                                </p>
-                            </div>
-                            <span class="px-2 py-1 text-xs rounded-full
-                                <%= action.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                    action.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-red-100 text-red-800' %>">
-                                <%= action.status %>
-                            </span>
-                        </div>
-                    </div>
-                    <% }) %>
-                </div>
-            </div>
+            <% } else { %>
+                <p>No performance reports available.</p>
+            <% } %>
         </div>
-    </main>
 
-    <script>
-    function switchTab(tabName) {
-        // Update tab buttons
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('border-blue-500', 'text-blue-600', 'active');
-            btn.classList.add('border-transparent', 'text-gray-500');
-        });
-        event.target.classList.add('border-blue-500', 'text-blue-600', 'active');
-        event.target.classList.remove('border-transparent', 'text-gray-500');
-
-        // Update content
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.add('hidden');
-        });
-        document.getElementById(tabName + 'Tab').classList.remove('hidden');
-    }
-
-    function filterTrainings(type) {
-        fetch(`/api/trainings?type=${type}&userId=<%= user._id %>`)
-            .then(res => res.json())
-            .then(data => updateTrainingTable(data.trainings))
-            .catch(err => console.error('Error:', err));
-    }
-
-    // Initialize active tab
-    document.querySelector('.tab-btn.active').click();
-    </script>
+        <div class="profile-section">
+            <h2>Disciplinary Actions</h2>
+            <% if (disciplinaryActions && disciplinaryActions.length > 0) { %>
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Date Issued</th>
+                                <th>Issued By</th>
+                                <th>Reason</th>
+                                <th>Grade</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% disciplinaryActions.forEach(action => { %>
+                                <tr>
+                                    <td><%= action.dateIssued.toLocaleDateString() %></td>
+                                    <td><%= action.issuedBy.username %></td>
+                                    <td><%= action.reason %></td>
+                                    <td><%= action.grade %></td>
+                                    <td><%= action.status %></td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+            <% } else { %>
+                <p>No disciplinary actions on record.</p>
+            <% } %>
         </div>
     </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
