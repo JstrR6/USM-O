@@ -96,23 +96,27 @@ router.get('/dashboard', isAuthenticated, async (req, res) => {
 // Profile route
 router.get('/profile', isAuthenticated, async (req, res) => {
   try {
-      const userId = req.user._id; // Get the user ID from the session
+      const userId = req.user._id;
       const user = await User.findById(userId);
 
       if (!user) {
           return res.status(404).send('User not found');
       }
 
-      // Fetch related data (divisions, reports, actions)
       const divisions = await Division.find({ 'personnel.user': userId });
       const performanceReports = await PerformanceReport.find({ targetUser: userId }).populate('evaluator');
-      const disciplinaryActions = await DisciplinaryAction.find({ targetUser: userId }).populate('issuedBy');
+      const approvedPromotionRequests = await PromotionRequest.find({
+          targetUserId: userId,
+          status: 'Approved'
+      });
+      const trainings = await Training.find({ attendees: userId }); // Assuming attendees is an array of user IDs
 
       res.render('profile', {
           user: user,
           divisions: divisions,
           performanceReports: performanceReports,
-          disciplinaryActions: disciplinaryActions
+          approvedPromotionRequests: approvedPromotionRequests,
+          trainings: trainings,
       });
   } catch (error) {
       console.error('Profile error:', error);
