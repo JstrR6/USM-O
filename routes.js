@@ -10,6 +10,7 @@ const Recruitment = require('./models/recruitment');
 const { Regulation } = require('./models/regulation');
 const { DisciplinaryAction } = require('./models/disciplinary');
 const { handlePromotion } = require('./bot')
+const mongoose = require('mongoose');
 
 const RecruitmentRequest = require('./models/recruitmentrequest');
 const Division = require('./models/division');
