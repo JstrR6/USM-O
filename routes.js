@@ -852,44 +852,28 @@ router.get('/api/training/all', async (req, res) => {
 
  // HOLD route for training forms without rank check
 router.post('/api/training/:id/hold', async (req, res) => {
-    try {
-      // No authorization check - accessible to all authenticated users
-      const form = await Training.findById(req.params.id)
-        .populate('xpApproved.user', 'username');
-        
-      if (!form) {
-        return res.status(404).json({ error: 'Form not found' });
-      }
-  
-      // If already on hold, remove hold (toggle behavior)
-      if (form.status === 'HOLD') {
-        form.status = form.sncoSignature && form.officerSignature ? 'Completed' :
-                      form.sncoSignature ? 'Pending Officer Approval' : 'Pending SNCO Review';
-        form.holdReason = null;
-        form.heldBy = null;
-        await form.save();
-        return res.json({ success: true, message: 'Hold lifted.' });
-      }
-  
-      // If not already held, place on hold
-      const { reason } = req.body;
-      if (!reason) {
-        return res.status(400).json({ error: 'Reason for hold is required' });
-      }
-      
-      // Store the previous status to restore it when the hold is lifted
+  try {
+    const form = await Training.findById(req.params.id);
+    if (!form) return res.status(404).json({ error: 'Form not found' });
+
+    if (form.status === 'HOLD') {
+      form.status = form.previousStatus || 'Pending SNCO Review';
+      form.holdReason = null;
+      form.previousStatus = null;
+    } else {
+      if (!req.body.reason) return res.status(400).json({ error: 'Hold reason required' });
       form.previousStatus = form.status;
       form.status = 'HOLD';
-      form.holdReason = reason;
+      form.holdReason = req.body.reason;
       form.heldBy = req.user._id;
-  
-      await form.save();
-      res.json({ success: true, message: 'Training form placed on HOLD.' });
-    } catch (err) {
-      console.error('Error placing form on hold:', err);
-      res.status(500).json({ error: 'Server error' });
     }
-  });
+
+    await form.save();
+    res.json({ success: true, message: form.status === 'HOLD' ? 'Placed on HOLD' : 'HOLD lifted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+});
 
 // Get all users
 router.get('/api/users', isAuthenticated, async (req, res) => {
