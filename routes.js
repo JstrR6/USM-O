@@ -11,6 +11,8 @@ const { Regulation } = require('./models/regulation');
 const { DisciplinaryAction } = require('./models/disciplinary');
 const { handlePromotion } = require('./bot')
 const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 
 const RecruitmentRequest = require('./models/recruitmentrequest');
 const Division = require('./models/division');
@@ -1585,89 +1587,89 @@ router.post('/api/performance/:id/officer-update', async (req, res) => {
     
     // Generate a PDF report
     router.get('/api/performance/:id/pdf', async (req, res) => {
-    try {
-        const report = await PerformanceReport.findById(req.params.id)
-            .populate('targetUser', 'username highestRole')
-            .populate('evaluator', 'username highestRole')
-            .populate('division', 'name')
-            .populate('sncoReviewer', 'username highestRole')
-            .populate('officerSignature', 'username highestRole');
+  try {
+    const report = await PerformanceReport.findById(req.params.id)
+      .populate('targetUser', 'username highestRole')
+      .populate('evaluator', 'username highestRole')
+      .populate('division', 'name')
+      .populate('sncoReviewer', 'username highestRole')
+      .populate('officerSignature', 'username highestRole');
 
-        if (!report) {
-            return res.status(404).json({ error: 'Report not found' });
-        }
-
-        // Create a new PDF document
-        const doc = new PDFDocument({ margin: 50 });
-
-        // Set response headers
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=performance-report-${report._id}.pdf`);
-
-        // Stream PDF to the client
-        doc.pipe(res);
-
-        // Document Title
-        doc.fontSize(22).text('Performance Report', { align: 'center' }).moveDown(1);
-
-        // Report Basic Information
-        doc.fontSize(14).text(`Member: ${report.targetUser.username} (${report.targetUser.highestRole})`);
-        doc.text(`Evaluator: ${report.evaluator.username} (${report.evaluator.highestRole})`);
-        doc.text(`Division: ${report.division?.name || 'N/A'}`);
-        doc.text(`Period: ${new Date(report.periodStart).toLocaleDateString()} - ${new Date(report.periodEnd).toLocaleDateString()}`);
-        doc.text(`Date Generated: ${new Date().toLocaleDateString()}`);
-
-        doc.moveDown().strokeColor('#CCCCCC').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke().moveDown();
-
-        // Performance Scores
-        doc.fontSize(16).fillColor('#000000').text('Performance Scores:', { underline: true }).moveDown(0.5);
-        doc.fontSize(12);
-        doc.text(`- Communication: ${report.communication}/5`);
-        doc.text(`- Discipline: ${report.discipline}/5`);
-        doc.text(`- Teamwork: ${report.teamwork}/5`);
-        doc.text(`- Leadership Potential: ${report.leadershipPotential}/5`);
-        doc.text(`- Technical Skill: ${report.technicalSkill}/5`);
-
-        doc.moveDown();
-
-        // Overall Calculated Score
-        doc.fontSize(14).text(`Overall Score: ${report.calculatedScore.toFixed(2)} / 5`, { bold: true });
-
-        doc.moveDown().strokeColor('#CCCCCC').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke().moveDown();
-
-        // Remarks and Additional Information
-        doc.fontSize(16).text('Remarks:', { underline: true }).moveDown(0.5);
-        doc.fontSize(12).text(report.remarks || 'No remarks provided.', { align: 'justify' }).moveDown();
-
-        doc.fontSize(16).text('Strengths:', { underline: true }).moveDown(0.5);
-        doc.fontSize(12).text(report.strengths || 'Not specified.').moveDown();
-
-        doc.fontSize(16).text('Weaknesses:', { underline: true }).moveDown(0.5);
-        doc.fontSize(12).text(report.weaknesses || 'Not specified.').moveDown();
-
-        // Recommendations
-        doc.fontSize(16).text('Recommendations:', { underline: true }).moveDown(0.5);
-        doc.fontSize(12);
-        doc.text(`Promotion Recommended: ${report.promotionRecommended ? 'Yes' : 'No'}`);
-        doc.text(`Additional Training Recommended: ${report.additionalTraining ? 'Yes' : 'No'}`);
-        doc.text(`Disciplinary Watch: ${report.disciplinaryWatch ? 'Yes' : 'No'}`);
-        doc.text(`Recommended XP: ${report.recommendedXP || 0}`);
-
-        doc.moveDown().strokeColor('#CCCCCC').lineWidth(1).moveTo(50, doc.y).lineTo(550, doc.y).stroke().moveDown();
-
-        // SNCO and Officer Signatures
-        doc.fontSize(16).text('Review Signatures:', { underline: true }).moveDown(0.5);
-        doc.fontSize(12);
-        doc.text(`SNCO Reviewer: ${report.sncoReviewer?.username || 'Not reviewed'} (${report.sncoReviewer?.highestRole || 'N/A'})`);
-        doc.text(`Officer Signature: ${report.officerSignature?.username || 'Not finalized'} (${report.officerSignature?.highestRole || 'N/A'})`);
-
-        // Finalize and send the PDF
-        doc.end();
-
-    } catch (err) {
-        console.error('Error generating PDF:', err);
-        res.status(500).json({ error: 'Failed to generate PDF' });
+    if (!report) {
+      return res.status(404).json({ error: 'Report not found' });
     }
+
+    // Setup PDF
+    const doc = new PDFDocument({ margin: 50 });
+    const filename = `performance-report-${report._id}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    doc.pipe(res);
+
+    // Draw Logo (top-left)
+    const logoPath = path.join(__dirname, '../public/images/USAFLogo.png');
+    if (fs.existsSync(logoPath)) {
+      doc.image(logoPath, 50, 40, { width: 60 });
+    }
+
+    // Title
+    doc
+      .fontSize(20)
+      .text('PERFORMANCE REPORT', 120, 50, { align: 'left' })
+      .moveDown(1.5);
+
+    // Member Info
+    doc.fontSize(12).font('Helvetica-Bold').text('Member:', { continued: true }).font('Helvetica').text(` ${report.targetUser.username}`);
+    doc.font('Helvetica-Bold').text('Rank:', { continued: true }).font('Helvetica').text(` ${report.targetUser.highestRole}`);
+    doc.font('Helvetica-Bold').text('Evaluator:', { continued: true }).font('Helvetica').text(` ${report.evaluator.username}`);
+    if (report.division) {
+      doc.font('Helvetica-Bold').text('Division:', { continued: true }).font('Helvetica').text(` ${report.division.name}`);
+    }
+    doc.font('Helvetica-Bold').text('Period:', { continued: true }).font('Helvetica')
+      .text(` ${new Date(report.periodStart).toLocaleDateString()} - ${new Date(report.periodEnd).toLocaleDateString()}`);
+
+    doc.moveDown();
+
+    // Scoring
+    doc.fontSize(14).text('SCORING OVERVIEW', { underline: true }).moveDown(0.5);
+    doc.fontSize(12)
+      .text(`Communication:        ${report.communication}`)
+      .text(`Discipline:           ${report.discipline}`)
+      .text(`Teamwork:             ${report.teamwork}`)
+      .text(`Leadership Potential: ${report.leadershipPotential}`)
+      .text(`Technical Skill:      ${report.technicalSkill}`)
+      .text(`Total Score:          ${report.calculatedScore.toFixed(2)}`)
+      .moveDown();
+
+    // Remarks
+    doc.fontSize(14).text('EVALUATOR REMARKS', { underline: true }).moveDown(0.5);
+    doc.fontSize(12).text(report.remarks || 'None provided').moveDown();
+
+    // Recommendations
+    doc.fontSize(14).text('RECOMMENDATIONS & STATUS', { underline: true }).moveDown(0.5);
+    doc.fontSize(12)
+      .text(`Promotion Recommended:    ${report.promotionRecommended ? 'Yes' : 'No'}`)
+      .text(`Needs Additional Training: ${report.additionalTraining ? 'Yes' : 'No'}`)
+      .text(`On Disciplinary Watch:     ${report.disciplinaryWatch ? 'Yes' : 'No'}`)
+      .text(`Status:                    ${report.status}`)
+      .text(`Flag:                      ${report.flag || 'None'}`)
+      .moveDown();
+
+    // Signatures
+    doc.fontSize(14).text('SIGNATURES', { underline: true }).moveDown(0.5);
+    if (report.sncoReviewer) {
+      doc.text(`SNCO Reviewer:       ${report.sncoReviewer.username}`);
+    }
+    if (report.officerSignature) {
+      doc.text(`Officer Signature:   ${report.officerSignature.username}`);
+    }
+
+    doc.end();
+  } catch (err) {
+    console.error('Error generating PDF:', err);
+    res.status(500).json({ error: 'Failed to generate PDF' });
+  }
 });
     
     // Get performance statistics for leadership dashboard
