@@ -439,78 +439,92 @@
       </div>
 
       <!-- Training Form -->
-      <div id="form150Modal" class="modal hidden overflow-auto py-6">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl p-6 relative">
-          <button class="absolute top-3 right-3 text-gray-600 hover:text-red-600 text-xl" onclick="document.getElementById('form150Modal').classList.add('hidden')">&times;</button>
-          <h2 class="text-xl font-bold mb-4">Form 150 – Training Report</h2>
+      <div id="form150Modal" class="modal fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl overflow-y-auto max-h-[90vh] p-8 relative">
+    
+    <!-- Close Button -->
+    <button onclick="closeTrainingForm150()" class="absolute top-3 right-3 text-2xl text-gray-600 hover:text-red-500">&times;</button>
+    
+    <h2 class="text-2xl font-bold mb-6 border-b pb-2">Form 150 – Training Report</h2>
+
+    <form action="/api/training/submit" method="POST" class="space-y-6" onsubmit="return validateTraineeSelection()">
       
-          <form action="/api/training/submit" method="POST" class="space-y-4" onsubmit="return validateTraineeSelection()">
-            <!-- Trainee Live Search -->
-            <div>
-              <label class="block text-sm font-medium mb-1">Search Trainees</label>
-              <input type="text" id="traineeSearch" oninput="filterTrainees()" placeholder="Type to search..." class="w-full border border-gray-300 rounded px-3 py-2">
-              <div id="traineeSearchResults" class="mt-2 border border-gray-300 rounded bg-white max-h-40 overflow-y-auto"></div>
-              <input type="hidden" name="trainees" id="selectedTrainees">
-              <div id="selectedTraineeTags" class="flex flex-wrap gap-2 mt-2"></div>
-            </div>
-      
-            <!-- Training Event -->
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium mb-1">Start Time</label>
-                <input type="datetime-local" name="startTime" class="w-full border rounded px-3 py-2" required>
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">End Time</label>
-                <input type="datetime-local" name="endTime" class="w-full border rounded px-3 py-2" required>
-              </div>
-            </div>
-      
-            <!-- Event Name -->
-            <div>
-              <label class="block text-sm font-medium mb-1">Training Event</label>
-              <input type="text" name="eventName" class="w-full border rounded px-3 py-2" required>
-            </div>
-      
-            <!-- Grade -->
-            <div>
-              <label class="block text-sm font-medium mb-1">Overall Grade</label>
-              <div class="flex gap-4 mt-1">
-                <label><input type="radio" name="grade" value="Excellent" required> Excellent</label>
-                <label><input type="radio" name="grade" value="Satisfactory"> Satisfactory</label>
-                <label><input type="radio" name="grade" value="Needs Improvement"> Needs Improvement</label>
-              </div>
-            </div>
-      
-            <!-- Outcome -->
-            <div>
-              <label class="block text-sm font-medium mb-1">Training Outcome</label>
-              <select name="outcome" id="outcomeSelect" class="w-full border rounded px-3 py-2" required onchange="toggleOutcomeTraineeFields()">
-                <option value="">Select Outcome</option>
-                <option value="Satisfactory">Training Satisfactory</option>
-                <option value="Remedial">Remedial Training Advised</option>
-                <option value="Failed">Training Failed</option>
-              </select>
-            </div>
-      
-            <!-- Conditional Fields -->
-            <div id="remedialTrainees" class="hidden">
-              <label class="block text-sm font-medium mb-1">Trainees Needing Remedial Training</label>
-              <input type="text" name="remedialTrainees" class="w-full border rounded px-3 py-2" placeholder="e.g. JaneSmith">
-            </div>
-      
-            <div id="failedTrainees" class="hidden">
-              <label class="block text-sm font-medium mb-1">Trainees Who Failed</label>
-              <input type="text" name="failedTrainees" class="w-full border rounded px-3 py-2" placeholder="e.g. JohnDoe">
-            </div>
-      
-            <!-- Submit -->
-            <div class="text-right">
-              <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Sign and Send</button>
-            </div>
-          </form>
+      <!-- Trainee Search & Tags -->
+      <div>
+        <label class="block font-medium mb-1">Add Trainees</label>
+        <input id="traineeSearch" type="text" placeholder="Search for trainees..." class="w-full border px-4 py-2 rounded" oninput="filterTrainees()">
+        <div id="traineeSearchResults" class="mt-2 border rounded bg-white shadow max-h-32 overflow-y-auto"></div>
+        <input type="hidden" name="trainees" id="selectedTrainees">
+        <div id="selectedTraineeTags" class="mt-2 flex flex-wrap gap-2"></div>
+      </div>
+
+      <!-- Training Times -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block font-medium mb-1">Start Time</label>
+          <input type="datetime-local" name="startTime" class="w-full border px-4 py-2 rounded" required>
+        </div>
+        <div>
+          <label class="block font-medium mb-1">End Time</label>
+          <input type="datetime-local" name="endTime" class="w-full border px-4 py-2 rounded" required>
         </div>
       </div>
+
+      <!-- Training Event -->
+      <div>
+        <label class="block font-medium mb-1">Training Event Name</label>
+        <input type="text" name="eventName" placeholder="Event Name" class="w-full border px-4 py-2 rounded" required>
+      </div>
+
+      <!-- Overall Grade -->
+      <div>
+        <label class="block font-medium mb-2">Overall Grade</label>
+        <div class="flex gap-6">
+          <label class="flex items-center gap-2">
+            <input type="radio" name="grade" value="Excellent" required>
+            Excellent
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="radio" name="grade" value="Satisfactory">
+            Satisfactory
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="radio" name="grade" value="Needs Improvement">
+            Needs Improvement
+          </label>
+        </div>
+      </div>
+
+      <!-- Outcome -->
+      <div>
+        <label class="block font-medium mb-1">Training Outcome</label>
+        <select name="outcome" id="outcomeSelect" class="w-full border px-4 py-2 rounded" required onchange="toggleOutcomeTraineeFields()">
+          <option value="">Select Outcome</option>
+          <option value="Satisfactory">Satisfactory</option>
+          <option value="Remedial">Remedial Training Advised</option>
+          <option value="Failed">Failed</option>
+        </select>
+      </div>
+
+      <!-- Conditional Fields -->
+      <div id="remedialTrainees" class="hidden">
+        <label class="block font-medium mb-1">Trainees Needing Remedial Training</label>
+        <input type="text" name="remedialTrainees" placeholder="Enter usernames" class="w-full border px-4 py-2 rounded">
+      </div>
+
+      <div id="failedTrainees" class="hidden">
+        <label class="block font-medium mb-1">Trainees Who Failed</label>
+        <input type="text" name="failedTrainees" placeholder="Enter usernames" class="w-full border px-4 py-2 rounded">
+      </div>
+
+      <!-- Submit Button -->
+      <div class="text-right pt-2 border-t">
+        <button type="submit" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Sign & Submit</button>
+      </div>
+      
+    </form>
+  </div>
+</div>
 
       <div id="form150SncoModal" class="modal hidden overflow-auto py-6">
         <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl p-6 relative">
@@ -1596,12 +1610,12 @@ const RANKS = <%- JSON.stringify([
 }
 
 function openTrainingForm150() {
-    document.getElementById('form150Modal').classList.remove('hidden');
-  }
+  document.getElementById('form150Modal').classList.remove('hidden');
+}
 
-  function closeTrainingForm150() {
-    document.getElementById('form150Modal').classList.add('hidden');
-  }
+function closeTrainingForm150() {
+  document.getElementById('form150Modal').classList.add('hidden');
+}
 
 let selectedTrainees = [];
 
@@ -1617,7 +1631,7 @@ function filterTrainees() {
   matches.forEach(user => {
     const div = document.createElement('div');
     div.textContent = user.username;
-    div.className = 'px-3 py-2 cursor-pointer hover:bg-gray-100';
+    div.className = 'px-3 py-1 hover:bg-blue-100 cursor-pointer';
     div.onclick = () => addTrainee(user.username);
     results.appendChild(div);
   });
@@ -1628,24 +1642,18 @@ function addTrainee(username) {
   document.getElementById('selectedTrainees').value = selectedTrainees.join(',');
 
   const tag = document.createElement('span');
-  tag.className = 'bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm flex items-center gap-2';
-  tag.textContent = username;
-  const remove = document.createElement('button');
-  remove.type = 'button';
-  remove.innerHTML = '&times;';
-  remove.className = 'text-red-500 hover:text-red-700';
-  remove.onclick = () => removeTrainee(username, tag);
-  tag.appendChild(remove);
+  tag.className = 'inline-flex items-center gap-2 bg-blue-200 text-blue-700 rounded-full px-3 py-1 text-sm';
+  tag.innerHTML = `${username}<button class="text-red-500 ml-1" onclick="removeTrainee('${username}', this)">&times;</button>`;
 
   document.getElementById('selectedTraineeTags').appendChild(tag);
   document.getElementById('traineeSearch').value = '';
   document.getElementById('traineeSearchResults').innerHTML = '';
 }
 
-function removeTrainee(username, tagElement) {
+function removeTrainee(username, el) {
   selectedTrainees = selectedTrainees.filter(u => u !== username);
   document.getElementById('selectedTrainees').value = selectedTrainees.join(',');
-  tagElement.remove();
+  el.parentElement.remove();
 }
 
 function validateTraineeSelection() {
