@@ -3336,9 +3336,33 @@ async function awardXP() {
 
 // Export report to PDF
 function exportReportToPdf(reportId) {
-  // This is a placeholder function for exportting to PDF
-  // In a real implementation, you would call a server endpoint to generate a PDF
-  alert('PDF export functionality would be implemented here.');
+  fetch(`/api/performance/${reportId}/pdf`, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/pdf'
+    }
+  })
+  .then(async (response) => {
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Server Error: ${error}`);
+    }
+    return response.blob();
+  })
+  .then((blob) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `performance-report-${reportId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  })
+  .catch((error) => {
+    console.error('PDF export failed:', error);
+    alert(`Failed to export PDF: ${error.message}`);
+  });
 }
 
 // Show success notification
